@@ -1,0 +1,19 @@
+[Unit]
+Description=Python UI manager for the RFM69 bonnet
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/pi/pve/jacoblib/bin/python -u /home/pi/receiver/uimanager.py
+WorkingDirectory=/home/pi/receiver
+User=pi
+Restart=on-failure
+StandardOutput=file:/home/pi/receiver/uiservice.log
+StandardError=inherit
+ExecStop=/home/pi/pve/jacoblib/bin/python -u /home/pi/receiver/uishutdown.py
+
+
+[Install]
+WantedBy=multi-user.target
+
+

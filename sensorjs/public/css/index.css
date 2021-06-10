@@ -1,0 +1,81 @@
+body {
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-bottom: 2px;
+    padding-top: 70px;
+    font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  }
+  
+  :target {
+    scroll-margin-top: 5rem;
+  }
+
+  a {
+    color: #00B7FF;
+  }
+  
+  /* AXES */
+/* ticks */
+.axis line{
+  stroke: #706f6f;
+  stroke-width: 0.5;
+  shape-rendering: crispEdges;
+}
+
+/* axis contour */
+.axis path {
+  stroke: #706f6f;
+  stroke-width: 0.7;
+  shape-rendering: crispEdges;
+}
+
+/* axis text */
+.axis text {
+  fill: #2b2929;
+  font-family: Georgia;
+  font-size: 120%;
+}
+
+/* LINE CHART */
+path {
+  fill: none;
+  stroke: #404050;
+}
+
+/* Style the dots by assigning a fill and stroke */
+.dot {
+  fill: #404050;
+  stroke: #606090;
+}
+
+.tooltip {
+  background-color: rgba(255, 255, 128, .5);
+}
+
+div.main-loading {
+  background-color: white;
+  /* line-height: 200px; */
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  /* top: 10%; */
+  left: 50%;
+  border-radius: 10px;
+  z-index: 11;
+  margin: 0 auto;
+  -webkit-transform: translate(-50%);
+  -moz-transform: translate(-50%);
+  -ms-transform: translate(-50%);
+  -o-transform: translate(-50%);
+  transform: translate(-50%);
+}
+
+.spinner-border {
+  margin-top: 5em;
+} 
+
+div.main-loading div {
+  position: absolute !important;
+  top: 10%;
+  left: 40%;
+}

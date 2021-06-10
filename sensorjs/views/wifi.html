@@ -1,0 +1,71 @@
+<!--
+This file is part of sensor-pi-js a simple platform to collect and visualize
+sensor data using Raspberry Pi, wireless sensor nodes and Web technology.
+
+Copyright (C) 2021 Enrico Costanza e.costanza@ucl.ac.uk
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- local imports -->
+    <link rel="stylesheet" type="text/css" href="/static/css/index.css">
+
+    <title>Wi-Fi Configuration</title>
+  </head>
+  <body>
+    <!--
+    <div class="main-loading" style="display: block;">
+        <div>
+        Loading. Please wait.<br>
+        <div class="spinner-border align-middle" role="status">        
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        </div>
+    </div>
+    -->
+
+  <div class="container">
+    <div>
+      <div class="mb-3">
+        <label for="ssid" class="form-label">WiFi Network Name</label>
+        <input type="text" class="form-control" id="ssid" aria-describedby="ssidHelp">
+        <div id="ssidHelp" class="form-text">The name of the network you want to connect to (also known as "SSID").</div>
+      </div>
+      <div class="mb-3">
+        <label for="networkPassword" class="form-label">Network Password</label>
+        <input type="text" class="form-control" id="networkPassword">
+      </div>
+      <button id="submitBtn" class="btn btn-primary">Submit</button>
+    </div>
+  </div>
+
+    <!-- Optional JavaScript -->
+    <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
+
+    <!-- local imports -->
+    <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/wifi.js"></script>
+
+  </body>
+</html>

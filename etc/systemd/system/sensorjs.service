@@ -1,0 +1,14 @@
+[Unit]
+Description=Sensorjs Node App Service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/pi/sensorjs
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+User=root
+Environment=PORT=80
+
+[Install]
+WantedBy=multi-user.target
+

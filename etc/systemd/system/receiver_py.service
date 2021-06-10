@@ -1,0 +1,17 @@
+[Unit]
+Description=Python RFM69 receiver
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/pi/pve/jacoblib/bin/python -u /home/pi/receiver/receiver.py
+WorkingDirectory=/home/pi/receiver
+User=pi
+Restart=on-failure
+StandardOutput=file:/home/pi/receiver/service.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
+
+
