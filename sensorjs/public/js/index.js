@@ -37,9 +37,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let showAll = false;
     if (URLSearch.has('showAll')) {
         const showAllParam = URLSearch.get('showAll').toLowerCase();
-        if (showAllParam.toLowerCase() === 'true') {
-            showAll = true;
-        }
+        showAll = (showAllParam.toLowerCase() === 'true') 
     }
     
     // "2021-04-20T18:58:19.288Z"
@@ -84,6 +82,11 @@ document.addEventListener("DOMContentLoaded", function() {
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}`;
         if (endMinutes > 0) {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
+        }
+        if (showAll === true) {
+            dataUrl = dataUrl + `&showAll=true`;
+        } else {
+            dataUrl = dataUrl + `&recent=false`;
         }
 
         const barW = 20;
@@ -358,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }).then(function (data) {
         console.log('settime post response:', data);
 
-        let seriesUrl = '/series/?recent=true';
+        let seriesUrl = '/series/?showAll=true';
         if (showAll === true) {
             seriesUrl = '/series/';
         }

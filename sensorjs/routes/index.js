@@ -61,10 +61,7 @@ router.get('/', function(req, res) {
 // });
 
 router.get('/series/', function(req, res) {
-  let recentOnly = false;
-  if (req.query.recent !== undefined) {
-    recentOnly = true;
-  }
+  const recentOnly = !(req.query.showAll !== 'true');
 
   const uptime = os.uptime();
   const offset = (new Date()).getTimezoneOffset() * 60 * 1000;
@@ -181,8 +178,8 @@ function parseRequestParameters(req) {
   if (req.query.points !== undefined) {
     points = +req.query.points;
   }
-  if (req.query.recent !== undefined) {
-    recentOnly = false;
+  if (req.query.showAll !== undefined) {
+    recentOnly = !(req.query.showAll === 'true');
   }
 
   return {
