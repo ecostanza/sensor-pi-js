@@ -53,6 +53,9 @@ router.get('/', function(req, res) {
 
 });
 
+router.get('/favicon.ico', function(req, res) {
+  res.redirect('/static/favicon.ico');
+})
 
 // router.get('/measurements/', function(req, res) {
 //   influx.query('SHOW MEASUREMENTS')
