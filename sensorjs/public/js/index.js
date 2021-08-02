@@ -118,9 +118,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // console.log(series.name, 'min, max', response.min, response.max);
             // console.log(response);
+            let offset = 0;
+            if (series.name === 'Temperature') {
+                offset = -3.2;
+            }
 
             data = data.map(function (d) {
-                let v = +d.value;
+                let v = +d.value + offset;
                 if (d.value === null) {
                     v = null;
                 }
