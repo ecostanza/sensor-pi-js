@@ -224,12 +224,21 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                         const y = yScale(d.value) - 20;
                         let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
+
+                        // let name = '';
+                        if (series.name in unitLUT) {
+                            txt = txt + ' ' + unitLUT[series.name];
+                        }
                         // console.log(txt);
                         
                         tooltip.selectAll("text")
                             .data([null])
                             .join("text")
                             .text(txt);
+                        
+                        const txt_w = tooltip.selectAll("text").node().getBBox().width;
+                        tooltip.selectAll("rect")
+                            .attr('width', txt_w + 10);
 
                         tooltip
                             .style('display', 'block')
