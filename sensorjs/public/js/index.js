@@ -39,6 +39,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const showAllParam = URLSearch.get('showAll').toLowerCase();
         showAll = (showAllParam.toLowerCase() === 'true') 
     }
+
+    const unitLUT = {
+        "Temperature": '\xB0C',
+        "Humidity": '%',
+        "CO2": 'ppm',
+        "TVOC": 'ppb',
+        "PM 10.0": 'per 0.1L air',
+        "PM 1.0": 'per 0.1L air',
+        "PM 2.5": 'per 0.1L air'
+    };
+
+    const nameLUT = {
+        "pm100_env": 'PM 10.0',
+        "pm10_env": 'PM 1.0',
+        "pm25_env": 'PM 2.5'
+    };
     
     // "2021-04-20T18:58:19.288Z"
     let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
@@ -54,11 +70,15 @@ document.addEventListener("DOMContentLoaded", function() {
     d3.select('body').style('padding-top',navbarHeight+'px');
 
     const appendSvg = function (measurement) {
+        let name = measurement.name;
+        // if (name in unitLUT) {
+        //     name = `${name} (${unitLUT[name]})`;
+        // }
 
         d3.select("div#container")
             .append("h4")
             .attr('id', measurement.id)
-            .text(measurement.name);
+            .text(name);
 
         d3.select("div#container")
             .append("svg")
@@ -146,6 +166,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("dy", ".15em")
                     .attr("transform", "rotate(-45)");
         
+            let label = series.name;
+            if (label in unitLUT) {
+                label = `${label} (${unitLUT[label]})`;
+            }
+    
             svg.append("g")
                 .attr("class", "axis")
                 .call(yAxis)
@@ -154,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("dy", ".75em")
                     .attr("y", 6)
                     .style("text-anchor", "end")
-                    .text(series.name);
+                    .text(label);
 
 
             const tooltip = svg.append('g')
@@ -424,6 +449,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (allSensors.length === 1) {
                     name = item.measurement;
                 }
+                if (name in nameLUT) {
+                    name = nameLUT[name];
+                } 
                 name = capitalize(name);
                 
                 return {
@@ -461,7 +489,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .append('a')
                     .attr('class', "dropdown-item")
                     .attr('href', d => '#' + d.id)
-                    .html(d => d.name)
+                    .html(function (d) { return d.name; })
                     .on('click', d => {
                         d3.select('h4#' + d.id)
                             .node()
