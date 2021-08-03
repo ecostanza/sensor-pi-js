@@ -146,7 +146,7 @@ document.addEventListener("DOMContentLoaded", function() {
             );
             let yScale = d3.scaleLinear(
                 // [(0), 1.1 * d3.max(data, d => +d.value)],
-                [(0.9 * response.min), 1.1 * response.max],
+                [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
                 [height, 0]
             );
             
@@ -171,8 +171,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("transform", "rotate(-45)");
         
             let label = series.name;
+            if (label.includes(' (sensor')) {
+                label = label.split(' (sensor')[0];
+            }
             if (label in unitLUT) {
-                label = `${label} (${unitLUT[label]})`;
+                label = `${series.name} (${unitLUT[label]})`;
+            } else {
+                label = series.name;
             }
     
             svg.append("g")
@@ -458,13 +463,13 @@ document.addEventListener("DOMContentLoaded", function() {
             // TODO: consider the case of one sensor per measurement type
             allSeries = allSeries.map(function (item) {
                 const id = `${item.measurement}_${item.sensor_id}`;
-                let name = `${item.measurement} (sensor #${item.sensor_id})`;
-                if (allSensors.length === 1) {
-                    name = item.measurement;
-                }
+                let name = item.measurement;
                 if (name in nameLUT) {
                     name = nameLUT[name];
                 } 
+                if (allSensors.length > 1) {
+                    name = `${name} (sensor #${item.sensor_id})`;
+                }
                 name = capitalize(name);
                 
                 return {
