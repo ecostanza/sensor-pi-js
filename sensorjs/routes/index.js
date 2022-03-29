@@ -53,6 +53,22 @@ router.get('/', function(req, res) {
 
 });
 
+/* GET home page. */
+router.get('/check', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 * free_ratio).toFixed()}%`;
+  
+    res.render('check.html', { 
+      title: 'Check',
+      free: free
+    });
+
+  });
+
+});
+
+
 router.get('/favicon.ico', function(req, res) {
   res.redirect('/static/favicon.ico');
 })
@@ -64,9 +80,13 @@ router.get('/favicon.ico', function(req, res) {
 // });
 
 router.get('/series/', function(req, res) {
-  const recentOnly = !(req.query.showAll !== 'true');
+  const recentOnly = !(req.query.showAll === 'true');
+  const recentDays = req.query.days;
 
-  const uptime = os.uptime();
+  let uptime = os.uptime();
+  if (recentDays !== undefined) {
+    uptime = recentDays * 24 * 60 * 60;
+  }
   const offset = (new Date()).getTimezoneOffset() * 60 * 1000;
   const recentTs = Date.now() - offset - uptime * 1000;
 
@@ -92,15 +112,7 @@ router.get('/series/', function(req, res) {
 
 });
 
-function runValuesAndRangeQuery (res, query, measurement) {
-  const uptime = os.uptime();
-  const rangeQuery = `
-    SELECT MIN("value"), MAX("value")
-    FROM "${measurement}"
-    WHERE 
-    time >= now() - ${uptime}s
-  `;
-
+function runValuesAndRangeQuery (res, valuesQuery, rangeQuery) {
   influx.query(rangeQuery)
     .then( rangeResult => {
       // console.log('rangeResult[0]', rangeResult[0]);
@@ -110,7 +122,7 @@ function runValuesAndRangeQuery (res, query, measurement) {
         min = rangeResult[0].min;
         max = rangeResult[0].max;
       }
-      influx.query(query)
+      influx.query(valuesQuery)
       .then( result => res.json({
         readings: result,
         min: min,
@@ -129,8 +141,8 @@ function runValuesAndRangeQuery (res, query, measurement) {
   
 }
 
-function buildValuesQuery(start, end, points, measurement, sensor_id, recentOnly) {
-  const offset = (new Date()).getTimezoneOffset() * 60 * 1000;
+function buildQueries(start, end, points, measurement, sensor_id, recentOnly) {
+  const offset = 0;//(new Date()).getTimezoneOffset() * 60 * 1000;
   const startTs = Date.now() - offset - start * 60 * 1000;
   const endTs = Date.now() - offset - end * 60 * 1000;
 
@@ -143,14 +155,14 @@ function buildValuesQuery(start, end, points, measurement, sensor_id, recentOnly
   const interval = Math.ceil(deltaMinutes / points);
 
   const select = 'SELECT "time", mean("value") as "value"';
-  const  groupBy = `GROUP BY time(${interval}m)`;
+  const groupBy = `GROUP BY time(${interval}m)`;
 
   const uptime = os.uptime();
   let recent = `time >= now() - ${uptime}s AND`;
   if (recentOnly === false) {
     recent = '';
   }
-  const query = `
+  const valuesQuery = `
     ${select}
     FROM "${measurement}"
     WHERE 
@@ -161,9 +173,22 @@ function buildValuesQuery(start, end, points, measurement, sensor_id, recentOnly
     ${groupBy}
   `;
 
+  const rangeQuery = `
+    SELECT MIN("value"), MAX("value")
+    FROM "${measurement}"
+    WHERE 
+    ${bySensor}
+    time >= ${startTs}ms AND 
+    ${recent}
+    time < ${endTs}ms 
+  `;
+
 //  console.log(query);
 
-  return query;
+  return {
+    'valuesQuery': valuesQuery,
+    'rangeQuery': rangeQuery
+  };
 }
 
 function parseRequestParameters(req) {
@@ -196,8 +221,8 @@ function parseRequestParameters(req) {
 const getDataByMeasurementAndSensor = function (req, res, measurement, sensor_id) {
   let {start, end, points, recentOnly} = parseRequestParameters(req);
 
-  const query = buildValuesQuery(start, end, points, measurement, sensor_id, recentOnly);
-  runValuesAndRangeQuery(res, query, measurement);
+  const q = buildQueries(start, end, points, measurement, sensor_id, recentOnly);
+  runValuesAndRangeQuery(res, q.valuesQuery, q.rangeQuery);
 };
 
 // TODO: combine this function with the one below

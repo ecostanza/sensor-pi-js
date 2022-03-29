@@ -1,0 +1,69 @@
+<!--
+This file is part of sensor-pi-js a simple platform to collect and visualize
+sensor data using Raspberry Pi, wireless sensor nodes and Web technology.
+
+Copyright (C) 2021 Enrico Costanza e.costanza@ucl.ac.uk
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- local imports -->
+    <link rel="stylesheet" type="text/css" href="/static/css/index.css">
+
+    <title>Sensor Data Home</title>
+  </head>
+  <body>
+    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+
+    </div> <!-- navbar -->
+    </nav> <!-- container-fluid -->
+
+    <div class="main-loading" style="display: block;">
+        <div>
+        Loading. Please wait.<br>
+        <div class="spinner-border align-middle" role="status">        
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        </div>
+    </div>
+
+    <div id="container" class="svg-container"></div>
+      <table id="series-info" class="table">
+      </table>
+    <div>
+      Available disk space: {{ free }} 
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
+
+    <!-- local imports -->
+    <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/luxon.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/humanize-duration.js"></script>
+    <script type="text/javascript" src="/static/js/check.js"></script>
+
+  </body>
+</html>
