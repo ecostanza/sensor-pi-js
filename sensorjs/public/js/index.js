@@ -39,6 +39,10 @@ document.addEventListener("DOMContentLoaded", function() {
         const showAllParam = URLSearch.get('showAll').toLowerCase();
         showAll = (showAllParam.toLowerCase() === 'true') 
     }
+    let daysParam = undefined;
+    if (URLSearch.has('days')) {
+        daysParam = URLSearch.get('days');
+    }
 
     const unitLUT = {
         "Temperature": '\xB0C',
@@ -57,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function() {
     };
     
     // "2021-04-20T18:58:19.288Z"
-    let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
+    //let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
 
     // from https://stackoverflow.com/a/1026087/6872193
     function capitalize(string) {
@@ -119,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function() {
             // console.log(series.name, 'min, max', response.min, response.max);
             // console.log(response);
             let offset = 0;
-            if (series.name === 'Temperature') {
+            if (series.name.startsWith('Temperature')) {
                 offset = -3.2;
             }
 
@@ -129,7 +133,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     v = null;
                 }
                 return {
-                    time: timeConv(d.time),
+                    time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
                     value: v
                 }
             });
@@ -218,6 +222,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("width", 10) //x.rangeBand())
                     .attr("y", function(d) { return yScale(d.value); })
                     .attr("height", function(d) {
+                        if (height - yScale(d.value) < 0) {
+                            console.log(d);
+                            return 0;
+                        } 
                         if (d.value === null) {
                             return 0;
                         } else {
@@ -404,9 +412,13 @@ document.addEventListener("DOMContentLoaded", function() {
     }).then(function (data) {
         console.log('settime post response:', data);
 
+        // TODO: check this if statement, it looks incorrect
         let seriesUrl = '/series/?showAll=true';
-        if (showAll === true) {
+        if (showAll !== true) {
             seriesUrl = '/series/';
+        }
+        if (daysParam !== undefined) {
+            seriesUrl = seriesUrl + '&days=' + daysParam;
         }
 
         d3.json(seriesUrl).then(function (allSeries) {
