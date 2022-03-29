@@ -30,14 +30,6 @@ from influxdb import InfluxDBClient
 from RFM69 import Radio, FREQ_433MHZ
 
 
-# from https://stackoverflow.com/a/19238551/6872193
-def utc2local(utc):
-    epoch = time.mktime(utc.timetuple())
-    offset = datetime.datetime.fromtimestamp(epoch) - datetime.datetime.utcfromtimestamp(epoch)
-    return utc + offset
-
-
-
 # Sensor codes
 # 0	no data
 # 1	temperature
@@ -55,6 +47,7 @@ def utc2local(utc):
 # 13	particles_25um
 # 14	particles_50um
 # 15	particles_100um
+# 20	electricity_consumption
 # 22    eCO2_base
 # 23    TVOC_base
 
@@ -78,6 +71,8 @@ datatype_LUT = {
     17: ('eCO2', 'ushort'),
     18: ('rawH2', 'ushort'),
     19: ('rawEthanol', 'ushort'),
+
+    20: ('electricity_consumption', 'float'),
 
     21: ('battery', 'ushort'),
 
@@ -133,7 +128,7 @@ with Radio(
             # Process packets
             for packet in radio.get_packets():
                 print ('packet', packet)
-                time_received = utc2local(packet.received)
+                time_received = packet.received
                 print(time_received)
                 #print ('data', packet.data_string)
                 # decode data buffer
