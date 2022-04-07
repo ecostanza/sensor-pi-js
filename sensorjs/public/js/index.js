@@ -125,9 +125,11 @@ document.addEventListener("DOMContentLoaded", function() {
             // console.log(series.name, 'min, max', response.min, response.max);
             // console.log(response);
             let offset = 0;
-            if (series.name.startsWith('Temperature')) {
-                offset = -3.2;
-            }
+            // TODO: find a better way to deal with the temperature offset of 
+            // the air quality node
+            // if (series.name.startsWith('Temperature')) {
+            //     offset = -3.2;
+            // }
 
             data = data.map(function (d) {
                 let v = +d.value + offset;
