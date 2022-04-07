@@ -95,7 +95,8 @@ double sum;
 double readings_sum;
 unsigned int curr_readings = 0;
 #define N_READINGS 10
-#define READING_PERIOD 3000
+#define READING_PERIOD 30000
+//#define READING_PERIOD 60000
 
 unsigned long start;
 
@@ -149,6 +150,8 @@ void loop() {
   for (int i=0; i < N_SAMPLES; i++) {
     value = analogRead(ADC_PIN);
     offsetValue = offsetValue + ((value-offsetValue) / 1024);
+    // TODO: check if the following works (and whether it makes a substantial difference in power consumption)
+    // offsetValue = offsetValue + (((value << 10)-offsetValue) >> 1024);
     filteredValue = value - offsetValue;
     sq_value = filteredValue * filteredValue;
     // TODO: filter values that are off?
@@ -200,7 +203,7 @@ void loop() {
   //delay(30000);
   //Watchdog.sleep(30000);
   int toSleep = READING_PERIOD - delta;
-  if (toSleep > 0) {
+  while (toSleep > 0) {
     //delay(READING_PERIOD - delta);
     int slept = Watchdog.sleep(toSleep);
     toSleep -= slept;
