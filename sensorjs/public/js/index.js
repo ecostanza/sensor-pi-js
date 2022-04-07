@@ -34,7 +34,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const adj = 30;
 
     const URLSearch = new URLSearchParams(window.location.search);
-    let showAll = false;
+    // let showAll = false;
+    let showAll = true;
     if (URLSearch.has('showAll')) {
         const showAllParam = URLSearch.get('showAll').toLowerCase();
         showAll = (showAllParam.toLowerCase() === 'true') 
@@ -102,6 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
         // console.log('start:', startMinutes, 'end:', endMinutes);
+        // console.log('loading', series);
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}`;
         if (endMinutes > 0) {
@@ -400,6 +402,7 @@ document.addEventListener("DOMContentLoaded", function() {
     );
 
     let loadData = undefined;
+    let _series = [];
 
     d3.select('#laterBtn').node().disabled = true;
 
@@ -498,33 +501,56 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             }
             
-            allSeries.forEach(m => appendSvg(m));
+            // allSeries.forEach(m => appendSvg(m));
 
             loadData = function () {
+                d3.select("div#container").selectAll('svg').remove();
+                d3.select("div#container").selectAll('h4').remove();
+                _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
-                const promises = allSeries.map(m => loadMeasurementData(m));
+                const promises = _series.map(m => loadMeasurementData(m));
                 Promise.all(promises).then(function () {
                     console.log('all loaded');
                     d3.select('div.main-loading').style('display', 'none');
                 });
             };
 
+            _series = allSeries.map(function (d) {return d;});
+
             loadData();
 
-            d3.select('ul#jumpToMenu')
-                .selectAll('li')
-                .data(allSeries)
+            d3.select('select#measurementSelect')
+                .selectAll('option')
+                .data(allMeasurements)
                 .enter()
-                .append('li')
-                    .append('a')
-                    .attr('class', "dropdown-item")
-                    .attr('href', d => '#' + d.id)
-                    .html(function (d) { return d.name; })
-                    .on('click', d => {
-                        d3.select('h4#' + d.id)
-                            .node()
-                            .scrollIntoView({behavior: "smooth", block: "center"});
-                    });
+                .append('option')
+                    .attr('value', function (d) {return d; } )
+                    .html(function (d) { return d; });
+
+            d3.select('select#sensorSelect')
+                .selectAll('option')
+                .data(allSensors)
+                .enter()
+                .append('option')
+                    .attr('value', function (d) {return d; } )
+                    .html(function (d) { return d; });
+
+            let handle_select = function () {
+                const measurement = d3.select('select#measurementSelect').node().value;
+                const sensor_id = d3.select('select#sensorSelect').node().value;
+                _series = allSeries.map(function (serie) {return serie;});
+                if (measurement !== 'Any Measurement') {
+                    _series = _series.filter(function (serie) {return serie.measurement === measurement;});
+                }
+                if (sensor_id !== 'Any Sensor') {
+                    _series = _series.filter(function (serie) {return serie.sensor_id === sensor_id;});
+                }
+                loadData();
+            };
+            
+            d3.select('select#measurementSelect').on('change', handle_select);
+            d3.select('select#sensorSelect').on('change', handle_select);
+                    
         });
     });
 

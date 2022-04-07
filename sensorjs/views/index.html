@@ -36,19 +36,13 @@ this program. If not, see <http://www.gnu.org/licenses/>.
   <body>
     <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <div class="dropdown">
-            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
-                Jump to..
-            </a>
+        <select class="form-select" id="measurementSelect" aria-label="Select measurement">
+            <option selected>Any Measurement</option>
+        </select>
 
-            <ul class="dropdown-menu" id="jumpToMenu" aria-labelledby="dropdownMenuLink">
-            <!--
-                <li><a class="dropdown-item" href="#">Temperature</a></li>
-                <li><a class="dropdown-item" href="#">Humidity</a></li>
-                <li><a class="dropdown-item" href="#">CO2</a></li>
-            -->
-            </ul>
-        </div>    
+        <select class="form-select" id="sensorSelect" aria-label="Select sensor">
+            <option selected>Any Sensor</option>
+        </select>
 
         <!--
         <div class="btn-group" role="group" id="sortRadio" aria-label="Basic radio toggle button group">
