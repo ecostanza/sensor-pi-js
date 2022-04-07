@@ -23,7 +23,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
 
     <!-- Bootstrap CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
@@ -36,19 +36,13 @@ this program. If not, see <http://www.gnu.org/licenses/>.
   <body>
     <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <div class="dropdown">
-            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
-                Jump to..
-            </a>
+        <select class="form-select" id="measurementSelect" aria-label="Select measurement">
+            <option selected>Any Measurement</option>
+        </select>
 
-            <ul class="dropdown-menu" id="jumpToMenu" aria-labelledby="dropdownMenuLink">
-            <!--
-                <li><a class="dropdown-item" href="#">Temperature</a></li>
-                <li><a class="dropdown-item" href="#">Humidity</a></li>
-                <li><a class="dropdown-item" href="#">CO2</a></li>
-            -->
-            </ul>
-        </div>    
+        <select class="form-select" id="sensorSelect" aria-label="Select sensor">
+            <option selected>Any Sensor</option>
+        </select>
 
         <!--
         <div class="btn-group" role="group" id="sortRadio" aria-label="Basic radio toggle button group">
@@ -91,7 +85,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
         </div>
     </div>
 
-    <div id="container" class="svg-container"></div>
+    <div id="container" class="svg-container row"></div>
 
     <div>
       Available disk space: {{ free }} 
@@ -102,6 +96,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 
     <!-- local imports -->
     <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/luxon.min.js"></script>
     <script type="text/javascript" src="/static/js/index.js"></script>
 
   </body>
