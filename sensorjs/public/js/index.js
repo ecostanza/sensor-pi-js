@@ -27,8 +27,10 @@ document.addEventListener("DOMContentLoaded", function() {
     let endMinutes = 0;
     //step = deltaMinutes / 4
     
-    let width = window.innerWidth;
-    let height = width / 2;
+
+    let svgWidth = window.innerWidth;
+    let svgHeight = svgWidth / 2;
+    
     const margin = 5;
     const padding = 5;
     const adj = 30;
@@ -74,28 +76,37 @@ document.addEventListener("DOMContentLoaded", function() {
     const navbarHeight = bbox.height;
     d3.select('body').style('padding-top',navbarHeight+'px');
 
+    /*Creates graph container with the SVG & its title*/
     const appendSvg = function (measurement) {
         let name = measurement.name;
         // if (name in unitLUT) {
         //     name = `${name} (${unitLUT[name]})`;
         // }
 
-        d3.select("div#container")
+        svgContainer = d3.select("div#container")
+            .append("div")
+            .attr('class','graphContainer col-xl-4 col-lg-6 col-12')
+        
+        svgContainer
             .append("h4")
             .attr('id', measurement.id)
             .text(name);
 
-        d3.select("div#container")
+        svgWidth = d3.selectAll('.graphContainer').node().getBoundingClientRect().width;
+        svgHeight = svgWidth/2;
+
+         svgContainer
             .append("svg")
             .attr('id', measurement.id + 'Chart')
             .attr("preserveAspectRatio", "xMinYMin meet")
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
                 + adj + " "
-                + (width + adj *3) + " "
-                + (height + adj*4))
+                + (svgWidth + adj *3) + " "
+                + (svgHeight + adj*4))
             .style("padding", padding)
             .style("margin", margin)
+            // .style("max-width", 600)
             .classed("svg-content", true);
     };
 
@@ -116,229 +127,246 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         const barW = 20;
-        const nPoints = Math.floor(width / barW);
+        const nPoints = Math.floor(svgWidth / barW);
         dataUrl += `&points=${nPoints}`;
 
         return d3.json(dataUrl).then(function (response) {
-            let data = response.readings;
-
-            // console.log(series.name, 'min, max', response.min, response.max);
-            // console.log(response);
-            let offset = 0;
-            // TODO: find a better way to deal with the temperature offset of 
-            // the air quality node
-            // if (series.name.startsWith('Temperature')) {
-            //     offset = -3.2;
-            // }
-
-            data = data.map(function (d) {
-                let v = +d.value + offset;
-                if (d.value === null) {
-                    v = null;
-                }
-                return {
-                    time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
-                    value: v
-                }
-            });
-
-            // console.log('filtered');
-            // console.log(data);
-
-            //const bisectTime = d3.bisector(function(d) { return d.time; }).left;
-            const tzOffset = 0;//(new Date()).getTimezoneOffset() * 60000;
-
-            let xScale = d3.scaleTime(
-                d3.extent(data, d => new Date(d.time.getTime() - tzOffset)),
-                [0, width]
-            );
-            let yScale = d3.scaleLinear(
-                // [(0), 1.1 * d3.max(data, d => +d.value)],
-                [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
-                [height, 0]
-            );
-            
-            let xAxis = d3.axisBottom()
-                .ticks(5)
-                .tickFormat(d3.timeFormat('%b %d %H:%M'))
-                .scale(xScale);
-            let yAxis = d3.axisLeft()
-                .scale(yScale); 
-            
-            let svg = d3.select('svg#' + series.id + 'Chart');
-            svg.selectAll("*").remove();
-
-            svg.append("g")
-                .attr("class", "axis")
-                .attr("transform", "translate(0," + height + ")")
-                .call(xAxis)
-                    .selectAll("text")	
-                    .style("text-anchor", "end")
-                    .attr("dx", "-.8em")
-                    .attr("dy", ".15em")
-                    .attr("transform", "rotate(-45)");
-        
-            let label = series.name;
-            if (label.includes(' (sensor')) {
-                label = label.split(' (sensor')[0];
-            }
-            if (label in unitLUT) {
-                label = `${series.name} (${unitLUT[label]})`;
-            } else {
-                label = series.name;
-            }
-    
-            svg.append("g")
-                .attr("class", "axis")
-                .call(yAxis)
-                .append("text")
-                    .attr("transform", "rotate(-90)")
-                    .attr("dy", ".75em")
-                    .attr("y", 6)
-                    .style("text-anchor", "end")
-                    .text(label);
-
-
-            const tooltip = svg.append('g')
-                .style('display', 'none');
-
-            tooltip
-                .append('rect')
-                .style('display', 'block')
-                .attr('x', 0)
-                .attr('y', -20)
-                .attr('width', 140)
-                .attr('height', 20)
-                .attr('fill', 'rgba(240, 240, 240, .7)');
-
-            tooltip
-                .append('text')
-                .style('display', 'block')
-                .attr('x', 5)
-                .attr('y', -5)
-                .text('hello');
-
-            svg.selectAll('rect')
-                .data(data)
-                .enter().append("rect")
-                    .style("fill", "steelblue")
-                    .attr("x", function(d) { return xScale(new Date(d.time.getTime() - tzOffset)); })
-                    .attr("width", 10) //x.rangeBand())
-                    .attr("y", function(d) { return yScale(d.value); })
-                    .attr("height", function(d) {
-                        if (height - yScale(d.value) < 0) {
-                            console.log(d);
-                            return 0;
-                        } 
-                        if (d.value === null) {
-                            return 0;
-                        } else {
-                            return height - yScale(d.value);
-                        }
-                    })
-                    .on("touchmove mousemove", function (event, d) {
-                        // console.log(event, d);
-                        const time = new Date(d.time.getTime() - tzOffset);
-                        let x = xScale(time);
-                        if (x > (width - 140)) {
-                            x -= 130;
-                        }
-                        const y = yScale(d.value) - 20;
-                        let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
-
-                        // let name = '';
-                        if (series.name in unitLUT) {
-                            txt = txt + ' ' + unitLUT[series.name];
-                        }
-                        // console.log(txt);
-                        
-                        tooltip.selectAll("text")
-                            .data([null])
-                            .join("text")
-                            .text(txt);
-                        
-                        const txt_w = tooltip.selectAll("text").node().getBBox().width;
-                        tooltip.selectAll("rect")
-                            .attr('width', txt_w + 10);
-
-                        tooltip
-                            .style('display', 'block')
-                            .attr("transform", `translate(${x},${y})`)
-                            .raise();
-                    })
-                    .on("touchend mouseleave touchcancel", function() {
-                        //console.log('mouseleave');
-                        tooltip.style('display', 'none');
-                    });
-            
-            /*
-            svg.selectAll('circle')
-                .data(data)
-                .enter().append("circle")
-                    .attr("class", "dot")
-                    .attr("cx", d => xScale(new Date(d.time.getTime() - tzOffset)))
-                    .attr("cy", d => yScale(d.value))
-                    .attr('r', function (d) {
-                        if (d.value !== null) {
-                            return 3;
-                        } else {
-                            return 0;
-                        }
-                    });
-
-            let line = d3.line()
-                .defined(d => (d.value) && (d.value !== null))
-                .x(d => xScale(new Date(d.time.getTime() - tzOffset)))
-                .y(d => yScale(d.value));
-            
-            svg.append("path")
-                .datum(data)
-                .attr("d", line);
-            */
-
-            // const tooltip = svg.append('g');
-
-            // tooltip
-            //     .append('rect')
-            //     .attr('x', 0)
-            //     .attr('y', -20)
-            //     .attr('width', 140)
-            //     .attr('height', 20)
-            //     .attr('fill', 'rgba(240, 240, 240, .7)');
-
-            // tooltip
-            //     .append('text')
-            //     .attr('x', 5)
-            //     .attr('y', -5)
-            //     .style('display', 'none')
-            //     .text('hello');
-
-            // svg.on("touchmove mousemove", function(event) {
-            //     const x = d3.pointer(event, this)[0];
-            //     const time = xScale.invert(x);
-            //     const index = bisectTime(data, time);
-            //     if (index === undefined || data[index] === undefined) {return;}
-            //     const value = data[index].value;
-            //     const y = yScale(value);
-
-            //     // console.log(x, time, index, value, y);
-
-            //     tooltip.selectAll("text")
-            //         .data([null])
-            //         .join("text")
-            //         .text(`${d3.timeFormat('%b %d %H:%M')(time)}, ${value.toFixed(1)}`);
-
-            //     tooltip
-            //         .style('display', null)
-            //         .attr("transform", `translate(${x},${y})`);
-            //     //     .call(callout, `${formatValue(value)} ${formatDate(date)}`);
-            // });
-            
-            // svg.on("touchend mouseleave touchcancel", function() {
-            //     tooltip.style('display', 'none');
-            // });
-                                
+            drawGraphs(response,series);
         });
+    }
+
+    function drawGraphs (response,series){
+
+        let data = response.readings;
+
+        // console.log(series.name, 'min, max', response.min, response.max);
+
+        let offset = 0;
+        // TODO: find a better way to deal with the temperature offset of 
+        // the air quality node
+        // if (series.name.startsWith('Temperature')) {
+        //     offset = -3.2;
+        // }
+
+        data = data.map(function (d) {
+            let v = +d.value + offset;
+            if (d.value === null) {
+                v = null;
+            }
+            return {
+                time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
+                value: v
+            }
+        });
+
+        // console.log('filtered');
+        // console.log(data);
+
+        //const bisectTime = d3.bisector(function(d) { return d.time; }).left;
+        const tzOffset = 0;//(new Date()).getTimezoneOffset() * 60000;
+
+        let xScale = d3.scaleTime(
+            d3.extent(data, d => new Date(d.time.getTime() - tzOffset)),
+            [0, svgWidth]
+        );
+        let yScale = d3.scaleLinear(
+            [(0), 1.1 * d3.max(data, d => +d.value)],
+            // [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
+            [svgHeight, 0]
+        );
+        
+        let xAxis = d3.axisBottom()
+            .ticks(15)
+            .tickFormat(d3.timeFormat('%b %d %H:%M'))
+            .scale(xScale);
+
+        let yAxis = d3.axisLeft()
+            .scale(yScale); 
+        
+        console.log(series)
+
+        let svg = d3.select('svg#' + series.id + 'Chart');
+        svg.selectAll("*").remove();
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(0," + svgHeight + ")")
+            .call(xAxis)
+                .selectAll("text")  
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em")
+                .attr("transform", "rotate(-45)");
+    
+        let label = series.name;
+        if (label.includes(' (sensor')) {
+            label = label.split(' (sensor')[0];
+        }
+        if (label in unitLUT) {
+            label = `${series.name} (${unitLUT[label]})`;
+        } else {
+            label = series.name;
+        }
+
+        svg.append("g")
+            .attr("class", "axis")
+            .call(yAxis)
+            .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("dy", ".75em")
+                .attr("y", 6)
+                .style("text-anchor", "end")
+                .text(label);
+
+
+        const tooltip = svg.append('g')
+            .style('display', 'none');
+
+        tooltip
+            .append('rect')
+            .style('display', 'block')
+            .attr('x', 0)
+            .attr('y', -20)
+            .attr('width', 140)
+            .attr('height', 20)
+            .attr('fill', 'rgba(240, 240, 240, .7)');
+
+        tooltip
+            .append('text')
+            .style('display', 'block')
+            .attr('x', 5)
+            .attr('y', -5)
+            .text('hello');
+
+        let line = d3.line()
+            .defined(d => d.value)
+            .x(d => xScale(d.time)+1)
+            .y(d => yScale(d.value));
+
+        svg.append("path")
+            .datum(data)
+            .attr("d", line);
+
+        svg.selectAll('rect')
+            .data(data)
+            .enter().append("rect")
+                .style("fill", "steelblue")
+                .attr("x", function(d) { return xScale(new Date(d.time.getTime() - tzOffset)); })
+                .attr("width", 10) //x.rangeBand())
+                .attr("y", function(d) { return yScale(d.value); })
+                .attr("height", function(d) {
+                    if (svgHeight - yScale(d.value) < 0) {
+                        console.log(d);
+                        return 0;
+                    } 
+                    if (d.value === null) {
+                        return 0;
+                    } else {
+                        return svgHeight - yScale(d.value);
+                    }
+                })
+                .on("touchmove mousemove", function (event, d) {
+                    // console.log(event, d);
+                    const time = new Date(d.time.getTime() - tzOffset);
+                    let x = xScale(time);
+                    if (x > (svgWidth - 140)) {
+                        x -= 130;
+                    }
+                    const y = yScale(d.value) - 20;
+                    let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
+
+                    // let name = '';
+                    if (series.name in unitLUT) {
+                        txt = txt + ' ' + unitLUT[series.name];
+                    }
+                    // console.log(txt);
+                    
+                    tooltip.selectAll("text")
+                        .data([null])
+                        .join("text")
+                        .text(txt);
+                    
+                    const txt_w = tooltip.selectAll("text").node().getBBox().width;
+                    tooltip.selectAll("rect")
+                        .attr('width', txt_w + 10);
+
+                    tooltip
+                        .style('display', 'block')
+                        .attr("transform", `translate(${x},${y})`)
+                        .raise();
+                })
+                .on("touchend mouseleave touchcancel", function() {
+                    //console.log('mouseleave');
+                    tooltip.style('display', 'none');
+                });
+        
+        /*
+        svg.selectAll('circle')
+            .data(data)
+            .enter().append("circle")
+                .attr("class", "dot")
+                .attr("cx", d => xScale(new Date(d.time.getTime() - tzOffset)))
+                .attr("cy", d => yScale(d.value))
+                .attr('r', function (d) {
+                    if (d.value !== null) {
+                        return 3;
+                    } else {
+                        return 0;
+                    }
+                });
+
+        let line = d3.line()
+            .defined(d => (d.value) && (d.value !== null))
+            .x(d => xScale(new Date(d.time.getTime() - tzOffset)))
+            .y(d => yScale(d.value));
+        
+        svg.append("path")
+            .datum(data)
+            .attr("d", line);
+        */
+
+        // const tooltip = svg.append('g');
+
+        // tooltip
+        //     .append('rect')
+        //     .attr('x', 0)
+        //     .attr('y', -20)
+        //     .attr('width', 140)
+        //     .attr('height', 20)
+        //     .attr('fill', 'rgba(240, 240, 240, .7)');
+
+        // tooltip
+        //     .append('text')
+        //     .attr('x', 5)
+        //     .attr('y', -5)
+        //     .style('display', 'none')
+        //     .text('hello');
+
+        // svg.on("touchmove mousemove", function(event) {
+        //     const x = d3.pointer(event, this)[0];
+        //     const time = xScale.invert(x);
+        //     const index = bisectTime(data, time);
+        //     if (index === undefined || data[index] === undefined) {return;}
+        //     const value = data[index].value;
+        //     const y = yScale(value);
+
+        //     // console.log(x, time, index, value, y);
+
+        //     tooltip.selectAll("text")
+        //         .data([null])
+        //         .join("text")
+        //         .text(`${d3.timeFormat('%b %d %H:%M')(time)}, ${value.toFixed(1)}`);
+
+        //     tooltip
+        //         .style('display', null)
+        //         .attr("transform", `translate(${x},${y})`);
+        //     //     .call(callout, `${formatValue(value)} ${formatDate(date)}`);
+        // });
+        
+        // svg.on("touchend mouseleave touchcancel", function() {
+        //     tooltip.style('display', 'none');
+        // });
+                            
     }
 
     d3.select('#intervalRadio').on('change', function () {
@@ -502,12 +530,11 @@ document.addEventListener("DOMContentLoaded", function() {
                     return b.name.localeCompare(a.name);
                 });
             }
-            
+
             // allSeries.forEach(m => appendSvg(m));
 
             loadData = function () {
-                d3.select("div#container").selectAll('svg').remove();
-                d3.select("div#container").selectAll('h4').remove();
+                d3.select("div#container").selectAll('div.graphContainer').remove();
                 _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
                 const promises = _series.map(m => loadMeasurementData(m));
