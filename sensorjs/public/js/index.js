@@ -34,10 +34,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const adj = 30;
 
     const URLSearch = new URLSearchParams(window.location.search);
-    let showAll = false;
+    // let showAll = false;
+    let showAll = true;
     if (URLSearch.has('showAll')) {
         const showAllParam = URLSearch.get('showAll').toLowerCase();
         showAll = (showAllParam.toLowerCase() === 'true') 
+    }
+    let daysParam = undefined;
+    if (URLSearch.has('days')) {
+        daysParam = URLSearch.get('days');
     }
 
     const unitLUT = {
@@ -57,7 +62,7 @@ document.addEventListener("DOMContentLoaded", function() {
     };
     
     // "2021-04-20T18:58:19.288Z"
-    let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
+    //let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
 
     // from https://stackoverflow.com/a/1026087/6872193
     function capitalize(string) {
@@ -98,6 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
         // console.log('start:', startMinutes, 'end:', endMinutes);
+        // console.log('loading', series);
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}`;
         if (endMinutes > 0) {
@@ -119,9 +125,11 @@ document.addEventListener("DOMContentLoaded", function() {
             // console.log(series.name, 'min, max', response.min, response.max);
             // console.log(response);
             let offset = 0;
-            if (series.name === 'Temperature') {
-                offset = -3.2;
-            }
+            // TODO: find a better way to deal with the temperature offset of 
+            // the air quality node
+            // if (series.name.startsWith('Temperature')) {
+            //     offset = -3.2;
+            // }
 
             data = data.map(function (d) {
                 let v = +d.value + offset;
@@ -129,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     v = null;
                 }
                 return {
-                    time: timeConv(d.time),
+                    time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
                     value: v
                 }
             });
@@ -218,6 +226,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("width", 10) //x.rangeBand())
                     .attr("y", function(d) { return yScale(d.value); })
                     .attr("height", function(d) {
+                        if (height - yScale(d.value) < 0) {
+                            console.log(d);
+                            return 0;
+                        } 
                         if (d.value === null) {
                             return 0;
                         } else {
@@ -392,6 +404,7 @@ document.addEventListener("DOMContentLoaded", function() {
     );
 
     let loadData = undefined;
+    let _series = [];
 
     d3.select('#laterBtn').node().disabled = true;
 
@@ -404,9 +417,13 @@ document.addEventListener("DOMContentLoaded", function() {
     }).then(function (data) {
         console.log('settime post response:', data);
 
+        // TODO: check this if statement, it looks incorrect
         let seriesUrl = '/series/?showAll=true';
-        if (showAll === true) {
+        if (showAll !== true) {
             seriesUrl = '/series/';
+        }
+        if (daysParam !== undefined) {
+            seriesUrl = seriesUrl + '&days=' + daysParam;
         }
 
         d3.json(seriesUrl).then(function (allSeries) {
@@ -486,33 +503,56 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             }
             
-            allSeries.forEach(m => appendSvg(m));
+            // allSeries.forEach(m => appendSvg(m));
 
             loadData = function () {
+                d3.select("div#container").selectAll('svg').remove();
+                d3.select("div#container").selectAll('h4').remove();
+                _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
-                const promises = allSeries.map(m => loadMeasurementData(m));
+                const promises = _series.map(m => loadMeasurementData(m));
                 Promise.all(promises).then(function () {
                     console.log('all loaded');
                     d3.select('div.main-loading').style('display', 'none');
                 });
             };
 
+            _series = allSeries.map(function (d) {return d;});
+
             loadData();
 
-            d3.select('ul#jumpToMenu')
-                .selectAll('li')
-                .data(allSeries)
+            d3.select('select#measurementSelect')
+                .selectAll('option')
+                .data(allMeasurements)
                 .enter()
-                .append('li')
-                    .append('a')
-                    .attr('class', "dropdown-item")
-                    .attr('href', d => '#' + d.id)
-                    .html(function (d) { return d.name; })
-                    .on('click', d => {
-                        d3.select('h4#' + d.id)
-                            .node()
-                            .scrollIntoView({behavior: "smooth", block: "center"});
-                    });
+                .append('option')
+                    .attr('value', function (d) {return d; } )
+                    .html(function (d) { return d; });
+
+            d3.select('select#sensorSelect')
+                .selectAll('option')
+                .data(allSensors)
+                .enter()
+                .append('option')
+                    .attr('value', function (d) {return d; } )
+                    .html(function (d) { return d; });
+
+            let handle_select = function () {
+                const measurement = d3.select('select#measurementSelect').node().value;
+                const sensor_id = d3.select('select#sensorSelect').node().value;
+                _series = allSeries.map(function (serie) {return serie;});
+                if (measurement !== 'Any Measurement') {
+                    _series = _series.filter(function (serie) {return serie.measurement === measurement;});
+                }
+                if (sensor_id !== 'Any Sensor') {
+                    _series = _series.filter(function (serie) {return serie.sensor_id === sensor_id;});
+                }
+                loadData();
+            };
+            
+            d3.select('select#measurementSelect').on('change', handle_select);
+            d3.select('select#sensorSelect').on('change', handle_select);
+                    
         });
     });
 
