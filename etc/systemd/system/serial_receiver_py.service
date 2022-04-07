@@ -1,0 +1,17 @@
+[Unit]
+Description=Python RFM69 Serial Receiver
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/pi/pve/jacoblib/bin/python -u /home/pi/receiver/serial_receiver.py
+WorkingDirectory=/home/pi/receiver
+User=pi
+Restart=on-failure
+StandardOutput=file:/home/pi/receiver/serial_service.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
+
+
