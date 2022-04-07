@@ -242,6 +242,52 @@ router.get('/measurement/:measurement/sensor/:sensor_id/data/', function(req, re
   getDataByMeasurementAndSensor(req, res, measurement, sensor_id);
 });
 
+router.get('/measurement/:measurement/sensor/:sensor_id/rawdata/', function(req, res) {
+  const measurement = req.params.measurement;
+  const sensor_id = req.params.sensor_id;
+
+
+  const select = 'SELECT "time", "value"';
+  let bySensor = '';
+  if (typeof sensor_id !== 'undefined') {
+    bySensor = `"sensor_id" = '${sensor_id}'`;
+  }
+
+  let start = req.query.start;
+  if (start === undefined) {
+    start = '2022-04-01';
+  }
+  let end = req.query.end;
+  if (end === undefined) {
+    end = '2022-04-03';
+  }
+
+  const valuesQuery = `
+    ${select}
+    FROM "${measurement}"
+    WHERE 
+    ${bySensor} AND
+    time >= '${start}' AND 
+    time < '${end}'
+  `;
+
+  console.log('valuesQuery', valuesQuery);
+
+  influx.query(valuesQuery)
+    .then( result => res.json({
+      readings: result
+    }) )
+    .catch( error => {
+      console.log('error', error);
+      res.status(500).json({'error': error['message']});
+    }).catch( error => {
+      console.log('another error:', error);
+    });
+
+});
+
+
+
 router.get('/wificonfig/', function (req, res) {
   console.log(req.params)
   res.render('wifi.html', { 
