@@ -1,14 +1,23 @@
 document.addEventListener("DOMContentLoaded", function() { 
-    let startMinutes = 60;
+    let startMinutes = 60*24;
     let endMinutes = 0;
 
-
 	let svgWidth = window.innerWidth;
-    let svgHeight = svgWidth / 2;
+    let svgHeight = svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
     const adj = 30;
+
+    var xScale, yScale;
+    const svgMarginTop = 40;
+
+    let allEvents = [];
+
+
+    // TODO fix which activities are included >>> make them activities not devices!
+    event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
+                    'question_mark','toaster','air_cooling','heating'];
 
     // TODO make global
     const unitLUT = {
@@ -26,7 +35,6 @@ document.addEventListener("DOMContentLoaded", function() {
         "pm10_env": 'PM 1.0',
         "pm25_env": 'PM 2.5'
     };
-
 
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
@@ -46,14 +54,13 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
                 + adj + " "
-                + (svgWidth + adj *3) + " "
+                + (svgWidth + adj*3) + " "
                 + (svgHeight + adj*4))
             .style("padding", padding)
             .style("margin", margin)
             // .style("max-width", 600)
             .classed("svg-content", true);
 	}
-
 
 	const loadMeasurementData = function (series) {
         const measurement = series.measurement;
@@ -66,21 +73,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
         return d3.json(dataUrl).then(function (response) {
             drawGraphs(response,series);
+            addBrushing(response);
 		});
     }
 
     function drawGraphs (response,series){
 
         let data = response.readings;
-
-        console.log(series.name, 'min, max', response.min, response.max);
+        // console.log(series.name, 'min, max', response.min, response.max);
 
         let offset = 0;
-        // TODO: find a better way to deal with the temperature offset of 
-        // the air quality node
-        // if (series.name.startsWith('Temperature')) {
-        //     offset = -3.2;
-        // }
+
+        // d3.csv('/static/data/100_electricity_consumption.csv')
+        //   .then(function(data) {
+        //       console.log("ddd")
+        //       console.log(data)
+        // })
 
         data = data.map(function (d) {
             let v = +d.value + offset;
@@ -93,20 +101,17 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        // console.log('filtered');
-        // console.log(data);
-
         //const bisectTime = d3.bisector(function(d) { return d.time; }).left;
         const tzOffset = 0;//(new Date()).getTimezoneOffset() * 60000;
 
-        let xScale = d3.scaleTime(
+        xScale = d3.scaleTime(
             d3.extent(data, d => new Date(d.time.getTime() - tzOffset)),
             [0, svgWidth]
         );
         let yScale = d3.scaleLinear(
             [(0), 1.1 * d3.max(data, d => +d.value)],
             // [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
-            [svgHeight, 0]
+            [svgHeight, svgMarginTop]
         );
         
         let xAxis = d3.axisBottom()
@@ -147,9 +152,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("transform", "rotate(-90)")
                 .attr("dy", ".75em")
                 .attr("y", 6)
+                .attr('x',-30)
                 .style("text-anchor", "end")
                 .text(label);
-
 
         const tooltip = svg.append('g')
             .style('display', 'none');
@@ -175,14 +180,16 @@ document.addEventListener("DOMContentLoaded", function() {
             .x(d => xScale(d.time)+1)
             .y(d => yScale(d.value));
 
-        svg.append("path")
+        svgGroup = svg.append("g").attr("class","dataPoints");
+
+        svgGroup.append("path")
             .datum(data)
             .attr("d", line);
 
-        svg.selectAll('rect')
+        svgGroup.selectAll('rect')
             .data(data)
             .enter().append("rect")
-                .style("fill", "steelblue")
+                .style("fill", "rgba(90,90,90,1)")
                 .attr("x", function(d) { return xScale(new Date(d.time.getTime() - tzOffset)); })
                 .attr("width", 10) //x.rangeBand())
                 .attr("y", function(d) { return yScale(d.value); })
@@ -197,42 +204,44 @@ document.addEventListener("DOMContentLoaded", function() {
                         return svgHeight - yScale(d.value);
                     }
                 })
-                .on("touchmove mousemove", function (event, d) {
-                    // console.log(event, d);
-                    const time = new Date(d.time.getTime() - tzOffset);
-                    let x = xScale(time);
-                    if (x > (svgWidth - 140)) {
-                        x -= 130;
-                    }
-                    const y = yScale(d.value) - 20;
-                    let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
+                // .on("touchmove mousemove", function (event, d) {
+                //     // console.log(event, d);
+                //     const time = new Date(d.time.getTime() - tzOffset);
+                //     let x = xScale(time);
+                //     if (x > (svgWidth - 140)) {
+                //         x -= 130;
+                //     }
+                //     const y = yScale(d.value) - 20;
+                //     let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
 
-                    // let name = '';
-                    if (series.name in unitLUT) {
-                        txt = txt + ' ' + unitLUT[series.name];
-                    }
-                    // console.log(txt);
+                //     // let name = '';
+                //     if (series.name in unitLUT) {
+                //         txt = txt + ' ' + unitLUT[series.name];
+                //     }
+                //     // console.log(txt);
                     
-                    tooltip.selectAll("text")
-                        .data([null])
-                        .join("text")
-                        .text(txt);
+                //     tooltip.selectAll("text")
+                //         .data([null])
+                //         .join("text")
+                //         .text(txt);
                     
-                    const txt_w = tooltip.selectAll("text").node().getBBox().width;
-                    tooltip.selectAll("rect")
-                        .attr('width', txt_w + 10);
+                //     const txt_w = tooltip.selectAll("text").node().getBBox().width;
+                //     tooltip.selectAll("rect")
+                //         .attr('width', txt_w + 10);
 
-                    tooltip
-                        .style('display', 'block')
-                        .attr("transform", `translate(${x},${y})`)
-                        .raise();
-                })
-                .on("touchend mouseleave touchcancel", function() {
-                    //console.log('mouseleave');
-                    tooltip.style('display', 'none');
-                });                        
+                //     tooltip
+                //         .style('display', 'block')
+                //         .attr("transform", `translate(${x},${y})`)
+                //         .raise();
+                // })
+                // .on("touchend mouseleave touchcancel", function() {
+                //     //console.log('mouseleave');
+                //     tooltip.style('display', 'none');
+                // });
+
+
 	}
-	
+
     d3.json('/settime/', {
         method: 'POST', 
         headers: { "Content-Type": "application/json" }, 
@@ -251,7 +260,6 @@ document.addEventListener("DOMContentLoaded", function() {
         // }
        
         d3.json(seriesUrl).then(function (allSeries) {
-            console.log(allSeries);
        
             toKeep = "electricity_consumption";
 
@@ -259,8 +267,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 return toKeep.includes(d.measurement);
             });
 
-
-        allSeries = allSeries.map(function (item) {
+            allSeries = allSeries.map(function (item) {
                     const id = `${item.measurement}_${item.sensor_id}`;
                     let name = item.measurement;
                     if (name in nameLUT) {
@@ -295,12 +302,171 @@ document.addEventListener("DOMContentLoaded", function() {
             loadData();
 
         });
-
-        
     });
 
+    function addBrushing (response){
+
+        evnt = {
+            'start' :'',
+            'end'   : '',
+            'duration': 0,
+            'consumption': 0,
+            'name':'',
+            'type':'',
+            'notes':''
+        }
+
+        const brush = d3.brushX()
+                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
+                        .on('start', brushStart)
+                        .on('end', brushEnd)
+                        .on('brush', brushing)
+
+        let brushContainer = d3.selectAll("div#container svg")
+              .append("g")
+              .attr('class','brush')
+              .call(brush)
+
+        function brushStart({selection}) {
+            console.log('brush started')
+        }
+
+        function brushEnd({selection}) {
+            console.log('brush ended');
+            console.log(selection)
+
+            // Create a button to save event
+            d3.selectAll('div#container svg')
+              .append('rect')
+              .attr('id','saveButton')
+              .attr('width',100)
+              .attr('height',30)
+              .style('cursor','pointer')
+              .style('display','none')
+              .text('SAVE')
+          
+            // Show the save button aligned to the selection
+            if( selection && selection.length >= 2){
+                d3.select('#saveButton')
+                  .style('display','block')
+                  .on('click', () => { openDialogue(selection); })
+                  .attr('x', selection[0] + (selection[1]-selection[0])/2 - 50)
+            }else{
+                clearBrushSelection();
+            }
+        }
+
+        function clearBrushSelection(){
+            d3.select('#saveButton')
+                .style('display','none');
+            svgGroup.selectAll('rect').style("opacity", '1');
+        }
+
+        function brushing({selection}) {
+            console.log('brush hapenning')
+
+            if (selection === null) {
+               clearBrushSelection();
+            } else {
+              const sx = selection.map(xScale.invert);
+
+              d3.selectAll('.dataPoints rect').style("opacity", d => { 
+                return sx[0] <= d.time && d.time <= sx[1] ? "1" : '0.2'; });
+            }
+            // d3.select(this).call(brushHandle, selection);
+        }
+
+        function openDialogue(selection){
+
+            // TODO: add more acccurate time mapping based on the bars not the brushing
+            evnt.start = xScale.invert(selection[0]);
+            evnt.end = xScale.invert(selection[1]);
+
+            duration = evnt.end.getTime() - evnt.start.getTime();
+            durationInHours = (duration / 60000).toFixed(0)/60;
+            durationInMinutes = (duration/60000) % 60;
+            evnt.duration = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
+
+            // TODO: add always on function
+            evnt.consumption = d3.sum(response.readings.filter(d => {
+                return new Date(d.time) >= evnt.start && new Date(d.time) < evnt.end;
+            }), function (d) {return d.value;}) // - always_on;
+
+            d3.select("#dialogueBox")
+              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+              .style('display','block');
+
+            printDate = d3.timeFormat('%b %d %H:%M');
+            d3.select('#dialogueBox #evntDuration').html(evnt.duration);
+            d3.select('#dialogueBox #evntStart').html(printDate(evnt.start));
+            d3.select('#dialogueBox #evntEnd').html(printDate(evnt.end));
+            d3.select('#dialogueBox #evntConsumption').html(evnt.consumption.toFixed(1)+" KW");
+        
+            d3.select("#iconField").empty();
+            d3.select("#iconField")
+                .selectAll('img')
+                .data(event_types)
+                .join('img')
+                .attr('class', d => { return 'icon ' + d})
+                .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
+                .attr('alt', d => {return d})          
+                .attr('title', d => {return d})
+                .on('click', d => {
+                   evnt.type = d.target['__data__'];
+                   d3.selectAll('#iconField img').classed('selected',false)
+                   d3.select('.'+evnt.type).classed('selected',true)
+                })
+        }
+
+        function resetDialogue(){
+           evnt = {
+            'start' :'',
+            'end'   : '',
+            'duration': 0,
+            'consumption': 0,
+            'name':'',
+            'type':'',
+            'notes':''
+           }
+
+           document.getElementById('notes').value = '';
+        }
+
+        d3.select('#savebtnDialogue').on('click', () =>{
+            evnt.notes = document.getElementById('notes').value;
+
+            // Push this events to a list of all
+            allEvents.push(evnt);
+            console.log(allEvents);
+
+            // Highlight the annotated area
+            d3.selectAll('.dataPoints rect').filter( d => { 
+                return evnt.start <= d.time && d.time <= evnt.end;
+            }).style("fill", 'steelblue');
+
+            updateAnnotationBar(evnt);
+
+            // Reset and close the dialogue
+            resetDialogue();
+            closeDialogue();
+
+            // Clear the previous brushing 
+            clearBrushSelection();
+            brushContainer.call(brush.move,null);
+        });
+
+    }
+
+    function closeDialogue() {
+        d3.select("#dialogueBox")
+          .style('display','none');
+    }
+
+    d3.select('#closebtnDialogue').on('click', closeDialogue);
 
 
+    function updateAnnotationBar(){
 
+    }
 
 });
