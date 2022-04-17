@@ -204,42 +204,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         return svgHeight - yScale(d.value);
                     }
                 })
-                // .on("touchmove mousemove", function (event, d) {
-                //     // console.log(event, d);
-                //     const time = new Date(d.time.getTime() - tzOffset);
-                //     let x = xScale(time);
-                //     if (x > (svgWidth - 140)) {
-                //         x -= 130;
-                //     }
-                //     const y = yScale(d.value) - 20;
-                //     let txt = `${d3.timeFormat('%b %d %H:%M')(time)}, ${d.value.toFixed(1)}`;
-
-                //     // let name = '';
-                //     if (series.name in unitLUT) {
-                //         txt = txt + ' ' + unitLUT[series.name];
-                //     }
-                //     // console.log(txt);
-                    
-                //     tooltip.selectAll("text")
-                //         .data([null])
-                //         .join("text")
-                //         .text(txt);
-                    
-                //     const txt_w = tooltip.selectAll("text").node().getBBox().width;
-                //     tooltip.selectAll("rect")
-                //         .attr('width', txt_w + 10);
-
-                //     tooltip
-                //         .style('display', 'block')
-                //         .attr("transform", `translate(${x},${y})`)
-                //         .raise();
-                // })
-                // .on("touchend mouseleave touchcancel", function() {
-                //     //console.log('mouseleave');
-                //     tooltip.style('display', 'none');
-                // });
-
-
 	}
 
     d3.json('/settime/', {
@@ -328,37 +292,70 @@ document.addEventListener("DOMContentLoaded", function() {
               .call(brush)
 
         function brushStart({selection}) {
-            console.log('brush started')
+            console.log('brush started');
         }
 
-        function brushEnd({selection}) {
+        function brushEnd(event) {
+            if (!event.sourceEvent) return;
+      
             console.log('brush ended');
-            console.log(selection)
-
-            // Create a button to save event
-            d3.selectAll('div#container svg')
-              .append('rect')
-              .attr('id','saveButton')
-              .attr('width',100)
-              .attr('height',30)
-              .style('cursor','pointer')
-              .style('display','none')
-              .text('SAVE')
-          
-            // Show the save button aligned to the selection
+            selection = event.selection;
+            
+            // check it was not a random click
             if( selection && selection.length >= 2){
-                d3.select('#saveButton')
-                  .style('display','block')
-                  .on('click', () => { openDialogue(selection); })
-                  .attr('x', selection[0] + (selection[1]-selection[0])/2 - 50)
+
+                // Check if started within a already annotated area
+                // if so push to the nearest non-annotated right/left side
+                // TODO Fix snapping case where 2 events are continous 
+                let sx = selection.map(xScale.invert);
+                let newStart = new Date (sx[0]),
+                    newEnd = new Date (sx[1]),
+                    flag = false;
+
+                allEvents.forEach( e => {
+                    if( sx[0] <= e.start && sx[1] >= e.start && flag == false){
+                       newEnd = e.start;
+                       flag = true;
+                    }else if( sx[0] >= e.start && sx[0] <= e.end && flag == false){
+                       newStart = e.end;
+                       flag = true;
+                    }
+                });
+
+                sx = [newStart,newEnd];
+                if( flag == true){
+                    brushContainer.call(brush.move,sx.map(xScale))
+                }
+                
+                // Create a button to save event
+                d3.selectAll('div#container svg')
+                  .append('g')
+                  .attr('class','saveBtnContainer')
+                  .style('cursor','pointer')
+                  .on('click', () => { openDialogue(sx); })
+                  // Show the save button aligned to the selection
+                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+',0)')
+                
+                d3.select('.saveBtnContainer')
+                    .append('rect')
+                    .attr('id','saveButton')
+                    .attr('width',100)
+                    .attr('height',30)
+                d3.select('.saveBtnContainer')
+                    .append('text')
+                    .text('SAVE')
+                    .attr('dy',20)
+                    .attr('dx',50)
+                    .attr('text-anchor','middle')
+                    .style('fill','white')
+              
             }else{
                 clearBrushSelection();
             }
         }
 
         function clearBrushSelection(){
-            d3.select('#saveButton')
-                .style('display','none');
+            d3.select('.saveBtnContainer').remove();
             svgGroup.selectAll('rect').style("opacity", '1');
         }
 
@@ -379,8 +376,8 @@ document.addEventListener("DOMContentLoaded", function() {
         function openDialogue(selection){
 
             // TODO: add more acccurate time mapping based on the bars not the brushing
-            evnt.start = xScale.invert(selection[0]);
-            evnt.end = xScale.invert(selection[1]);
+            evnt.start = selection[0] //xScale.invert(selection[0]);
+            evnt.end = selection[1] //xScale.invert(selection[1]);
 
             duration = evnt.end.getTime() - evnt.start.getTime();
             durationInHours = (duration / 60000).toFixed(0)/60;
@@ -454,7 +451,6 @@ document.addEventListener("DOMContentLoaded", function() {
             clearBrushSelection();
             brushContainer.call(brush.move,null);
         });
-
     }
 
     function closeDialogue() {
@@ -465,8 +461,33 @@ document.addEventListener("DOMContentLoaded", function() {
     d3.select('#closebtnDialogue').on('click', closeDialogue);
 
 
-    function updateAnnotationBar(){
+    function updateAnnotationBar(event){
 
+        const anntLine = d3.line()
+                     .x(d => xScale(d))
+                     .y(40);
+
+        d3.select("div#container svg")
+            .append('path')
+            .datum([event.start, event.end])
+            .attr('d', anntLine)
+            .attr('stroke-width','2px')
+
+        d3.select("div#container svg")
+            .append('text')
+            .attr('font-size','10px')
+            .attr('x', xScale(event.start) + 20)
+            .attr('y',35)
+            .text(event.type)
+
+        d3.select("div#container svg")
+            .append('image')
+            .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
+            .attr("x", xScale(event.start) ).attr("y", 21)
+            .attr("width", 16).attr("height", 16)
+
+
+    
     }
 
 });
