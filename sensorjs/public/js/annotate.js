@@ -10,7 +10,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const adj = 30;
 
     var xScale, yScale;
-    const svgMarginTop = 40;
+    const svgMarginTop = 140;
+    const svgMarginLeft = 20;
 
     let allEvents = [];
 
@@ -18,6 +19,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
                     'question_mark','toaster','air_cooling','heating'];
+
+    const consumptionUnit = 1;
 
     // TODO make global
     const unitLUT = {
@@ -72,15 +75,15 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         return d3.json(dataUrl).then(function (response) {
+            console.log(response);
             drawGraphs(response,series);
             addBrushing(response);
-		});
+        });
     }
 
     function drawGraphs (response,series){
 
         let data = response.readings;
-        // console.log(series.name, 'min, max', response.min, response.max);
 
         let offset = 0;
 
@@ -106,8 +109,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         xScale = d3.scaleTime(
             d3.extent(data, d => new Date(d.time.getTime() - tzOffset)),
-            [0, svgWidth]
+            [0, svgWidth-svgMarginLeft]
         );
+
         let yScale = d3.scaleLinear(
             [(0), 1.1 * d3.max(data, d => +d.value)],
             // [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
@@ -152,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("transform", "rotate(-90)")
                 .attr("dy", ".75em")
                 .attr("y", 6)
-                .attr('x',-30)
+                .attr('x',-svgMarginTop)
                 .style("text-anchor", "end")
                 .text(label);
 
@@ -204,7 +208,10 @@ document.addEventListener("DOMContentLoaded", function() {
                         return svgHeight - yScale(d.value);
                     }
                 })
-	}
+	
+        addSunriseSunset();
+
+    }
 
     d3.json('/settime/', {
         method: 'POST', 
@@ -224,11 +231,12 @@ document.addEventListener("DOMContentLoaded", function() {
         // }
        
         d3.json(seriesUrl).then(function (allSeries) {
-       
+            console.log(allSeries)
             toKeep = "electricity_consumption";
 
+            // "&& d.sensor_id==100;" >> temporary FIX!!
             allSeries = allSeries.filter(function (d) {
-                return toKeep.includes(d.measurement);
+                return toKeep.includes(d.measurement) && d.sensor_id==100;
             });
 
             allSeries = allSeries.map(function (item) {
@@ -293,6 +301,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         function brushStart({selection}) {
             console.log('brush started');
+            d3.select('.saveBtnContainer').remove();
         }
 
         function brushEnd(event) {
@@ -301,6 +310,8 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log('brush ended');
             selection = event.selection;
             
+            console.log(event);
+
             // check it was not a random click
             if( selection && selection.length >= 2){
 
@@ -327,8 +338,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     brushContainer.call(brush.move,sx.map(xScale))
                 }
                 
+                console.log(sx);
+
                 // Create a button to save event
-                d3.selectAll('div#container svg')
+                d3.select('div#container svg')
                   .append('g')
                   .attr('class','saveBtnContainer')
                   .style('cursor','pointer')
@@ -448,24 +461,27 @@ document.addEventListener("DOMContentLoaded", function() {
             closeDialogue();
 
             // Clear the previous brushing 
-            clearBrushSelection();
-            brushContainer.call(brush.move,null);
+            // clearBrushSelection();
+            // brushContainer.call(brush.move,null);
         });
-    }
 
-    function closeDialogue() {
+        function closeDialogue() {
         d3.select("#dialogueBox")
           .style('display','none');
+
+        clearBrushSelection();
+        brushContainer.call(brush.move,null);
+
+        }
+
+        d3.select('#closebtnDialogue').on('click', closeDialogue);
     }
-
-    d3.select('#closebtnDialogue').on('click', closeDialogue);
-
 
     function updateAnnotationBar(event){
 
         const anntLine = d3.line()
                      .x(d => xScale(d))
-                     .y(40);
+                     .y(svgMarginTop-30);
 
         d3.select("div#container svg")
             .append('path')
@@ -475,19 +491,125 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select("div#container svg")
             .append('text')
-            .attr('font-size','10px')
+            .attr('font-size','14px')
             .attr('x', xScale(event.start) + 20)
-            .attr('y',35)
+            .attr('y',svgMarginTop-35)
             .text(event.type)
 
         d3.select("div#container svg")
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-            .attr("x", xScale(event.start) ).attr("y", 21)
+            .attr("x", xScale(event.start) ).attr("y", svgMarginTop-50)
             .attr("width", 16).attr("height", 16)
 
+        blockC = d3.select("div#container svg")
+         .append('g').attr('class','blocksContainer')
 
-    
+        const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
+        array = [];
+        for (var i = 0; i <amnt; i++) {
+            array.push(1);
+        }
+
+        //Array.from(Array(amnt).keys(),n=>consumptionUnit);
+
+        console.log(array)
+        y = -1;j=-1;
+        blockC.selectAll('rect')
+              .data(array, d => {return d})
+              .join('rect')
+              .attr('width',15)
+              .attr('height',15)
+              .attr('transform', (d,i) => { 
+
+                if( j*20 > svgMarginLeft*2){ y++;j=0;}
+                else{ j++; }
+                console.log(y)
+                x = xScale(event.start) + j*20;
+                return 'translate('+x+','+y*20+')';
+              })
+              // .attr('y', y*20)
+              .style('fill','#ff9620')
+    }
+
+    d3.select('#saveCSV').on('click', exportCSV);
+
+    function exportCSV(){
+        let csvContent = "data:text/csv;charset=utf-8," 
+        
+        // save label names
+        pp = '';
+        for (const key in allEvents[0]) {
+            pp += key + ',';
+        }
+        pp = pp.slice(0, -1); 
+        csvContent += pp + "\n";
+
+        // save data 
+        allEvents.forEach( (e,i) => {
+            pp = '';
+            for (const key in e) {
+                    pp += e[key] + ',';
+            }
+            pp = pp.slice(0, -1); 
+            csvContent += pp + "\n";
+        });
+        
+        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "my_data.csv");
+        document.body.appendChild(link); // Required for FF
+
+        link.click(); // This will download the data file named "my_data.csv".
+    }
+
+    function addSunriseSunset(){
+
+      d3.json('http://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
+      .then(function (data) {
+        console.log(data);
+
+        d3.select('div#container svg')
+          .append('g')
+          .attr('class','backgroundData');
+
+        sunset = new Date(data.results.sunset);
+        sunrise = new Date(data.results.sunrise);
+
+        flag = false;
+        pathD = '';
+        loc = '';
+        d3.selectAll('.backgroundData path').remove()
+
+        d3.selectAll('.axis .tick').each(d => {
+
+            tmp = new Date(d);
+
+            // first time we find a 'night'
+            if( (tmp.getHours() < sunrise.getHours() || tmp.getHours() > sunset.getHours()) && flag==false ){
+                pathD += 'M'+xScale(tmp)+','+svgHeight; 
+                flag = true;
+                loc = tmp;
+            }
+
+            // first time we find a 'day' after a 'night' -> draw it
+            if(tmp.getHours() >= sunrise.getHours() && tmp.getHours() < sunset.getHours() && flag==true){
+                pathD += ' L'+xScale(tmp)+','+svgHeight+' L'+xScale(tmp)+','+0+' L'+xScale(loc)+','+0+' Z';
+                d3.select('.backgroundData')
+                 .append('path')
+                 .attr('d', pathD)
+                 .style('opacity',0.1)
+                 .style('fill','grey')
+
+                pathD = '';
+                loc = '';
+                flag = false;
+            }
+
+        })
+      })
     }
 
 });
