@@ -71,16 +71,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function drawGraphs (response,series){
 
-        let data = response.readings;
+        // let data = response.readings;
 
-        console.log(series.name, 'min, max', response.min, response.max);
+        let data = response;
+        // console.log(series.name, 'min, max', response.min, response.max);
 
         let offset = 0;
         // TODO: find a better way to deal with the temperature offset of 
         // the air quality node
         // if (series.name.startsWith('Temperature')) {
         //     offset = -3.2;
-        // }
+        // } 
 
         data = data.map(function (d) {
             let v = +d.value + offset;
@@ -232,7 +233,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     tooltip.style('display', 'none');
                 });                        
 	}
-	
+
+/*	
     d3.json('/settime/', {
         method: 'POST', 
         headers: { "Content-Type": "application/json" }, 
@@ -296,11 +298,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
         });
 
-        
     });
+*/
 
-
-
+        d3.csv('/static/data/100_electricity_consumption.csv')
+          .then(function(data) {
+              console.log(data)
+              appendSvg({id:"_102"});
+              drawGraphs(data, {id:"_102","name":"electricity_consumption", "min":0,"max":100});
+        })
 
 
 });
