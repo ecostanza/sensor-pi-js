@@ -9,13 +9,37 @@
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- local imports -->
-    <link rel="stylesheet" type="text/css" href="/static/css/index.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/annotate.css">
 
     <title>Energy Consumption </title>
   </head>
   <body>
+    
+    <button id="saveCSV" class="btn">saveCSV</button>
 
     <div id="container"></div>
+
+    <div id="dialogueBox">
+      <h4>Create Event</h4>
+      <div> Event Start: <label id="evntStart"></label> </div>
+      <div> Event End: <label id="evntEnd"></label> </div>
+      <div> Duration: <label id="evntDuration"></label> </div>
+      <div> Consumption: <label id="evntConsumption"></label> </div>
+
+      <div> 
+        <label>Select an event icon</label> 
+        <div id="iconField"></div>
+      </div>
+
+      <div> 
+        <label> Describe the event </label>
+        <textarea id="notes"></textarea>
+      </div>
+
+      <button id="closebtnDialogue" class="btn">Cancel</button>
+      <button id="savebtnDialogue" class="btn">Save</button>
+
+    </div>
 
     <!-- Optional JavaScript -->
     <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
