@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", function() {
     let startMinutes = 60;
     let endMinutes = 0;
     //step = deltaMinutes / 4
-    
 
     let svgWidth = window.innerWidth;
     let svgHeight = svgWidth / 2;

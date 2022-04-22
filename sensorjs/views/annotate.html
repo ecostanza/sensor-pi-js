@@ -16,11 +16,19 @@
   <body>
     
     <button id="saveCSV" class="btn">saveCSV</button>
+    <button id="btnEarlier" class="btn">earlier</button>
+    <button id="btnLater" class="btn disabled">later</button>
+
+
+    <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
+    <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+    <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
 
     <div id="container"></div>
 
     <div id="dialogueBox">
-      <h4>Create Event</h4>
+      <h4 style="margin-bottom: -30px;">Create Event</h4>
+      <button id="deletebtnDialogue" class="btn">Delete Event</button>
       <div> Event Start: <label id="evntStart"></label> </div>
       <div> Event End: <label id="evntEnd"></label> </div>
       <div> Duration: <label id="evntDuration"></label> </div>
@@ -35,10 +43,10 @@
         <label> Describe the event </label>
         <textarea id="notes"></textarea>
       </div>
-
+      <div style="margin:0 auto;text-align: center;">
       <button id="closebtnDialogue" class="btn">Cancel</button>
       <button id="savebtnDialogue" class="btn">Save</button>
-
+    </div>
     </div>
 
     <!-- Optional JavaScript -->

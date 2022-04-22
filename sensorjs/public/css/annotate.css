@@ -2,6 +2,18 @@ svg{
   border: 1px solid;
 }
 
+.hidden{
+  display: none;
+}
+
+#deletebtnDialogue{
+  position: relative;
+  left: 260px;
+  top: 14px;
+  font-size: 9px;
+}
+
+
 #dialogueBox{
 	position: absolute;
 	top: 20px;
@@ -17,6 +29,15 @@ svg{
 	border: 1px solid black;
 	border-radius: 1em;
 }
+
+.btn.selected{
+  border: 3px solid black;
+}
+
+.btn.disabled{
+  color:grey ;
+}
+
 
 .icon{
 	background-color: black;

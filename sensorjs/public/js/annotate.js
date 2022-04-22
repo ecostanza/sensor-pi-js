@@ -1,25 +1,35 @@
 document.addEventListener("DOMContentLoaded", function() { 
-    let startMinutes = 60*24;
+    let startMinutes = 24*60;
     let endMinutes = 0;
 
-    let svgWidth = window.innerWidth;
+    let data = [];
+
+	let svgWidth = window.innerWidth;
     let svgHeight = svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
     const adj = 30;
 
-    var xScale, yScale;
+    var xScale, yScale, brush;
     const svgMarginTop = 40;
-    const svgMarginLeft = 20;
+    const svgMarginLeft = 50;
+
+    let loadData = undefined;
 
     let allEvents = [];
     let ids = 0;
 
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
-                    'question_mark','toaster','air_cooling','heating'];
+                    'question_mark','toaster','air_cooling','heating','showering_and_hair-drying',
+                    'computer','diy','hob','ironing','lighting','meal_breakfast','meal_lunch','meal_dinner',
+                    'watching_tv'
+                   ];
 
+    let SHIFT_BY = 3;
+    let WINDOW = 8;
+    let sunrise, sunset;
     const consumptionUnit = 1;
 
     // TODO make global
@@ -42,8 +52,12 @@ document.addEventListener("DOMContentLoaded", function() {
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
         let name = measurement.name;
-    
+	
         svgContainer = d3.select("div#container");
+
+        if(svgContainer.select('#'+measurement.id + 'Chart').node() !== null ){
+            return;
+        }
 
         svgContainer
             .append("h4")
@@ -63,35 +77,43 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("margin", margin)
             // .style("max-width", 600)
             .classed("svg-content", true);
-    }
+	}
 
-    const loadMeasurementData = function (series) {
+	const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
 
-        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}`;
+        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
         }
 
         return d3.json(dataUrl).then(function (response) {
             console.log(response);
-            drawGraphs(response,series);
-            addBrushing(response);
+            drawGraphs(response,sensor_id,series);
         });
     }
 
-    function drawGraphs (response,series){
 
+    function addDataToGraphs(response,sensor_id,series){
         let data = response.readings;
+        data = data.map(function (d) {
+            let v = +d.value + offset;
+            if (d.value === null) {
+                v = null;
+            }
+            return {
+                time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
+                value: v
+            }
+        });
+   
+    }
 
+    function formatData(data){
         let offset = 0;
 
-        // d3.csv('/static/data/100_electricity_consumption.csv')
-        //   .then(function(data) {
-        //       console.log("ddd")
-        //       console.log(data)
-        // })
+        console.log(data)
 
         data = data.map(function (d) {
             let v = +d.value + offset;
@@ -103,18 +125,37 @@ document.addEventListener("DOMContentLoaded", function() {
                 value: v
             }
         });
+        return data;
+    }
 
-        //const bisectTime = d3.bisector(function(d) { return d.time; }).left;
-        const tzOffset = 0;//(new Date()).getTimezoneOffset() * 60000;
+    // TODO check why data is not pushing
+    function drawGraphs (response,sensor_id,series){
+
+        let newdata = formatData(response.readings);
+        let freshData = false;
+
+        if(data.length == 0){ freshData=true; }
+        
+        data = data.concat(newdata);
+
+        data.sort( (a,b) => { return a.time - b.time})
+
+        // Get initial min-max values for the x axis
+        // If it is the first time the page is loaded show all
+        // Else show an offest to avoid jumps in the scrollling
+        max = d3.max(newdata, d => new Date(d.time.getTime()));
+        if( freshData == false) { max.setHours(max.getHours() + WINDOW); }
+        min = new Date(max);
+        min.setHours(max.getHours() - WINDOW)
 
         xScale = d3.scaleTime(
-            d3.extent(data, d => new Date(d.time.getTime() - tzOffset)),
+            // d3.extent(data, d => new Date(d.time.getTime())),
+            [ min , max ],
             [0, svgWidth-svgMarginLeft]
         );
 
         let yScale = d3.scaleLinear(
             [(0), 1.1 * d3.max(data, d => +d.value)],
-            // [(0.9 * (response.min + offset)), 1.1 * (response.max + offset)],
             [svgHeight, svgMarginTop]
         );
         
@@ -130,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function() {
         svg.selectAll("*").remove();
 
         svg.append("g")
-            .attr("class", "axis")
+            .attr("class", "axis x-axis")
             .attr("transform", "translate(0," + svgHeight + ")")
             .call(xAxis)
                 .selectAll("text")  
@@ -159,47 +200,41 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr('x',-svgMarginTop)
                 .style("text-anchor", "end")
                 .text(label);
+        
+        svg.append('clipPath')
+              .attr("id", "clip")
+              .append('rect')
+              .attr('x',xScale.range()[0])
+              .attr('y',yScale.range()[1])
+              .attr('width',xScale.range()[1]-xScale.range()[0])
+              .attr('height',yScale.range()[0]-yScale.range()[1])
 
-        const tooltip = svg.append('g')
-            .style('display', 'none');
+        // Add clipping path for making the animation look better
+        svgGroup = svg.append("g").attr("class","dataPoints")
+                        .attr("clip-path", "url(#clip)");
 
-        tooltip
-            .append('rect')
-            .style('display', 'block')
-            .attr('x', 0)
-            .attr('y', -20)
-            .attr('width', 140)
-            .attr('height', 20)
-            .attr('fill', 'rgba(240, 240, 240, .7)');
+        // dataF = data.filter(d => {
+        //     return (d.time >= min && d.time<=max)
+        // })
 
-        tooltip
-            .append('text')
-            .style('display', 'block')
-            .attr('x', 5)
-            .attr('y', -5)
-            .text('hello');
+        updateGraph(data,true);
+        getSunriseSunset(data);
+        addBrushing(response);
 
-        let line = d3.line()
-            .defined(d => d.value)
-            .x(d => xScale(d.time)+1)
-            .y(d => yScale(d.value));
-
-        svgGroup = svg.append("g").attr("class","dataPoints");
-
-        svgGroup.append("path")
-            .datum(data)
-            .attr("d", line);
-
-        svgGroup.selectAll('rect')
-            .data(data)
-            .enter().append("rect")
-                .style("fill", "rgba(90,90,90,1)")
-                .attr("x", function(d) { return xScale(new Date(d.time.getTime() - tzOffset)); })
-                .attr("width", 10) //x.rangeBand())
-                .attr("y", function(d) { return yScale(d.value); })
-                .attr("height", function(d) {
+        // TODO Check why so many nulls
+        function updateGraph(dataF, firstCall){
+            
+            d3.select('.dataPoints').selectAll('rect')
+                .data(dataF)
+                .join("rect")
+                .style("fill", "rgba(100,100,100,1)")
+                .attr("width", () => {
+                    if( WINDOW == 24){ return 5; }
+                    else if (WINDOW == 24*7){ return 1;} 
+                    else{ return 15; }
+                })
+                .attr("height", d => {
                     if (svgHeight - yScale(d.value) < 0) {
-                        console.log(d);
                         return 0;
                     } 
                     if (d.value === null) {
@@ -208,11 +243,166 @@ document.addEventListener("DOMContentLoaded", function() {
                         return svgHeight - yScale(d.value);
                     }
                 })
-    
-        addSunriseSunset();
+                .attr("y", d => { return yScale(d.value); })       
+
+            // Only transition with existing data, 
+            // avoid animation 
+            if(!firstCall){
+                d3.select('.dataPoints').selectAll('rect')
+                .transition()
+                .attr("x", d => { 
+                    return xScale(new Date(d.time.getTime())); })
+            }else{
+               d3.select('.dataPoints').selectAll('rect')
+                .attr("x", d => { 
+                    return xScale(new Date(d.time.getTime())); })
+            }
+        
+            d3.select('.dataPoints').selectAll('rect.annottated')
+                .style('fill','steelblue')
+        }
+
+        d3.select('#btnEarlier').on('click', e =>{
+
+            tmp = xScale.domain();
+            minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
+            // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
+            maxTime = new Date(minTime);
+            maxTime.setHours(maxTime.getHours()+WINDOW);
+
+            // Check if almost out of bounds
+            if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ){
+                // GET EARLIER DATA
+                // move backwards in time based on the 'startMinutes' measure
+                // the endMinutes is set so as to not requery existing data
+                console.log("CALLING NEW DATA")
+                endMinutes = startMinutes.valueOf();
+                startMinutes += startMinutes;
+                loadData();
+            }
+            d3.select('#btnLater').classed('disabled',false)
+
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+            
+            updateXAxis();
+            updateGraph(data,false);
+            updateSunriseSunset();
+            updateAnnotationBar();
+        });
+
+        // TODO: (1) sunset data
+        //       (2) query new data when 
+        d3.select('#btnLater').on('click', e =>{
+            tmp = xScale.domain()
+            minTime = new Date(tmp[0].setHours(tmp[0].getHours()+SHIFT_BY));
+            maxTime = new Date(minTime);
+            maxTime.setHours(maxTime.getHours()+WINDOW);
+
+            if( maxTime > d3.max(data, d =>{ return d.time }) ){
+                d3.select('#btnLater').classed('disabled',true)
+                return;
+            }
+
+            d3.select('#btnEarlier').classed('disabled',false)
+            
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+
+            updateXAxis();
+            updateGraph(data,false)
+            updateSunriseSunset();
+            updateAnnotationBar();
+        });
+
+        d3.select('#btnScale24').on('click', e =>{
+            WINDOW = 24;
+            SHIFT_BY = 4;
+
+            d3.selectAll('.scaleBtn').classed('selected',false)
+            d3.select('#btnScale24').classed('selected',true)
+
+            d3.select('#btnEarlier').classed('disabled',false)
+            d3.select('#btnLater').classed('disabled',false)
+            clearBrushSelection();
+            d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+            tmp = xScale.domain()
+            minTime = new Date(tmp[0]);
+            maxTime = new Date(minTime);
+            maxTime.setHours(maxTime.getHours()+WINDOW);
+
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+
+            updateXAxis();
+            updateGraph(data)
+            updateAnnotationBar();
+            updateSunriseSunset();
+
+        });
+
+        d3.select('#btnScale8').on('click', e =>{
+            WINDOW = 8;
+            SHIFT_BY = 3;
+
+            d3.selectAll('.scaleBtn').classed('selected',false)
+            d3.select('#btnScale8').classed('selected',true)
+
+            d3.select('#btnEarlier').classed('disabled',false)
+            d3.select('#btnLater').classed('disabled',false)
+            clearBrushSelection();
+            d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+            tmp = xScale.domain()
+            minTime = new Date(tmp[0]);
+            maxTime = new Date(minTime);
+            maxTime.setHours(maxTime.getHours()+WINDOW);
+
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+
+            updateXAxis();
+            updateGraph(data)
+            updateAnnotationBar();
+            updateSunriseSunset();
+       });
+
+        d3.select('#btnScaleWeek').on('click', e =>{
+            WINDOW = 24*7;
+            SHIFT_BY = 24*2;
+
+            d3.selectAll('.scaleBtn').classed('selected',false)
+            d3.select('#btnScaleWeek').classed('selected',true)
+            clearBrushSelection();
+             d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+            tmp = xScale.domain()
+            minTime = new Date(tmp[0]);
+            maxTime = new Date(minTime);
+            maxTime.setHours(maxTime.getHours()+WINDOW);
+
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+
+            updateXAxis();
+            updateGraph(data)
+            updateAnnotationBar();
+            updateSunriseSunset();
+        });
 
     }
-
+    
     d3.json('/settime/', {
         method: 'POST', 
         headers: { "Content-Type": "application/json" }, 
@@ -263,18 +453,24 @@ document.addEventListener("DOMContentLoaded", function() {
                 _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
                 const promises = _series.map(m => loadMeasurementData(m));
-                Promise.all(promises).then(function () {
+                Promise.all(promises).then( () => {
                     console.log('all loaded');
                     d3.select('div.main-loading').style('display', 'none');
                 });
             };
 
-            _series = allSeries.map(function (d) {return d;});
+            _series = allSeries.map( d => {return d;});
 
             loadData();
 
         });
     });
+
+    function clearBrushSelection(){
+        d3.select('.saveBtnContainer').remove();
+        d3.selectAll('.dataPoints rect').style("opacity", '1');
+    }
+
 
     function addBrushing (response){
 
@@ -288,7 +484,7 @@ document.addEventListener("DOMContentLoaded", function() {
             'notes':''
         }
 
-        const brush = d3.brushX()
+        brush = d3.brushX()
                         .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
                         .on('start', brushStart)
                         .on('end', brushEnd)
@@ -315,7 +511,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 // Check if started within a already annotated area
                 // if so push to the nearest non-annotated right/left side
-                // TODO Fix snapping case where 2 events are continous 
                 let sx = selection.map(xScale.invert);
                 let newStart = new Date (sx[0]),
                     newEnd = new Date (sx[1]),
@@ -329,6 +524,11 @@ document.addEventListener("DOMContentLoaded", function() {
                        newStart = e.end;
                        flag = true;
                     }
+
+                    if(flag == true && newStart == e.start){
+                       newStart = e.end;
+                    }
+
                 });
 
                 sx = [newStart,newEnd];
@@ -366,11 +566,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        function clearBrushSelection(){
-            d3.select('.saveBtnContainer').remove();
-            svgGroup.selectAll('rect').style("opacity", '1');
-        }
-
         function brushing({selection}) {
             console.log('brush hapenning')
 
@@ -386,6 +581,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         function openDialogue(selection){
             d3.select('#dialogueBox h4').html('Create Event')
+            d3.select('#dialogueBox').attr('isCreate','true')
+
             evnt.id = ids++;
 
             // TODO: add more acccurate time mapping based on the bars not the brushing
@@ -450,11 +647,10 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#savebtnDialogue').on('click', () =>{
             evnt.notes = document.getElementById('notes').value;
 
-            // TODO CHANGE THIS TO MORE ROBUST WAY!
-            if( d3.select('#dialogueBox h4').html() === 'Create Event'){
-                // If new Push this events to a list of all
+            if( d3.select('#dialogueBox').attr('isCreate') === 'true'){
+                // If new Push this event to a list of all
                 allEvents.push(evnt);
-                updateAnnotationBar(evnt);
+                addAnnotationBar(evnt);
             }else{
                 editAnnotationBar(evnt)
             }
@@ -463,7 +659,9 @@ document.addEventListener("DOMContentLoaded", function() {
             // Highlight the annotated area
             d3.selectAll('.dataPoints rect').filter( d => { 
                 return evnt.start <= d.time && d.time <= evnt.end;
-            }).style("fill", 'steelblue');
+            })
+            .classed('annottated',true)
+            .style("fill", 'steelblue');
 
 
             // Reset and close the dialogue
@@ -490,6 +688,7 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log('edit event')
 
             d3.select('#dialogueBox h4').html('Edit event')
+            d3.select('#dialogueBox').attr('isCreate','false')
 
             evnt = allEvents.filter(d => { return (d.id == id) })[0]
 
@@ -528,7 +727,7 @@ document.addEventListener("DOMContentLoaded", function() {
             dd.select('text').text(event.type)
         }
 
-        function updateAnnotationBar(event){
+        function addAnnotationBar(event){
 
             const anntLine = d3.line()
                          .x(d => xScale(d))
@@ -537,28 +736,29 @@ document.addEventListener("DOMContentLoaded", function() {
             anntContainer = d3.select("div#container svg")
               .append('g').attr('class','annotationBar')
               .datum(event.id)
+              .attr('transform','translate('+xScale(event.start)+',0)')
 
             anntContainer
                 .append('path')
-                .datum([event.start, event.end])
+                .datum([0,(xScale(event.end)-xScale(event.start))])
                 .attr('d', anntLine)
                 .attr('stroke-width','2px')
 
             anntContainer
                 .append('text')
                 .attr('font-size','15px')
-                .attr('x', xScale(event.start) + 20)
+                .attr('x', 20)
                 .attr('y',svgMarginTop-35)
                 .text(event.type)
 
             anntContainer
                 .append('image')
                 .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-                .attr("x", xScale(event.start) ).attr("y", svgMarginTop-50)
-                .attr("width", 16).attr("height", 16)
+                .attr("x", 0 ).attr("y", svgMarginTop-50)
+                .attr("width", 20).attr("height", 20)
                 .on('click', (e) => {editEvent(e,event.id)})
 
-            blockC = anntContainer
+/*            blockC = anntContainer
                      .append('g').attr('class','blocksContainer')
 
             const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
@@ -585,10 +785,35 @@ document.addEventListener("DOMContentLoaded", function() {
                     return 'translate('+x+','+(y*20+svgMarginTop+15)+')';
                   })
                   .style('fill','#ff9620')
+*/
         }
-
     }
 
+    function updateAnnotationBar(){
+        d3.selectAll('.annotationBar')
+         .transition()
+         .attr('transform', d => {
+            ff = allEvents.filter( e => {
+               return e.id == d;
+            })[0];
+            return 'translate('+xScale(ff.start)+',0)';
+        })
+    }
+
+    function updateXAxis(){
+            xAxis = d3.axisBottom()
+                .ticks(15)
+                .tickFormat(d3.timeFormat('%b %d %H:%M'))
+                .scale(xScale);
+
+            d3.selectAll(".x-axis").call(xAxis)
+                    .selectAll("text")  
+                    .style("text-anchor", "end")
+                    .attr("dx", "-.8em")
+                    .attr("dy", ".15em")
+                    .attr("transform", "rotate(-45)");
+    }
+    
     d3.select('#saveCSV').on('click', exportCSV);
 
     function exportCSV(){
@@ -622,61 +847,79 @@ document.addEventListener("DOMContentLoaded", function() {
         link.click(); // This will download the data file named "my_data.csv".
     }
 
-    function addSunriseSunset(){
+    function getSunriseSunset(data){
+        d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
+          .then(function (sun) {
+            // console.log(data);
 
-      d3.json('http://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
-      .then(function (data) {
-        console.log(data);
+            d3.select('div#container svg')
+              .append('g').lower()
+              .attr('class','backgroundData')
+              .attr("clip-path", "url(#clip)");
 
-        d3.select('div#container svg')
-          .append('g')
-          .attr('class','backgroundData');
+            sunset = new Date(sun.results.sunset);
+            sunrise = new Date(sun.results.sunrise);
+             
+            drawSunriseSunset(data);
+        });
+    } 
 
-        sunset = new Date(data.results.sunset);
-        sunrise = new Date(data.results.sunrise);
+    function updateSunriseSunset(){
+        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
 
-        flag = false;
-        pathD = '';
-        loc = '';
-        d3.selectAll('.backgroundData path').remove()
+        d3.select('.backgroundData').selectAll('rect')
+            .transition()
+            .attr('x', d => { return xScale(d.time)})
+            .attr('width', d => { 
+                tmp = new Date(xScale.domain()[0]);
+                tmp2 = new Date(tmp);
+                tmp2.setHours(tmp2.getHours() + lengthOfNight);
+                return (xScale(tmp2)- xScale(tmp)); 
+            })
 
-        d3.selectAll('.axis .tick').each(d => {
-            tmp = new Date(d);
+        d3.select('.backgroundData').selectAll('text')
+            .transition()
+            .attr('x', d => { return xScale(d.time) +20})
+    }
 
-            // first time we find a 'night'
-            if( (tmp.getHours() < sunrise.getHours() || tmp.getHours() > sunset.getHours()) && flag==false ){
-                pathD += 'M'+xScale(tmp)+','+svgHeight; 
-                flag = true;
-                loc = tmp;
-            }
+    function drawSunriseSunset(data){
 
-            // first time we find a 'day' after a 'night' -> draw it
-            if(tmp.getHours() >= sunrise.getHours() && tmp.getHours() < sunset.getHours() && flag==true){
-                pathD += ' L'+xScale(tmp)+','+svgHeight+' L'+xScale(tmp)+','+0+' L'+xScale(loc)+','+0+' Z';
-                d3.select('.backgroundData')
-                 .append('path')
-                 .attr('d', pathD)
-                 .style('opacity',0.1)
-                 .style('fill','gray')
+        d3.selectAll('.backgroundData rect').remove()
 
-                d3.select('.backgroundData')
-                  .append('text')
-                  .text('night')
-                  .attr('x', xScale(loc) + 10)
-                  .attr('y', 20)
-                  .style('font-style','italic')
-                  .style('font-size','14px')
-                  .attr('fill','gray')
-
-
-                pathD = '';
-                loc = '';
-                flag = false;
+        counter = data[0].time.getDate();
+        nights = data.filter(d => {
+            if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
+                counter++;
+                return true ;
             }
         })
-        
 
-      })
-    }
+        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
+
+        d3.select('.backgroundData').selectAll('rect')
+            .data(nights)
+            .join('rect')
+            .attr('x', d => { return xScale(d.time)})
+            .attr('y',0)
+            .attr('width', d => { 
+                tmp = new Date(xScale.domain()[0]);
+                tmp2 = new Date(tmp);
+                tmp2.setHours(tmp2.getHours() + lengthOfNight);
+                return (xScale(tmp2)- xScale(tmp)); 
+            })
+            .attr('height', svgHeight)
+            .style('opacity',0.1)
+             .style('fill','gray')
+
+            d3.select('.backgroundData').selectAll('text')
+              .data(nights)
+              .join('text')
+              .text('night')
+              .attr('x', d => { return xScale(d.time)+10})
+              .attr('y', 60)
+              .style('font-style','italic')
+              .style('font-size','14px')
+              .attr('fill','gray')
+   }
 
 });
