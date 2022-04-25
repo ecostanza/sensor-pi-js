@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- local imports -->
+    <link rel="stylesheet" type="text/css" href="/static/css/annotate.css">
+
+    <title>Energy Consumption </title>
+  </head>
+  <body>
+    
+    <button id="saveCSV" class="btn">saveCSV</button>
+    <button id="btnEarlier" class="btn">earlier</button>
+    <button id="btnLater" class="btn disabled">later</button>
+
+
+    <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
+    <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+    <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+
+    <div id="container"></div>
+
+    <div id="dialogueBox">
+      <h4 style="margin-bottom: -30px;">Create Event</h4>
+      <button id="deletebtnDialogue" class="btn">Delete Event</button>
+      <div> Event Start: <label id="evntStart"></label> </div>
+      <div> Event End: <label id="evntEnd"></label> </div>
+      <div> Duration: <label id="evntDuration"></label> </div>
+      <div> Consumption: <label id="evntConsumption"></label> </div>
+
+      <div> 
+        <label>Select an event icon</label> 
+        <div id="iconField"></div>
+      </div>
+
+      <div> 
+        <label> Describe the event </label>
+        <textarea id="notes"></textarea>
+      </div>
+      <div style="margin:0 auto;text-align: center;">
+      <button id="closebtnDialogue" class="btn">Cancel</button>
+      <button id="savebtnDialogue" class="btn">Save</button>
+    </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
+
+    <!-- local imports -->
+    <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/luxon.min.js"></script>
+    <script type="text/javascript" src="/static/js/annotate.js"></script>
+
+  </body>
+  </html>

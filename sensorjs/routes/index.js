@@ -69,6 +69,22 @@ router.get('/check', function(req, res) {
 });
 
 
+router.get('/annotate', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 * free_ratio).toFixed()}%`;
+  
+    res.render('annotate.html', { 
+      title: 'Annotate',
+      free: free
+    });
+
+  });
+
+});
+
+
+
 router.get('/favicon.ico', function(req, res) {
   res.redirect('/static/favicon.ico');
 })
@@ -152,7 +168,7 @@ function buildQueries(start, end, points, measurement, sensor_id, recentOnly) {
   }
 
   const deltaMinutes = start - end;
-  const interval = Math.ceil(deltaMinutes / points);
+  const interval = 2 // Math.ceil(deltaMinutes / points);
 
   const select = 'SELECT "time", mean("value") as "value"';
   const groupBy = `GROUP BY time(${interval}m)`;
@@ -245,7 +261,6 @@ router.get('/measurement/:measurement/sensor/:sensor_id/data/', function(req, re
 router.get('/measurement/:measurement/sensor/:sensor_id/rawdata/', function(req, res) {
   const measurement = req.params.measurement;
   const sensor_id = req.params.sensor_id;
-
 
   const select = 'SELECT "time", "value"';
   let bySensor = '';
