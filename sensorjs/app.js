@@ -26,7 +26,8 @@ var logger = require('morgan');
 var nunjucks = require('nunjucks');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+// var usersRouter = require('./routes/users');
+const annotationRoutes = require('./routes/annotations');
 
 var app = express();
 
@@ -43,7 +44,7 @@ app.use('/static', express.static(path.join(__dirname, 'public')));
 
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/', annotationRoutes);
 
 // app.listen(8000, "0.0.0.0");
 
