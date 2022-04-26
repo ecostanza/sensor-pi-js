@@ -29,28 +29,29 @@ router.get('/annotations-test', async function(req, res) {
     return res.render('annotations-test.html');
 });
 
-const annotation_columns = [
-    'id',
-    'start',
-    'duration_seconds',
+const annotation_fields = [
+    {'name': 'id', 'required': false, 'auto': true},
+    {'name': 'start', 'required': true, 'auto': false},
+    {'name': 'duration_seconds', 'required': true, 'auto': false},
     
-    'type',
-    'description',
+    {'name': 'type', 'required': true, 'auto': false},
+    {'name': 'description', 'required': false, 'auto': false},
     
-    'consumption',
+    {'name': 'consumption', 'required': false, 'auto': false},
     
-    'flexibility',
+    {'name': 'flexibility', 'required': false, 'auto': false},
     
-    'measurement',
-    'sensor',
+    {'name': 'measurement', 'required': true, 'auto': false},
+    {'name': 'sensor', 'required': true, 'auto': false},
     
-    'createdAt',
-    'updatedAt'
+    {'name': 'createdAt', 'required': false, 'auto': true},
+    {'name': 'updatedAt', 'required': false, 'auto': true}
 ];
 
 router.get('/annotations', async function(req, res) {
     // TODO: add filters
     try {
+        const annotation_columns = annotation_fields.map(f => f['name']);
         const query = `SELECT ${annotation_columns.join()} from annotations;`;
         // console.log('query:', query);
         const select = db.prepare(query);
@@ -64,25 +65,16 @@ router.get('/annotations', async function(req, res) {
 });
 
 function populate_annotation_data (req, updating) {
-    const expected_fields = [
-        'start',
-        'duration_seconds',
-        'type', 
-        'measurement',
-        'sensor'
-    ];
-    const optional_fields = [
-        'description', //?
-        'consumption', //?
-        'flexibility', //?
-    ];
     let data = {};
-    for (const f of expected_fields) {
-        // TODO: raise exception if not present
-        data[f] = req.body[f];
-    }
-    for (const f of optional_fields) {
-        data[f] = req.body[f];
+    const relevant_fields = annotation_fields.filter(f => f['auto'] === false);
+    for (const f of relevant_fields) {
+        if (req.body[f['name']] !== undefined) {
+            data[f['name']] = req.body[f['name']];
+        } else if (f['required'] === true) {
+            // raise exception if not present
+            // TODO: test this!
+            throw `${f['name']} expected`;
+        }
     }
     if (!updating) {
         data['createdAt'] = (new Date()).getTime();
@@ -145,8 +137,11 @@ router.post('/annotations/:id', async function (req, res) {
     console.log('req.body', JSON.stringify(req.body));
     //let data = populate_annotation_data(req);
     let data = [];
+    const relevant_fields = annotation_fields
+        .filter(f => f['auto'] === false)
+        .map(f => f['name']);
     for (const k in req.body) {
-        if (annotation_columns.includes(k)) {
+        if (relevant_fields.includes(k)) {
             data.push(`${k} = '${req.body[k]}'`);
         }
     }

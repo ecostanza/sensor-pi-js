@@ -26,7 +26,7 @@ try {
     )`;
     console.log('query:', q);
     // console.log('query:', q.replaceAll(/\n/g, ''));
-    console.log('query:', q.replaceAll("\n", ''));
+    console.log('query:', q);
 
     const create = db.prepare(q);
     
