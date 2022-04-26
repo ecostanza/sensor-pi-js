@@ -44,3 +44,52 @@ to turn off the raspberry pi (if you turn it off from the on-device button you s
     
 To manually edit wifi networks:
 ```sudo nano /etc/wpa_supplicant/wpa_supplicant.conf```
+
+## Setting up sqlite3 for the annotations db
+on the RPi (or also the dev machine):
+```
+npm install better-sqlite3
+```
+
+to create the table to store the annotations run:
+```
+node create_annotations_table.js
+```
+
+
+## Upgrading Node.js on RPi (PLEASE IGNORE!)
+
+Install NVM:
+```
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+```
+
+Install node 16:
+```
+NVM_NODEJS_ORG_MIRROR=https://unofficial-builds.nodejs.org/download/release nvm install 16
+```
+
+close the shell and re-open (exit ssh and login again)
+then ```node --version``` should show version 16
+
+Make the new version the system default (needed for the services):
+```
+sudo rm -f /usr/bin/node
+sudo rm -f /usr/bin/npm
+sudo ln -s $(which node) /usr/bin/
+sudo ln -s $(which npm) /usr/bin/
+```
+
+Recent node versions do not run on port 80, so we need to map port 3000 to 80
+```
+sudo iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3000
+```
+TODO: add this to systemd for persistence
+
+Reboot the RPi
+
+
+```
+npx prisma generate
+npx prisma db push
+```
