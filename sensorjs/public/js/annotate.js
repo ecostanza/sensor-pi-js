@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let data = [];
 
-	let svgWidth = window.innerWidth;
+    let svgWidth = window.innerWidth;
     let svgHeight = svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
     
     const margin = 5;
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     'watching_tv'
                    ];
 
-    let SHIFT_BY = 3;
+    let SHIFT_BY = 4;
     let WINDOW = 8;
     let sunrise, sunset;
     const consumptionUnit = 1;
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function() {
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
         let name = measurement.name;
-	
+    
         svgContainer = d3.select("div#container");
 
         if(svgContainer.select('#'+measurement.id + 'Chart').node() !== null ){
@@ -77,9 +77,9 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("margin", margin)
             // .style("max-width", 600)
             .classed("svg-content", true);
-	}
+    }
 
-	const loadMeasurementData = function (series) {
+    const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
 
@@ -93,7 +93,6 @@ document.addEventListener("DOMContentLoaded", function() {
             drawGraphs(response,sensor_id,series);
         });
     }
-
 
     function addDataToGraphs(response,sensor_id,series){
         let data = response.readings;
@@ -113,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function formatData(data){
         let offset = 0;
 
-        console.log(data)
+        // console.log(data)
 
         data = data.map(function (d) {
             let v = +d.value + offset;
@@ -221,6 +220,8 @@ document.addEventListener("DOMContentLoaded", function() {
         getSunriseSunset(data);
         addBrushing(response);
 
+        drawAnnotations();
+
         // TODO Check why so many nulls
         function updateGraph(dataF, firstCall){
             
@@ -279,8 +280,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 endMinutes = startMinutes.valueOf();
                 startMinutes += startMinutes;
                 loadData();
+                drawAnnotations();
             }
             d3.select('#btnLater').classed('disabled',false)
+            d3.select('#btnRecent').classed('disabled',false)
 
             xScale = d3.scaleTime(
                 [minTime , maxTime],
@@ -293,14 +296,32 @@ document.addEventListener("DOMContentLoaded", function() {
             updateAnnotationBar();
         });
 
-        // TODO: (1) sunset data
-        //       (2) query new data when 
+        d3.select('#btnRecent').on('click', e => {
+            tmp = xScale.domain();
+            maxTime = new Date();
+            minTime = maxTime - WINDOW * 60 * 60 *1000;
+            // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
+            // minTime.setHours(maxTime.getHours()+WINDOW);
+
+            xScale = d3.scaleTime(
+                [minTime , maxTime],
+                [0, svgWidth-svgMarginLeft]
+            );
+
+            updateXAxis();
+            updateGraph(data,false);
+            updateSunriseSunset();
+            updateAnnotationBar();
+
+        });
+        
         d3.select('#btnLater').on('click', e =>{
             tmp = xScale.domain()
             minTime = new Date(tmp[0].setHours(tmp[0].getHours()+SHIFT_BY));
             maxTime = new Date(minTime);
             maxTime.setHours(maxTime.getHours()+WINDOW);
 
+            // hardMaximum = minTime + WINDOW/2 * 60 * 60 * 1000
             if( maxTime > d3.max(data, d =>{ return d.time }) ){
                 d3.select('#btnLater').classed('disabled',true)
                 return;
@@ -321,7 +342,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select('#btnScale24').on('click', e =>{
             WINDOW = 24;
-            SHIFT_BY = 4;
+            SHIFT_BY = 12;
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScale24').classed('selected',true)
@@ -350,7 +371,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select('#btnScale8').on('click', e =>{
             WINDOW = 8;
-            SHIFT_BY = 3;
+            SHIFT_BY = 4;
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScale8').classed('selected',true)
@@ -378,12 +399,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select('#btnScaleWeek').on('click', e =>{
             WINDOW = 24*7;
-            SHIFT_BY = 24*2;
+            SHIFT_BY = 24*4;
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScaleWeek').classed('selected',true)
             clearBrushSelection();
-             d3.selectAll("div#container svg .brush").call(brush.move,null);
+            d3.selectAll("div#container svg .brush").call(brush.move,null);
 
             tmp = xScale.domain()
             minTime = new Date(tmp[0]);
@@ -402,14 +423,14 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
     }
-    
+
     d3.json('/settime/', {
         method: 'POST', 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({
             'datetime': (new Date()).toISOString()
         })
-    }).then(function (data) {
+    }).then( (data) => {
         console.log('settime post response:', data);
   
         let seriesUrl = '/series/?showAll=true';
@@ -471,19 +492,45 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.selectAll('.dataPoints rect').style("opacity", '1');
     }
 
+    async function drawAnnotations(){
+        try{
+            result = await d3.json('/annotations');
+            console.log('get result', result);
+            result.forEach( g => {
+                console.log(g);
+                addAnnotationBar(g);
+            })
+        }catch(e){
+            console.log("error " + e)
+        }
+        // d3.json('/annotations',{
+        //     method: 'GET', 
+        // }).then( d => {
+
+        //     d.response.forEach( g => {
+        //         addAnnotationBar(g);
+        //     })
+        // })
+
+    }
+
 
     function addBrushing (response){
 
-        evnt = {
+      /*  evnt = {
+            'id':'',
             'start' :'',
-            'end'   : '',
+            'end':'',
             'duration': 0,
             'consumption': 0,
-            'id':'',
             'type':'',
-            'notes':''
+            'flexibility':'',
+            'series':'',
+            'description':'',
+            'createdAt':'',
+            'updatedAt':'',
         }
-
+      */
         brush = d3.brushX()
                         .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
                         .on('start', brushStart)
@@ -496,14 +543,14 @@ document.addEventListener("DOMContentLoaded", function() {
               .call(brush)
 
         function brushStart({selection}) {
-            console.log('brush started');
+            // console.log('brush started');
             d3.select('.saveBtnContainer').remove();
         }
 
         function brushEnd(event) {
             if (!event.sourceEvent) return;
       
-            console.log('brush ended');
+            // console.log('brush ended');
             selection = event.selection;
 
             // check it was not a random click
@@ -536,14 +583,12 @@ document.addEventListener("DOMContentLoaded", function() {
                     brushContainer.call(brush.move,sx.map(xScale))
                 }
                 
-                console.log(sx);
-
                 // Create a button to save event
                 d3.select('div#container svg')
                   .append('g')
                   .attr('class','saveBtnContainer')
                   .style('cursor','pointer')
-                  .on('click', () => { openDialogue(sx); })
+                  .on('click', () => { createEvent(sx); })
                   // Show the save button aligned to the selection
                   .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+svgMarginTop+')')
                 
@@ -567,7 +612,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function brushing({selection}) {
-            console.log('brush hapenning')
+            // console.log('brush hapenning')
 
             if (selection === null) {
                clearBrushSelection();
@@ -579,42 +624,168 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        function openDialogue(selection){
+        function createEvent(selection){
+            let evnt = {};
+
             d3.select('#dialogueBox h4').html('Create Event')
             d3.select('#dialogueBox').attr('isCreate','true')
 
-            evnt.id = ids++;
+            evnt.createdAt = (new Date()).toISOString()
+            evnt.series = '';
+
+            evnt.flexibility = ''
+            evnt.description = ''
 
             // TODO: add more acccurate time mapping based on the bars not the brushing
-            evnt.start = selection[0] //xScale.invert(selection[0]);
-            evnt.end = selection[1] //xScale.invert(selection[1]);
+            evnt.start = selection[0]; 
+            evnt.end = selection[1];
 
-            duration = evnt.end.getTime() - evnt.start.getTime();
-            durationInHours = (duration / 60000).toFixed(0)/60;
-            durationInMinutes = (duration/60000) % 60;
-            evnt.duration = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
+            evnt.duration_seconds = evnt.end.getTime() - evnt.start.getTime();
 
             // TODO: add always on function
             evnt.consumption = d3.sum(response.readings.filter(d => {
                 return new Date(d.time) >= evnt.start && new Date(d.time) < evnt.end;
             }), function (d) {return d.value;}) // - always_on;
 
-            d3.select("#dialogueBox")
-              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
-              .style('display','block');
+            show_event_dialog(evnt);
+        }
+
+        function editEvent(e, evnt){
+            if (!e.srcElement) return;
+            console.log('edit event')
+
+            d3.select('#dialogueBox h4').html('Edit event')
+            d3.select('#dialogueBox').attr('isCreate','false')
+
+            console.log(allEvents)
+
+            let localEvent = allEvents.filter(d => { return (d.id == evnt.id) })[0]
+            console.log(localEvent)
+
+            // d3.select("#dialogueBox")
+            //   .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+            //   .style('display','block');
+
+            // printDate = d3.timeFormat('%b %d %H:%M');
+            // d3.select('#dialogueBox #evntDuration').html(evnt.duration);
+            // d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
+            // d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
+            // d3.select('#dialogueBox #evntConsumption').html( (+(evnt.consumption)).toFixed(1)+" KW");
+            // d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
+            // d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
+            // d3.select('#dialogueBox #evntId').node().value = evnt.id;
+
+            // d3.select("#iconField").empty();
+            // d3.select("#iconField")
+            //     .selectAll('img')
+            //     .data(event_types)
+            //     .join('img')
+            //     .attr('class', d => { return 'icon ' + d})
+            //     .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
+            //     .attr('alt', d => {return d})          
+            //     .attr('title', d => {return d})
+            //     .classed('selected', d => { return d == evnt.type })
+            //     .on('click', d => {
+            //        evnt.type = d.target['__data__'];
+            //        d3.selectAll('#iconField img').classed('selected',false)
+            //        d3.select('.'+evnt.type).classed('selected',true)
+            //     })
+            
+            // // d3.select('#dialogueBox #evntFlexibility').on('change', {
+            // //     evnt.flexibility = d3.select('#dialogueBox #evntFlexibility').node().value;
+            // // })
+
+            // d3.select('#dialogueBox #evntType').node().value = evnt.type;
+            // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
+            // d3.select('#dialogueBox #evntUpdated').node().value = new Date();
+
+            show_event_dialog(localEvent)
+        }
+
+        function resetDialogue(){
+           // evnt = {
+           //  'start' :'',
+           //  'end'   : '',
+           //  'duration': 0,
+           //  'consumption': 0,
+           //  'id':'',
+           //  'type':'',
+           //  'notes':''
+           // }
+
+            // d3.select('#dialogueBox #evntDuration').html('');
+            // d3.select('#dialogueBox #evntStart').html('');
+            // d3.select('#dialogueBox #evntEnd').html('');
+            // d3.select('#dialogueBox #evntConsumption').html('');
+            // document.getElementById('#evntDescription').value = '';
+            // d3.selectAll("#iconField img").classed('selected',false)
+        }
+
+        function getDialogueValues(type){
+            let evnt = {};
+            console.log('Capturing...')
+
+            if( type == 'create'){
+                evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
+                evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
+                evnt.start =  new Date( d3.select('#dialogueBox #evntStart').node().value); 
+                evnt.duration_seconds = d3.select('#dialogueBox #evntDuration').node().value;
+                evnt.consumption =  d3.select('#dialogueBox #evntConsumption').node().value;
+                evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;                
+            }else{
+                evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
+                evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
+                evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;
+                evnt.id = d3.select('#dialogueBox #evntId').node().value;
+            }
+            console.log(evnt.flexibility)
+
+            console.log(evnt)
+
+            return evnt;
+        }
+
+        function validate_form(){
+            if (d3.select('#evntType').node().value === '') {
+                return "ERROR: Please choose an icon before pressing OK.";
+            }
+            return '';
+        };
+
+
+        sanitize = function (event) {
+            if (event.description === undefined) {
+                event.description = '';
+            }
+            if (event.event_type_id === undefined) {
+                event.type = '';
+            }
+            return event;
+        };
+
+        function populateDialogBox(evnt){
+            // event = sanitize(evnt);
+            event = evnt;
+            console.log('populateDialogBox')
+            console.log(event);
 
             printDate = d3.timeFormat('%b %d %H:%M');
-            d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-            d3.select('#dialogueBox #evntStart').html(printDate(evnt.start));
-            d3.select('#dialogueBox #evntEnd').html(printDate(evnt.end));
-            d3.select('#dialogueBox #evntConsumption').html(evnt.consumption.toFixed(1)+" KW");
-        
+
+            durationInHours = (+evnt.duration_seconds / 60000).toFixed(0)/60;
+            durationInMinutes = (+evnt.duration_seconds/60000) % 60;
+            durationLabel = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
+
+            d3.select('#dialogueBox #evntDurationLabel').html(durationLabel);
+            d3.select('#dialogueBox #evntStartLabel').html(printDate( new Date(evnt.start)));
+            d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(1)+" KW");
+
             d3.select("#iconField").empty();
             d3.select("#iconField")
                 .selectAll('img')
                 .data(event_types)
                 .join('img')
                 .attr('class', d => { return 'icon ' + d})
+                .attr('value', d => {return d})
                 .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
                 .attr('alt', d => {return d})          
                 .attr('title', d => {return d})
@@ -623,55 +794,147 @@ document.addEventListener("DOMContentLoaded", function() {
                    d3.selectAll('#iconField img').classed('selected',false)
                    d3.select('.'+evnt.type).classed('selected',true)
                 })
+
+            if(evnt.type) { d3.select('#iconField img.'+evnt.type).classed('selected',true) }
+
+            d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
+            d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
+
+            d3.select('#dialogueBox #evntStart').node().value = evnt.start;
+            d3.select('#dialogueBox #evntDuration').node().value = evnt.duration_seconds;
+            d3.select('#dialogueBox #evntConsumption').node().value = evnt.consumption;
+            d3.select('#dialogueBox #evntType').node().value = evnt.type;
+            // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
+            // d3.select('#dialogueBox #evntUpdated').node().value = -1;
+            d3.select('#dialogueBox #evntId').node().value = evnt.id;
         }
 
-        function resetDialogue(){
-           evnt = {
-            'start' :'',
-            'end'   : '',
-            'duration': 0,
-            'consumption': 0,
-            'id':'',
-            'type':'',
-            'notes':''
-           }
+        show_event_dialog = function(event){
+            d3.select("#dialogueBox")
+              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+              .style('display','block');
 
-            d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-            d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
-            d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
-            d3.select('#dialogueBox #evntConsumption').html(+(evnt.consumption).toFixed(1)+" KW");
-            document.getElementById('notes').value = evnt.notes;
-            d3.selectAll("#iconField img").classed('selected',false)
+            populateDialogBox(event);
+
+            d3.select('#submitEventBtn').on('click',null)
+            d3.select('#submitEventBtn').on('click', (r) =>{
+                
+                errormessage = validate_form();
+                if (errormessage !== '') {
+                    alert(errormessage);
+                    // TODO: check what does false do?
+                    return false;                       
+                }
+
+                console.log('IS CREATE: '+d3.select('#dialogueBox').attr('isCreate'))
+                if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
+                    
+                    createNewAnnotation();
+                    async function createNewAnnotation()
+                    {
+                        // If new Push this event to a list of all
+                        let event = getDialogueValues('create')
+                        let eventSanitized = {
+                                'start': event.start.toISOString(),
+                                'duration_seconds':+event.duration_seconds,
+                                'type': event.type,
+                                'description':event.description,
+                                'consumption':event.consumption,
+                                'flexibility':event.flexibility,
+                                'sensor': '100', 
+                                'measurement': 'electricity_consumption'
+                            }
+                        try{
+                            let result  = await d3.json('/annotations', {
+                                method: 'PUT', 
+                                headers: { "Content-Type": "application/json; charset=UTF-8" },
+                                'body': JSON.stringify(eventSanitized)
+                            });
+                          
+                            console.log(eventSanitized)
+  
+                            eventSanitized.id = result.lastInsertRowid;
+
+                            console.log(result)
+                            allEvents.push(eventSanitized);
+                            addAnnotationBar(event,eventSanitized.id);
+                        }catch(e){
+                            console.log(e);
+                        }
+                    }
+                }else{
+                    
+                    editAnnotation();
+
+                    async function editAnnotation(){
+
+                        let event = getDialogueValues('edit');
+                        let eventSanitized = {
+                                'flexibility':event.flexibility,
+                                'type': event.type,
+                                'description':event.description,
+                            }
+
+                        result  = await d3.json(`/annotations/${event.id}`, {
+                            method: 'POST', 
+                            headers: { "Content-Type": "application/json; charset=UTF-8" },
+                            'body': JSON.stringify(eventSanitized)
+                        });
+
+                        // Update the local events
+                        let index = 0;
+                        for(i=0;i<allEvents.length;i++){
+                            if( allEvents[i].id == event.id ){
+                                index = i;
+                                break;
+                            }
+                        }
+                        allEvents[index].type = event.type;
+                        allEvents[index].description = event.description;
+                        allEvents[index].flexibility = event.flexibility;
+
+                        // Update the visuals
+                        editAnnotationBar(eventSanitized,event.id);                 
+                    }
+                }
+
+
+                // Highlight the annotated area
+                d3.selectAll('.dataPoints rect').filter( d => { 
+                    // console.log(event.start.getTime() + event.duration)
+                    return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
+                })
+                .classed('annottated',true)
+                .style("fill", 'steelblue');
+
+
+                // Reset and close the dialogue
+                resetDialogue();
+                closeDialogue();
+
+                // Clear the previous brushing 
+                // clearBrushSelection();
+                // brushContainer.call(brush.move,null);
+            });
+
+            d3.select('#deleteEventBtn').on('click', (r) =>{
+                /*  d3.json('/annotations/'+evnt.id, {
+                        method: 'DELETE', 
+                        body: JSON.stringify({
+                            'type': evnt.type,
+                            'description':evnt.description,
+                            'flexibility':evnt.flexibility,
+                            'updatedAt': (new Date()).toISOString()
+                        })
+
+                    }).then( e => {}
+                    ) */      
+            });
+
         }
 
-        d3.select('#savebtnDialogue').on('click', () =>{
-            evnt.notes = document.getElementById('notes').value;
+        // d3.select('#savebtnDialogue').on('click')
 
-            if( d3.select('#dialogueBox').attr('isCreate') === 'true'){
-                // If new Push this event to a list of all
-                allEvents.push(evnt);
-                addAnnotationBar(evnt);
-            }else{
-                editAnnotationBar(evnt)
-            }
-            console.log(allEvents);
-
-            // Highlight the annotated area
-            d3.selectAll('.dataPoints rect').filter( d => { 
-                return evnt.start <= d.time && d.time <= evnt.end;
-            })
-            .classed('annottated',true)
-            .style("fill", 'steelblue');
-
-
-            // Reset and close the dialogue
-            resetDialogue();
-            closeDialogue();
-
-            // Clear the previous brushing 
-            // clearBrushSelection();
-            // brushContainer.call(brush.move,null);
-        });
 
         function closeDialogue() {
             d3.select("#dialogueBox")
@@ -683,65 +946,38 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
 
-        function editEvent(e,id){
-            if (!e.srcElement) return;
-            console.log('edit event')
+        function editAnnotationBar(event, id){
+            // console.log(event)
 
-            d3.select('#dialogueBox h4').html('Edit event')
-            d3.select('#dialogueBox').attr('isCreate','false')
-
-            evnt = allEvents.filter(d => { return (d.id == id) })[0]
-
-            d3.select("#dialogueBox")
-              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
-              .style('display','block');
-
-            printDate = d3.timeFormat('%b %d %H:%M');
-            d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-            d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
-            d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
-            d3.select('#dialogueBox #evntConsumption').html(+(evnt.consumption).toFixed(1)+" KW");
-            document.getElementById('notes').value = evnt.notes;
-
-            d3.select("#iconField").empty();
-            d3.select("#iconField")
-                .selectAll('img')
-                .data(event_types)
-                .join('img')
-                .attr('class', d => { return 'icon ' + d})
-                .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
-                .attr('alt', d => {return d})          
-                .attr('title', d => {return d})
-                .classed('selected', d => { return d == evnt.type })
-                .on('click', d => {
-                   evnt.type = d.target['__data__'];
-                   d3.selectAll('#iconField img').classed('selected',false)
-                   d3.select('.'+evnt.type).classed('selected',true)
-                })
-        }
-
-        function editAnnotationBar(event){
-            dd = d3.select(".annotationBar").filter(d => { return (d == event.id) })
+            dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
 
             dd.select('image').attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
             dd.select('text').text(event.type)
+
         }
 
-        function addAnnotationBar(event){
+        function addAnnotationBar(event,id){
 
             const anntLine = d3.line()
-                         .x(d => xScale(d))
+                         .x(d => (d))
                          .y(svgMarginTop-30);
+
+            event.id = id;
 
             anntContainer = d3.select("div#container svg")
               .append('g').attr('class','annotationBar')
-              .datum(event.id)
+              .datum(event)
               .attr('transform','translate('+xScale(event.start)+',0)')
+              .on('click', (e,d) => {
+                    editEvent(e,d)})
 
+            // TODO Make more elegant
+            event.end = new Date( event.start.getTime() + (+event.duration_seconds));
+            
             anntContainer
                 .append('path')
                 .datum([0,(xScale(event.end)-xScale(event.start))])
-                .attr('d', anntLine)
+                .attr('d', anntLine) 
                 .attr('stroke-width','2px')
 
             anntContainer
@@ -756,7 +992,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
                 .attr("x", 0 ).attr("y", svgMarginTop-50)
                 .attr("width", 20).attr("height", 20)
-                .on('click', (e) => {editEvent(e,event.id)})
 
 /*            blockC = anntContainer
                      .append('g').attr('class','blocksContainer')
@@ -794,7 +1029,7 @@ document.addEventListener("DOMContentLoaded", function() {
          .transition()
          .attr('transform', d => {
             ff = allEvents.filter( e => {
-               return e.id == d;
+               return e.id == d.id;
             })[0];
             return 'translate('+xScale(ff.start)+',0)';
         })

@@ -18,6 +18,7 @@
     <button id="saveCSV" class="btn">saveCSV</button>
     <button id="btnEarlier" class="btn">earlier</button>
     <button id="btnLater" class="btn disabled">later</button>
+    <button id="btnRecent" class="btn disabled">Most recent</button>
 
 
     <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
@@ -25,28 +26,44 @@
     <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
 
     <div id="container"></div>
+    <div class="dialog">
+      <form id="dialogueBox" action="event" method="post">
+        <h4 style="margin-bottom: -30px;">Create Event</h4>
+        <input type="button" value="Delete Event" id="deleteEventBtn" class="btn"/>
+        <div> Event Start: <label id="evntStartLabel"></label> </div>
+        <!-- <div> Event End: <label id="evntEndLabel"></label> </div> -->
+        <div> Duration: <label id="evntDurationLabel"></label> </div>
+        <div> Consumption: <label id="evntConsumptionLabel"></label> </div>
 
-    <div id="dialogueBox">
-      <h4 style="margin-bottom: -30px;">Create Event</h4>
-      <button id="deletebtnDialogue" class="btn">Delete Event</button>
-      <div> Event Start: <label id="evntStart"></label> </div>
-      <div> Event End: <label id="evntEnd"></label> </div>
-      <div> Duration: <label id="evntDuration"></label> </div>
-      <div> Consumption: <label id="evntConsumption"></label> </div>
+        <div> 
+          <label>Select an event icon</label>
+          <div id="iconField"></div>
+        </div>
 
-      <div> 
-        <label>Select an event icon</label> 
-        <div id="iconField"></div>
-      </div>
+        <div> 
+          <label> Flexibility </label><br>
+          <textarea id="evntFlexibility" name="flexibility" rows="1" cols="35"> </textarea> 
+        </div>
 
-      <div> 
-        <label> Describe the event </label>
-        <textarea id="notes"></textarea>
-      </div>
-      <div style="margin:0 auto;text-align: center;">
-      <button id="closebtnDialogue" class="btn">Cancel</button>
-      <button id="savebtnDialogue" class="btn">Save</button>
-    </div>
+        <div> 
+          <label> Describe the event </label><br>
+          <textarea id="evntDescription" name="notes" rows="5" cols="35"></textarea>
+        </div>
+
+
+        <div style="margin:0 auto;text-align: center;">
+          <input type="button" value="Cancel" id="closebtnDialogue" class="btn">
+          <input type="button" value="Save" id="submitEventBtn" class="btn"/>
+        </div>
+
+        <input id="evntStart" type="hidden" name="start" />
+        <input id="evntDuration" type="hidden" name="duration" />
+        <input id="evntConsumption" type="hidden" name="consumption" value="" />
+        <input id="evntType" type="hidden" value="1" name ="event_type_id" />
+        <input id="evntCreated" type="hidden" name="created" value="" />
+        <input id="evntUpdated" type="hidden" name="updated" value="" />
+        <input id="evntId" type="hidden" name="id" value="" />
+      </form>
     </div>
 
     <!-- Optional JavaScript -->
