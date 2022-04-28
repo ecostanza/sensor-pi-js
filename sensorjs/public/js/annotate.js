@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select('.dataPoints').selectAll('rect')
                 .data(dataF)
                 .join("rect")
-                .style("fill", "rgba(100,100,100,1)")
+                // .style("fill", "rgba(100,100,100,1)")
                 .attr("width", () => {
                     if( WINDOW == 24){ return 5; }
                     else if (WINDOW == 24*7){ return 1;} 
@@ -260,7 +260,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         
             d3.select('.dataPoints').selectAll('rect.annottated')
-                .style('fill','steelblue')
+                // .style('fill','steelblue')
         }
 
         d3.select('#btnEarlier').on('click', e =>{
@@ -850,12 +850,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                 headers: { "Content-Type": "application/json; charset=UTF-8" },
                                 'body': JSON.stringify(eventSanitized)
                             });
-                          
-                            console.log(eventSanitized)
-  
+                            
                             eventSanitized.id = result.lastInsertRowid;
 
-                            console.log(result)
                             allEvents.push(eventSanitized);
                             addAnnotationBar(event,eventSanitized.id);
                         }catch(e){
@@ -905,8 +902,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
                 })
                 .classed('annottated',true)
-                .style("fill", 'steelblue');
-
+                // .style("fill", 'steelblue');
 
                 // Reset and close the dialogue
                 resetDialogue();
@@ -918,17 +914,52 @@ document.addEventListener("DOMContentLoaded", function() {
             });
 
             d3.select('#deleteEventBtn').on('click', (r) =>{
-                /*  d3.json('/annotations/'+evnt.id, {
-                        method: 'DELETE', 
-                        body: JSON.stringify({
-                            'type': evnt.type,
-                            'description':evnt.description,
-                            'flexibility':evnt.flexibility,
-                            'updatedAt': (new Date()).toISOString()
-                        })
+                
+                let id = d3.select('#dialogueBox #evntId').node().value;
 
-                    }).then( e => {}
-                    ) */      
+                deleteAnnotation(id);
+                
+                async function deleteAnnotation(id){
+                    try{
+                        result  = await d3.json(`/annotations/${id}`, {
+                            method: 'DELETE'
+                        });
+                       
+                        // Delete from local events
+                        let index = 0;
+                        for(i=0;i<allEvents.length;i++){
+                            if( allEvents[i].id == id ){
+                                index = i;
+                                break;
+                            }
+                        }
+
+                        let tmpEvntStart = new Date(allEvents[index].start);
+                        console.log(tmpEvntStart);
+
+                        // De-Highlight the annotated area
+                        d3.selectAll('.dataPoints rect').filter( d => { 
+                            // console.log(event.start.getTime() + event.duration)
+                            return d.time >= tmpEvntStart && d.time <= (tmpEvntStart.getTime() + (+allEvents[index].duration_seconds));
+                        })
+                        .classed('annottated',false)
+
+                        deleteAnnotationBar(id);
+                        allEvents.splice(index, 1)
+
+                        console.log(allEvents);
+                    }catch(e){
+                        console.log(e)
+                    }
+
+                    // Reset and close the dialogue
+                }
+
+                resetDialogue();
+                closeDialogue();
+
+
+
             });
 
         }
@@ -945,6 +976,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
+
+        function deleteAnnotationBar(id){
+           dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
+           dd.remove();    
+        }
 
         function editAnnotationBar(event, id){
             // console.log(event)

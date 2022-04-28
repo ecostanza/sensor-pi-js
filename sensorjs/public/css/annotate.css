@@ -13,6 +13,13 @@ svg{
   font-size: 9px;
 }
 
+.dataPoints rect{
+   fill: rgba(100,100,100,1);
+}
+
+.dataPoints rect.annottated{
+  fill: steelblue;
+}
 
 #dialogueBox{
 	position: absolute;
