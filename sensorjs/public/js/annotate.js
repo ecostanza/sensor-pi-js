@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // If it is the first time the page is loaded show all
         // Else show an offest to avoid jumps in the scrollling
         max = d3.max(newdata, d => new Date(d.time.getTime()));
+        console.log('MAX HOUR: ' + max)
         if( freshData == false) { max.setHours(max.getHours() + WINDOW); }
         min = new Date(max);
         min.setHours(max.getHours() - WINDOW)
@@ -493,44 +494,34 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     async function drawAnnotations(){
+
         try{
             result = await d3.json('/annotations');
             console.log('get result', result);
-            result.forEach( g => {
+
+            allEvents = result;
+            console.log(result.length)
+            allEvents.forEach( g => {
                 console.log(g);
-                addAnnotationBar(g);
+
+                tmpDate = new Date(g.start);
+
+                // Highlight the annotated area
+                d3.selectAll('.dataPoints rect').filter( d => { 
+                    return d.time >= tmpDate && d.time <= (tmpDate.getTime() + (+g.duration_seconds));
+                })
+                .classed('annottated',true)
+
+                addAnnotationBar(g, g.id);
             })
         }catch(e){
             console.log("error " + e)
         }
-        // d3.json('/annotations',{
-        //     method: 'GET', 
-        // }).then( d => {
-
-        //     d.response.forEach( g => {
-        //         addAnnotationBar(g);
-        //     })
-        // })
 
     }
 
 
     function addBrushing (response){
-
-      /*  evnt = {
-            'id':'',
-            'start' :'',
-            'end':'',
-            'duration': 0,
-            'consumption': 0,
-            'type':'',
-            'flexibility':'',
-            'series':'',
-            'description':'',
-            'createdAt':'',
-            'updatedAt':'',
-        }
-      */
         brush = d3.brushX()
                         .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
                         .on('start', brushStart)
@@ -650,58 +641,6 @@ document.addEventListener("DOMContentLoaded", function() {
             show_event_dialog(evnt);
         }
 
-        function editEvent(e, evnt){
-            if (!e.srcElement) return;
-            console.log('edit event')
-
-            d3.select('#dialogueBox h4').html('Edit event')
-            d3.select('#dialogueBox').attr('isCreate','false')
-
-            console.log(allEvents)
-
-            let localEvent = allEvents.filter(d => { return (d.id == evnt.id) })[0]
-            console.log(localEvent)
-
-            // d3.select("#dialogueBox")
-            //   .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
-            //   .style('display','block');
-
-            // printDate = d3.timeFormat('%b %d %H:%M');
-            // d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-            // d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
-            // d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
-            // d3.select('#dialogueBox #evntConsumption').html( (+(evnt.consumption)).toFixed(1)+" KW");
-            // d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
-            // d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
-            // d3.select('#dialogueBox #evntId').node().value = evnt.id;
-
-            // d3.select("#iconField").empty();
-            // d3.select("#iconField")
-            //     .selectAll('img')
-            //     .data(event_types)
-            //     .join('img')
-            //     .attr('class', d => { return 'icon ' + d})
-            //     .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
-            //     .attr('alt', d => {return d})          
-            //     .attr('title', d => {return d})
-            //     .classed('selected', d => { return d == evnt.type })
-            //     .on('click', d => {
-            //        evnt.type = d.target['__data__'];
-            //        d3.selectAll('#iconField img').classed('selected',false)
-            //        d3.select('.'+evnt.type).classed('selected',true)
-            //     })
-            
-            // // d3.select('#dialogueBox #evntFlexibility').on('change', {
-            // //     evnt.flexibility = d3.select('#dialogueBox #evntFlexibility').node().value;
-            // // })
-
-            // d3.select('#dialogueBox #evntType').node().value = evnt.type;
-            // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
-            // d3.select('#dialogueBox #evntUpdated').node().value = new Date();
-
-            show_event_dialog(localEvent)
-        }
-
         function resetDialogue(){
            // evnt = {
            //  'start' :'',
@@ -816,9 +755,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             populateDialogBox(event);
 
-            d3.select('#submitEventBtn').on('click',null)
+            d3.select('#submitEventBtn').on('click',null);
             d3.select('#submitEventBtn').on('click', (r) =>{
-                
+                console.log('SUMBITING EVENT')  
                 errormessage = validate_form();
                 if (errormessage !== '') {
                     alert(errormessage);
@@ -826,9 +765,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     return false;                       
                 }
 
-                console.log('IS CREATE: '+d3.select('#dialogueBox').attr('isCreate'))
                 if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
-                    
+                   console.log('CREATE EVENT')  
+                  
                     createNewAnnotation();
                     async function createNewAnnotation()
                     {
@@ -860,7 +799,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
                 }else{
-                    
+                 console.log('EDIT EVENT')  
+                        
                     editAnnotation();
 
                     async function editAnnotation(){
@@ -895,24 +835,19 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }
 
-
                 // Highlight the annotated area
                 d3.selectAll('.dataPoints rect').filter( d => { 
                     // console.log(event.start.getTime() + event.duration)
                     return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
                 })
                 .classed('annottated',true)
-                // .style("fill", 'steelblue');
 
                 // Reset and close the dialogue
                 resetDialogue();
                 closeDialogue();
-
-                // Clear the previous brushing 
-                // clearBrushSelection();
-                // brushContainer.call(brush.move,null);
             });
 
+            d3.select('#deleteEventBtn').on('click',null);
             d3.select('#deleteEventBtn').on('click', (r) =>{
                 
                 let id = d3.select('#dialogueBox #evntId').node().value;
@@ -947,7 +882,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         deleteAnnotationBar(id);
                         allEvents.splice(index, 1)
 
-                        console.log(allEvents);
                     }catch(e){
                         console.log(e)
                     }
@@ -958,14 +892,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 resetDialogue();
                 closeDialogue();
 
-
-
             });
 
         }
-
-        // d3.select('#savebtnDialogue').on('click')
-
 
         function closeDialogue() {
             d3.select("#dialogueBox")
@@ -977,88 +906,146 @@ document.addEventListener("DOMContentLoaded", function() {
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
 
-        function deleteAnnotationBar(id){
-           dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
-           dd.remove();    
-        }
+    }
 
-        function editAnnotationBar(event, id){
-            // console.log(event)
+    function deleteAnnotationBar(id){
+        console.log('id'+id)
+       dd = d3.selectAll(".annotationBar").filter(d => { console.log(d);return (d.id == id) })
+       dd.remove();    
+    }
 
-            dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
+    function editAnnotationBar(event, id){
+        // console.log(event)
 
-            dd.select('image').attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-            dd.select('text').text(event.type)
+        dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
 
-        }
+        dd.select('image').attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
+        dd.select('text').text(event.type)
 
-        function addAnnotationBar(event,id){
+    }
 
-            const anntLine = d3.line()
-                         .x(d => (d))
-                         .y(svgMarginTop-30);
 
-            event.id = id;
+    function editEvent(e, evnt){
+        if (!e.srcElement) return;
+        console.log('edit event')
 
-            anntContainer = d3.select("div#container svg")
-              .append('g').attr('class','annotationBar')
-              .datum(event)
-              .attr('transform','translate('+xScale(event.start)+',0)')
-              .on('click', (e,d) => {
-                    editEvent(e,d)})
+        d3.select('#dialogueBox h4').html('Edit event')
+        d3.select('#dialogueBox').attr('isCreate','false')
 
-            // TODO Make more elegant
-            event.end = new Date( event.start.getTime() + (+event.duration_seconds));
-            
-            anntContainer
-                .append('path')
-                .datum([0,(xScale(event.end)-xScale(event.start))])
-                .attr('d', anntLine) 
-                .attr('stroke-width','2px')
+        console.log(allEvents)
 
-            anntContainer
-                .append('text')
-                .attr('font-size','15px')
-                .attr('x', 20)
-                .attr('y',svgMarginTop-35)
-                .text(event.type)
+        let localEvent = allEvents.filter(d => { return (d.id == evnt.id) })[0]
+        console.log(localEvent)
 
-            anntContainer
-                .append('image')
-                .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-                .attr("x", 0 ).attr("y", svgMarginTop-50)
-                .attr("width", 20).attr("height", 20)
+        // d3.select("#dialogueBox")
+        //   .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+        //   .style('display','block');
+
+        // printDate = d3.timeFormat('%b %d %H:%M');
+        // d3.select('#dialogueBox #evntDuration').html(evnt.duration);
+        // d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
+        // d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
+        // d3.select('#dialogueBox #evntConsumption').html( (+(evnt.consumption)).toFixed(1)+" KW");
+        // d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
+        // d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
+        // d3.select('#dialogueBox #evntId').node().value = evnt.id;
+
+        // d3.select("#iconField").empty();
+        // d3.select("#iconField")
+        //     .selectAll('img')
+        //     .data(event_types)
+        //     .join('img')
+        //     .attr('class', d => { return 'icon ' + d})
+        //     .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
+        //     .attr('alt', d => {return d})          
+        //     .attr('title', d => {return d})
+        //     .classed('selected', d => { return d == evnt.type })
+        //     .on('click', d => {
+        //        evnt.type = d.target['__data__'];
+        //        d3.selectAll('#iconField img').classed('selected',false)
+        //        d3.select('.'+evnt.type).classed('selected',true)
+        //     })
+        
+        // // d3.select('#dialogueBox #evntFlexibility').on('change', {
+        // //     evnt.flexibility = d3.select('#dialogueBox #evntFlexibility').node().value;
+        // // })
+
+        // d3.select('#dialogueBox #evntType').node().value = evnt.type;
+        // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
+        // d3.select('#dialogueBox #evntUpdated').node().value = new Date();
+
+        show_event_dialog(localEvent)
+    }
+
+    function addAnnotationBar(event,id){
+
+        const anntLine = d3.line()
+                     .x(d => (d))
+                     .y(svgMarginTop-30);
+
+        event.id = id;
+
+        tmpDate = new Date(event.start);
+
+        anntContainer = d3.select("div#container svg")
+          .append('g').attr('class','annotationBar')
+          .datum(event)
+          .attr('transform','translate('+xScale(tmpDate)+',0)')
+          .on('click', (e,d) => {
+                editEvent(e,d)})
+
+        // TODO Make more elegant
+        event.end = new Date( tmpDate.getTime() + (+event.duration_seconds));
+        
+        anntContainer
+            .append('path')
+            .datum([0,(xScale(event.end)-xScale(tmpDate))])
+            .attr('d', anntLine) 
+            .attr('stroke-width','2px')
+
+        anntContainer
+            .append('text')
+            .attr('font-size','15px')
+            .attr('x', 20)
+            .attr('y',svgMarginTop-35)
+            .text(event.type)
+
+        anntContainer
+            .append('image')
+            .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
+            .attr("x", 0 ).attr("y", svgMarginTop-50)
+            .attr("width", 20).attr("height", 20)
 
 /*            blockC = anntContainer
-                     .append('g').attr('class','blocksContainer')
+                 .append('g').attr('class','blocksContainer')
 
-            const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
-            array = [];
-            for (var i = 0; i <amnt; i++) {
-                array.push(1);
-            }
-
-            blockC.append('text').text(evnt.consumption.toFixed(2)+"KW")
-                  .attr('x', xScale(event.start))
-                  .attr('y',svgMarginTop-10)
-
-            y = -1;j=-1;
-            blockC.selectAll('rect')
-                  .data(array, d => {return d})
-                  .join('rect')
-                  .attr('width',15)
-                  .attr('height',15)
-                  .attr('transform', (d,i) => { 
-
-                    if( j*20 > svgMarginLeft*2){ y++;j=0;}
-                    else{ j++; }
-                    x = xScale(event.start) + j*20;
-                    return 'translate('+x+','+(y*20+svgMarginTop+15)+')';
-                  })
-                  .style('fill','#ff9620')
-*/
+        const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
+        array = [];
+        for (var i = 0; i <amnt; i++) {
+            array.push(1);
         }
+
+        blockC.append('text').text(evnt.consumption.toFixed(2)+"KW")
+              .attr('x', xScale(event.start))
+              .attr('y',svgMarginTop-10)
+
+        y = -1;j=-1;
+        blockC.selectAll('rect')
+              .data(array, d => {return d})
+              .join('rect')
+              .attr('width',15)
+              .attr('height',15)
+              .attr('transform', (d,i) => { 
+
+                if( j*20 > svgMarginLeft*2){ y++;j=0;}
+                else{ j++; }
+                x = xScale(event.start) + j*20;
+                return 'translate('+x+','+(y*20+svgMarginTop+15)+')';
+              })
+              .style('fill','#ff9620')
+*/
     }
+
 
     function updateAnnotationBar(){
         d3.selectAll('.annotationBar')
@@ -1067,7 +1054,8 @@ document.addEventListener("DOMContentLoaded", function() {
             ff = allEvents.filter( e => {
                return e.id == d.id;
             })[0];
-            return 'translate('+xScale(ff.start)+',0)';
+            tmpDate = new Date(ff.start);
+            return 'translate('+xScale(tmpDate)+',0)';
         })
     }
 
