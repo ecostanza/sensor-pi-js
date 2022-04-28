@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "eslint": "^7.25.0"
-  }
+  },
   "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/ecostanza/sensor-pi-js/issues"
