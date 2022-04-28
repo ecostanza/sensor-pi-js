@@ -15,15 +15,20 @@
   </head>
   <body>
     
-    <button id="btnEarlier" class="btn">earlier</button>
-    <button id="btnLater" class="btn disabled">later</button>
-    <button id="btnRecent" class="btn disabled">Most recent</button>
+    <h2>Electricity Consumption</h2>
 
 
-    <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
-    <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
-    <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+    <div class="timeContainer">
+      <button id="btnEarlier" class="btn">earlier</button>
+      <button id="btnLater" class="btn disabled">later</button>
+      <button id="btnRecent" class="btn disabled">Most recent</button>
+    </div>
 
+    <div class="scalingContainer">
+      <!-- <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button> -->
+      <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+      <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+   </div>
     <div id="infoBox"></div>
 
     <div id="container"></div>

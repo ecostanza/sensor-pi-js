@@ -27,6 +27,18 @@ svg{
   font-style: italic;
 }
 
+.scalingContainer{
+  text-align: right;
+  width: 49%;
+  display: inline-block;
+}
+
+.timeContainer{
+  margin-top: 1em;
+  width: 49%;
+  display: inline-block;
+}
+
 #dialogueBox{
 	position: absolute;
 	top: 20px;
@@ -38,6 +50,19 @@ svg{
 	padding: 1em 1.2em;
 }
 
+#btnEarlier{
+  background: url("../imgs/left.png") no-repeat scroll 0 0 transparent;
+  padding-left: 23px;
+  background-size: 10px;
+  background-position: 10%;
+}
+
+#btnLater{
+    background: url("../imgs/right.png") no-repeat scroll 0 0 transparent;
+    padding-right: 23px;
+    background-size: 10px;
+    background-position: 90%;
+}
 .btn{
 	border: 1px solid black;
 	border-radius: 1em;
@@ -75,7 +100,7 @@ textarea{
   /* AXES */
 /* ticks */
 .axis line{
-  stroke: #706f6f;
+  stroke: #a7a6a6;/*706f6f*/
   stroke-width: 0.5;
   shape-rendering: crispEdges;
 }

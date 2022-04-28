@@ -61,10 +61,10 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        svgContainer
-            .append("h4")
-            .attr('id', measurement.id)
-            .text(name);
+        // svgContainer
+        //     .append("h4")
+        //     .attr('id', measurement.id)
+        //     .text(name);
 
         svgContainer
             .append("svg")
@@ -1074,7 +1074,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         setAnnotationBarVisibility();
     }
-
 
     function setAnnotationBarVisibility(){
         // Hide text in day view, hide everything in week view
