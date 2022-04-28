@@ -13,13 +13,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     var xScale, yScale, brush;
     const svgMarginTop = 30;
-    const svgMarginBottom = 60;
+    const svgMarginBottom = 100;
     const svgMarginLeft = 0;
 
     let loadData = undefined;
 
     let allEvents = [];
-    let ids = 0;
 
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
@@ -520,7 +519,6 @@ document.addEventListener("DOMContentLoaded", function() {
             allEvents = result;
             console.log(result.length)
             allEvents.forEach( g => {
-                console.log(g);
 
                 tmpDate = new Date(g.start);
 
@@ -606,7 +604,7 @@ document.addEventListener("DOMContentLoaded", function() {
                   .style('cursor','pointer')
                   .on('click', () => { createEvent(sx); })
                   // Show the save button aligned to the selection
-                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+svgMarginTop+')')
+                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+(svgMarginTop)+')')
                 
                 d3.select('.saveBtnContainer')
                     .append('rect')
@@ -1007,7 +1005,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const anntLine = d3.line()
                      .x(d => (d))
                      .y(svgHeight- svgMarginBottom + 10)
-                     // .y(svgMarginTop-30);
 
         event.id = id;
 
@@ -1045,38 +1042,60 @@ document.addEventListener("DOMContentLoaded", function() {
             // .attr("y", svgMarginTop-50)
             .attr("width", 20).attr("height", 20)
 
-/*            blockC = anntContainer
+        blockC = anntContainer
                  .append('g').attr('class','blocksContainer')
 
-        const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
+        const amnt = (event.consumption/consumptionUnit).toFixed(0)
         array = [];
         for (var i = 0; i <amnt; i++) {
             array.push(1);
         }
 
-        blockC.append('text').text(evnt.consumption.toFixed(2)+"KW")
+        blockC.append('text').text(event.consumption.toFixed(2)+"KW")
               .attr('x', xScale(event.start))
-              .attr('y',svgMarginTop-10)
+              .attr('y',svgHeight - svgMarginBottom +45)
 
         y = -1;j=-1;
+
+        linesize = (xScale(event.end)-xScale(tmpDate));
         blockC.selectAll('rect')
               .data(array, d => {return d})
               .join('rect')
-              .attr('width',15)
-              .attr('height',15)
+              .attr('width',10)
+              .attr('height',10)
               .attr('transform', (d,i) => { 
 
-                if( j*20 > svgMarginLeft*2){ y++;j=0;}
+                if( j*15 > linesize){ y++;j=0;}
                 else{ j++; }
-                x = xScale(event.start) + j*20;
-                return 'translate('+x+','+(y*20+svgMarginTop+15)+')';
+                // x = xScale(new Date(event.start)) + j*20;
+                return 'translate('+(j*15)+','+(y*15+svgHeight - svgMarginBottom +70)+')';
               })
-              .style('fill','#ff9620')
-*/
+              .style('fill','#ff9620');
+
+        setAnnotationBarVisibility();
     }
 
 
+    function setAnnotationBarVisibility(){
+        // Hide text in day view, hide everything in week view
+        if( WINDOW == 24){
+            d3.selectAll('.annotationBar text').style('opacity',0)
+            d3.selectAll('.annotationBar image').style('opacity',1)
+            d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+
+        }else if(WINDOW == 24*7){
+            d3.selectAll('.annotationBar text').style('opacity',0)
+            d3.selectAll('.annotationBar image').style('opacity',0)
+            d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+        }else{
+           d3.selectAll('.annotationBar text').style('opacity',1)
+           d3.selectAll('.annotationBar image').style('opacity',1)
+           d3.selectAll('.annotationBar .blocksContainer').style('opacity',1)
+        }
+    }
+
     function updateAnnotationBar(){
+        
         d3.selectAll('.annotationBar')
          .transition()
          .attr('transform', d => {
@@ -1087,19 +1106,26 @@ document.addEventListener("DOMContentLoaded", function() {
             return 'translate('+xScale(tmpDate)+',0)';
         })
 
-         // const anntLine = d3.line()
-         //     .x(d => (d))
-         //     .y(svgHeight- svgMarginBottom + 10)
+        d3.selectAll('.annotationBar').each( (d,i) =>{
+            console.log(d)
+            console.log(i)
 
-        // d3.selectAll('.annotationBar path')
-        //     .data(d, d => {
-        //         xScale()
-        //     })
-        //     // .datum([0,(xScale(event.end)-xScale(tmpDate))])
-        //     .attr('d', anntLine)
-        //     .attr('stroke-width','2px')
+            tmpDate = new Date(d.start);
+            end = new Date( tmpDate.getTime() + (+d.duration_seconds));
 
+            const anntLine = d3.line()
+             .x(d => (d))
+             .y(svgHeight- svgMarginBottom + 10)
+           
+           // TODO Make more elegant
+            parentNode = d3.selectAll('.annotationBar').nodes()[i];
+            d3.select(parentNode).select('path')
+                .datum([0,(xScale(end)-xScale(tmpDate))])
+                .attr('d', anntLine) 
 
+        })
+
+        setAnnotationBarVisibility();
     }
 
     function updateXAxis(){
@@ -1248,7 +1274,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 tmp2.setHours(tmp2.getHours() + lengthOfNight);
                 return (xScale(tmp2)- xScale(tmp)); 
             })
-            .attr('height', svgHeight)
+            .attr('height', svgHeight- svgMarginBottom )
             .style('opacity',0.1)
              .style('fill','gray')
 
