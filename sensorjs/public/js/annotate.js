@@ -171,6 +171,12 @@ document.addEventListener("DOMContentLoaded", function() {
             .tickFormat(d3.timeFormat('%b %d %H:%M'))
             .scale(xScale);
 
+        let xAxisSecond = d3.axisBottom()
+            .ticks(0)
+            // .tickSize(-svgHeight+svgMarginBottom)
+            // .tickFormat(d3.timeFormat('%b %d %H:%M'))
+            .scale(xScale);
+
         let yAxis = d3.axisLeft()
             .scale(yScale); 
 
@@ -193,6 +199,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 // .attr("dy", ".15em")
                 .attr("transform", "rotate(-45)");
     
+        svg.append("g")
+            .attr("transform", "translate(0," + (svgHeight- svgMarginBottom ) + ")")
+            .attr("class", "axis x-axis")
+            .call(xAxisSecond)
+
         let label = series.name;
         if (label.includes(' (sensor')) {
             label = label.split(' (sensor')[0];
@@ -220,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('x',xScale.range()[0])
               .attr('y',yScale.range()[1])
               .attr('width',xScale.range()[1]-xScale.range()[0])
-              .attr('height',yScale.range()[0]-yScale.range()[1])
+              .attr('height',yScale.range()[0]-yScale.range()[1] + svgMarginBottom)
 
         // Add clipping path for making the animation look better
         svgGroup = svg.append("g").attr("class","dataPoints")
@@ -1023,14 +1034,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('font-size','15px')
             .attr('x', 20)
             // .attr('y',svgMarginTop-35)
-            .attr('y',svgHeight- svgMarginBottom +25)
+            .attr('y',svgHeight - svgMarginBottom +25)
             .text(event.type)
 
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
             .attr("x", 0 )
-            .attr("y", svgHeight- svgMarginBottom +15)
+            .attr("y", svgHeight - svgMarginBottom +15)
             // .attr("y", svgMarginTop-50)
             .attr("width", 20).attr("height", 20)
 
@@ -1075,6 +1086,20 @@ document.addEventListener("DOMContentLoaded", function() {
             tmpDate = new Date(ff.start);
             return 'translate('+xScale(tmpDate)+',0)';
         })
+
+         // const anntLine = d3.line()
+         //     .x(d => (d))
+         //     .y(svgHeight- svgMarginBottom + 10)
+
+        // d3.selectAll('.annotationBar path')
+        //     .data(d, d => {
+        //         xScale()
+        //     })
+        //     // .datum([0,(xScale(event.end)-xScale(tmpDate))])
+        //     .attr('d', anntLine)
+        //     .attr('stroke-width','2px')
+
+
     }
 
     function updateXAxis(){
@@ -1084,7 +1109,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .tickFormat(d3.timeFormat('%b %d %H:%M'))
                 .scale(xScale);
 
-            d3.selectAll(".x-axis")
+            d3.select(".x-axis")
                     .transition()
                     .call(xAxis)
                     .selectAll("text")  
