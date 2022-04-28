@@ -6,7 +6,7 @@ svg{
   display: none;
 }
 
-#deletebtnDialogue{
+#deleteEventBtn{
   position: relative;
   left: 260px;
   top: 14px;
@@ -21,11 +21,17 @@ svg{
   fill: steelblue;
 }
 
+#infoBox{
+  min-height: 12px;
+  color: red;
+  font-style: italic;
+}
+
 #dialogueBox{
 	position: absolute;
 	top: 20px;
 	min-height: 300px;
-	width: 375px;
+	width: 400px;
 	background: white;
 	border: 1px solid;
 	display: none;
@@ -59,8 +65,9 @@ svg{
 	background-color: steelblue;
 }
 
-textarea#notes{
+textarea{
 	width: 100%;
+  max-width: 100%;
 }
 
 /*---*/

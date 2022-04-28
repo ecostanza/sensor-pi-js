@@ -4,16 +4,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let data = [];
 
-    let svgWidth = window.innerWidth;
-    let svgHeight = svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
+    let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
+    let svgHeight =  svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
     const adj = 30;
 
     var xScale, yScale, brush;
-    const svgMarginTop = 40;
-    const svgMarginLeft = 50;
+    const svgMarginTop = 30;
+    const svgMarginBottom = 60;
+    const svgMarginLeft = 0;
 
     let loadData = undefined;
 
@@ -55,6 +56,8 @@ document.addEventListener("DOMContentLoaded", function() {
     
         svgContainer = d3.select("div#container");
 
+
+        // Check to see if it exists
         if(svgContainer.select('#'+measurement.id + 'Chart').node() !== null ){
             return;
         }
@@ -68,9 +71,11 @@ document.addEventListener("DOMContentLoaded", function() {
             .append("svg")
             .attr('id', measurement.id + 'Chart')
             .attr("preserveAspectRatio", "xMinYMin meet")
+            // .attr('width',svgWidth)
+            // .attr('height',svgHeight)
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
-                + adj + " "
+                + 2.5*adj + " "
                 + (svgWidth + adj*3) + " "
                 + (svgHeight + adj*4))
             .style("padding", padding)
@@ -137,14 +142,15 @@ document.addEventListener("DOMContentLoaded", function() {
         
         data = data.concat(newdata);
 
-        data.sort( (a,b) => { return a.time - b.time})
+        // data.sort( (a,b) => { return a.time - b.time})
 
         // Get initial min-max values for the x axis
         // If it is the first time the page is loaded show all
         // Else show an offest to avoid jumps in the scrollling
         max = d3.max(newdata, d => new Date(d.time.getTime()));
-        console.log('MAX HOUR: ' + max)
-        if( freshData == false) { max.setHours(max.getHours() + WINDOW); }
+
+        // if(freshData == false) { max.setHours(max.getHours() + WINDOW); }
+        if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
         min = new Date(max);
         min.setHours(max.getHours() - WINDOW)
 
@@ -154,13 +160,14 @@ document.addEventListener("DOMContentLoaded", function() {
             [0, svgWidth-svgMarginLeft]
         );
 
-        let yScale = d3.scaleLinear(
+        yScale = d3.scaleLinear(
             [(0), 1.1 * d3.max(data, d => +d.value)],
-            [svgHeight, svgMarginTop]
+            [svgHeight-svgMarginBottom, svgMarginTop]
         );
         
-        let xAxis = d3.axisBottom()
+        let xAxis = d3.axisTop()
             .ticks(15)
+            .tickSize(-svgHeight+svgMarginBottom)
             .tickFormat(d3.timeFormat('%b %d %H:%M'))
             .scale(xScale);
 
@@ -168,16 +175,22 @@ document.addEventListener("DOMContentLoaded", function() {
             .scale(yScale); 
 
         let svg = d3.select('svg#' + series.id + 'Chart');
-        svg.selectAll("*").remove();
+        // svg.selectAll("*").remove();
+        svg.selectAll('.axis').remove();
+        svg.selectAll('.annotationBar').remove();
+
 
         svg.append("g")
             .attr("class", "axis x-axis")
-            .attr("transform", "translate(0," + svgHeight + ")")
+            .attr("transform", "translate(0," + 0 + ")")
             .call(xAxis)
                 .selectAll("text")  
-                .style("text-anchor", "end")
-                .attr("dx", "-.8em")
-                .attr("dy", ".15em")
+                .style("text-anchor", "start")
+                .attr("dx", ".8em")
+                .attr("dy", "-.5em")
+                .attr('y',0)
+                // .attr("dx", "-.8em")
+                // .attr("dy", ".15em")
                 .attr("transform", "rotate(-45)");
     
         let label = series.name;
@@ -213,14 +226,9 @@ document.addEventListener("DOMContentLoaded", function() {
         svgGroup = svg.append("g").attr("class","dataPoints")
                         .attr("clip-path", "url(#clip)");
 
-        // dataF = data.filter(d => {
-        //     return (d.time >= min && d.time<=max)
-        // })
-
         updateGraph(data,true);
         getSunriseSunset(data);
         addBrushing(response);
-
         drawAnnotations();
 
         // TODO Check why so many nulls
@@ -229,20 +237,19 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select('.dataPoints').selectAll('rect')
                 .data(dataF)
                 .join("rect")
-                // .style("fill", "rgba(100,100,100,1)")
                 .attr("width", () => {
                     if( WINDOW == 24){ return 5; }
                     else if (WINDOW == 24*7){ return 1;} 
                     else{ return 15; }
                 })
                 .attr("height", d => {
-                    if (svgHeight - yScale(d.value) < 0) {
+                    if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
                         return 0;
                     } 
                     if (d.value === null) {
                         return 0;
                     } else {
-                        return svgHeight - yScale(d.value);
+                        return svgHeight-svgMarginBottom - yScale(d.value);
                     }
                 })
                 .attr("y", d => { return yScale(d.value); })       
@@ -261,7 +268,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         
             d3.select('.dataPoints').selectAll('rect.annottated')
-                // .style('fill','steelblue')
+                .style('fill','steelblue')
         }
 
         d3.select('#btnEarlier').on('click', e =>{
@@ -281,7 +288,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 endMinutes = startMinutes.valueOf();
                 startMinutes += startMinutes;
                 loadData();
-                drawAnnotations();
+                // drawAnnotations();
             }
             d3.select('#btnLater').classed('disabled',false)
             d3.select('#btnRecent').classed('disabled',false)
@@ -471,7 +478,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
 
             loadData = function () {
-                d3.select("div#container").selectAll('div.graphContainer').remove();
+                // d3.select("div#container").selectAll('div.graphContainer').remove();
                 _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
                 const promises = _series.map(m => loadMeasurementData(m));
@@ -523,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function addBrushing (response){
         brush = d3.brushX()
-                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
+                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight-svgMarginBottom]])
                         .on('start', brushStart)
                         .on('end', brushEnd)
                         .on('brush', brushing)
@@ -534,13 +541,20 @@ document.addEventListener("DOMContentLoaded", function() {
               .call(brush)
 
         function brushStart({selection}) {
+            if(WINDOW == 24*7) { return }
             // console.log('brush started');
             d3.select('.saveBtnContainer').remove();
+
         }
 
         function brushEnd(event) {
             if (!event.sourceEvent) return;
-      
+            if(WINDOW == 24*7) { 
+                d3.select('#infoBox').html('You cannot annotate at this scale.')
+                clearBrushSelection();
+                return
+            }
+         
             // console.log('brush ended');
             selection = event.selection;
 
@@ -981,7 +995,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const anntLine = d3.line()
                      .x(d => (d))
-                     .y(svgMarginTop-30);
+                     .y(svgHeight- svgMarginBottom + 10)
+                     // .y(svgMarginTop-30);
 
         event.id = id;
 
@@ -1007,13 +1022,16 @@ document.addEventListener("DOMContentLoaded", function() {
             .append('text')
             .attr('font-size','15px')
             .attr('x', 20)
-            .attr('y',svgMarginTop-35)
+            // .attr('y',svgMarginTop-35)
+            .attr('y',svgHeight- svgMarginBottom +25)
             .text(event.type)
 
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-            .attr("x", 0 ).attr("y", svgMarginTop-50)
+            .attr("x", 0 )
+            .attr("y", svgHeight- svgMarginBottom +15)
+            // .attr("y", svgMarginTop-50)
             .attr("width", 20).attr("height", 20)
 
 /*            blockC = anntContainer
@@ -1060,22 +1078,61 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function updateXAxis(){
-            xAxis = d3.axisBottom()
+            xAxis = d3.axisTop()
                 .ticks(15)
+                .tickSize(-svgHeight+svgMarginBottom)
                 .tickFormat(d3.timeFormat('%b %d %H:%M'))
                 .scale(xScale);
 
-            d3.selectAll(".x-axis").call(xAxis)
+            d3.selectAll(".x-axis")
+                    .transition()
+                    .call(xAxis)
                     .selectAll("text")  
-                    .style("text-anchor", "end")
-                    .attr("dx", "-.8em")
-                    .attr("dy", ".15em")
+                    .style("text-anchor", "start")
+                    .attr("dx", ".8em")
+                    .attr("dy", "-.5em")
+                    .attr('y',0)
                     .attr("transform", "rotate(-45)");
     }
     
-    d3.select('#saveCSV').on('click', exportCSV);
+    d3.select('#saveCSVElectricity').on('click', exportCSVElectricity);
+    d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
 
-    function exportCSV(){
+    async function exportCSVAnnotation(){
+        let csvContent = "data:text/csv;charset=utf-8," 
+        
+        result = await d3.json('/annotations');
+        console.log('get result', result);
+
+        // save label names
+        pp = '';
+        for (const key in result[0]) {
+            pp += key + ',';
+        }
+        pp = pp.slice(0, -1); 
+        csvContent += pp + "\n";
+
+        // save data 
+        result.forEach( (e,i) => {
+            pp = '';
+            for (const key in e) {
+                    pp += e[key] + ',';
+            }
+            pp = pp.slice(0, -1); 
+            csvContent += pp + "\n";
+        });
+        
+        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "my_data.csv");
+        document.body.appendChild(link); // Required for FF
+
+        link.click(); // This will download the data file named "my_data.csv".
+    }  
+
+    function exportCSVElectricity(){
         let csvContent = "data:text/csv;charset=utf-8," 
         
         // save label names

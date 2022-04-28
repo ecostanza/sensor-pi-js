@@ -15,7 +15,8 @@
   </head>
   <body>
     
-    <button id="saveCSV" class="btn">saveCSV</button>
+    <button id="saveCSVElectricity" class="btn">Download Electricity Data</button>
+    <button id="saveCSVAnnotation" class="btn">Download Annotation Data</button>
     <button id="btnEarlier" class="btn">earlier</button>
     <button id="btnLater" class="btn disabled">later</button>
     <button id="btnRecent" class="btn disabled">Most recent</button>
@@ -24,6 +25,8 @@
     <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
     <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
     <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+
+    <div id="infoBox"></div>
 
     <div id="container"></div>
     <div class="dialog">
@@ -42,12 +45,12 @@
 
         <div> 
           <label> Flexibility </label><br>
-          <textarea id="evntFlexibility" name="flexibility" rows="1" cols="35"> </textarea> 
+          <textarea id="evntFlexibility" name="flexibility" rows="3" cols="35"> </textarea> 
         </div>
 
         <div> 
           <label> Describe the event </label><br>
-          <textarea id="evntDescription" name="notes" rows="5" cols="35"></textarea>
+          <textarea id="evntDescription" name="notes" rows="3" cols="35"></textarea>
         </div>
 
 
