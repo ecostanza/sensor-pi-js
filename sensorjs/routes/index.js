@@ -22,7 +22,7 @@
 var express = require('express');
 var router = express.Router();
 // var diskfree = require('diskfree');
-const checkDiskSpace = require('check-disk-space').default;
+const checkDiskSpace = require('check-disk-space');//.default
 const os = require('os');
 const { DateTime } = require('luxon');
 const { exec } = require('child_process');
