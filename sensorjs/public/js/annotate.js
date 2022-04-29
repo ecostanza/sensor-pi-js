@@ -681,6 +681,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function resetDialogue(){
+            d3.select('#dialogueBox #infoBoxDialogue').html('').style('display','none');
            // evnt = {
            //  'start' :'',
            //  'end'   : '',
@@ -724,10 +725,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function validate_form(){
-            if (d3.select('#evntType').node().value === '') {
+            // if (d3.select('#evntType').node().value === 'undefined') {
+            if (d3.selectAll('#iconField .icon.selected').nodes().length == 0){
                 return "ERROR: Please choose an icon before pressing OK.";
+            }else{
+                return '';
             }
-            return '';
         };
 
 
@@ -789,7 +792,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         show_event_dialog = function(event){
             d3.select("#dialogueBox")
-              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+              .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
               .style('display','block');
 
             populateDialogBox(event);
@@ -797,11 +800,13 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select('#submitEventBtn').on('click',null);
             d3.select('#submitEventBtn').on('click', (r) =>{
                 console.log('SUMBITING EVENT')  
+
                 errormessage = validate_form();
                 if (errormessage !== '') {
-                    alert(errormessage);
-                    // TODO: check what does false do?
-                    return false;                       
+                    // alert(errormessage);
+                    d3.select('#infoBoxDialogue').html('Please choose an event type.')
+                                        .style('display','block')
+                    return;                       
                 }
 
                 if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
@@ -955,13 +960,11 @@ document.addEventListener("DOMContentLoaded", function() {
     function editAnnotationBar(event, id){
         // console.log(event)
 
-        dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
-
-        dd.select('image').attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-        dd.select('text').text(event.type)
-
+        dd = d3.selectAll(".annotationBar").filter(d => { return (d.id == id) })
+        dd.data(event);
+        dd.select('image').attr("xlink:href", (d) => { return '/static/imgs/event_icons/' + d.type + '_black.png'})
+        dd.select('text').text((d) => { return d.type; })
     }
-
 
     function editEvent(e, evnt){
         if (!e.srcElement) return;
@@ -970,47 +973,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#dialogueBox h4').html('Edit event')
         d3.select('#dialogueBox').attr('isCreate','false')
 
-        console.log(allEvents)
-
         let localEvent = allEvents.filter(d => { return (d.id == evnt.id) })[0]
-        console.log(localEvent)
-
-        // d3.select("#dialogueBox")
-        //   .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
-        //   .style('display','block');
-
-        // printDate = d3.timeFormat('%b %d %H:%M');
-        // d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-        // d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
-        // d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
-        // d3.select('#dialogueBox #evntConsumption').html( (+(evnt.consumption)).toFixed(1)+" KW");
-        // d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
-        // d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
-        // d3.select('#dialogueBox #evntId').node().value = evnt.id;
-
-        // d3.select("#iconField").empty();
-        // d3.select("#iconField")
-        //     .selectAll('img')
-        //     .data(event_types)
-        //     .join('img')
-        //     .attr('class', d => { return 'icon ' + d})
-        //     .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
-        //     .attr('alt', d => {return d})          
-        //     .attr('title', d => {return d})
-        //     .classed('selected', d => { return d == evnt.type })
-        //     .on('click', d => {
-        //        evnt.type = d.target['__data__'];
-        //        d3.selectAll('#iconField img').classed('selected',false)
-        //        d3.select('.'+evnt.type).classed('selected',true)
-        //     })
-        
-        // // d3.select('#dialogueBox #evntFlexibility').on('change', {
-        // //     evnt.flexibility = d3.select('#dialogueBox #evntFlexibility').node().value;
-        // // })
-
-        // d3.select('#dialogueBox #evntType').node().value = evnt.type;
-        // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
-        // d3.select('#dialogueBox #evntUpdated').node().value = new Date();
 
         show_event_dialog(localEvent)
     }

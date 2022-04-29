@@ -34,25 +34,26 @@
     <div id="container"></div>
     <div class="dialog">
       <form id="dialogueBox" action="event" method="post">
-        <h4 style="margin-bottom: -30px;">Create Event</h4>
+        <h4 >Create Event</h4>
         <input type="button" value="Delete Event" id="deleteEventBtn" class="btn"/>
-        <div> Event Start: <label id="evntStartLabel"></label> </div>
+        <div id="infoBoxDialogue" style="display: none;"></div>
+        <div> <i>Event Start:</i> <label id="evntStartLabel"></label> </div>
         <!-- <div> Event End: <label id="evntEndLabel"></label> </div> -->
-        <div> Duration: <label id="evntDurationLabel"></label> </div>
-        <div> Consumption: <label id="evntConsumptionLabel"></label> </div>
+        <div> <i>Duration:</i> <label id="evntDurationLabel"></label> </div>
+        <div> <i>Consumption:</i> <label id="evntConsumptionLabel"></label> </div>
 
         <div> 
-          <label>Select an event icon</label>
+          <i>Select an event icon (required)</i><br>
           <div id="iconField"></div>
         </div>
 
         <div> 
-          <label> Flexibility </label><br>
+           <i>Flexibility</i> <br>
           <textarea id="evntFlexibility" name="flexibility" rows="3" cols="35"> </textarea> 
         </div>
 
         <div> 
-          <label> Describe the event </label><br>
+          <i> Describe the event</i> <br>
           <textarea id="evntDescription" name="notes" rows="3" cols="35"></textarea>
         </div>
 

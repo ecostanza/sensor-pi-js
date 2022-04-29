@@ -8,7 +8,7 @@ svg{
 
 #deleteEventBtn{
   position: relative;
-  left: 260px;
+  left: 317px;
   top: 14px;
   font-size: 9px;
 }
@@ -27,6 +27,10 @@ svg{
   font-style: italic;
 }
 
+#dialogueBox label{
+  font-weight: bold;
+}
+
 .scalingContainer{
   text-align: right;
   width: 49%;
@@ -40,14 +44,15 @@ svg{
 }
 
 #dialogueBox{
-	position: absolute;
-	top: 20px;
-	min-height: 300px;
-	width: 400px;
-	background: white;
-	border: 1px solid;
-	display: none;
-	padding: 1em 1.2em;
+    position: absolute;
+    top: 59px;
+    min-height: 300px;
+    width: 500px;
+    background: rgba(250,250,250);
+    border: 1px solid gray;
+    display: none;
+    padding: 1em 1.2em;
+    box-shadow: 1px 1px 11px grey;
 }
 
 #btnEarlier{
@@ -90,9 +95,29 @@ svg{
 	background-color: steelblue;
 }
 
+#infoBoxDialogue{
+  color:  indianred;
+  font-style: italic;
+  font-size: smaller;
+}
+
+#iconField{
+  border:  1px solid #b1b1b1;
+  background-color: white;
+}
+
+#dialogueBox div{
+  margin-bottom: 0.75em;
+}
+
+#dialogueBox h4{
+    margin-bottom: -0.25em;
+}
+
 textarea{
 	width: 100%;
   max-width: 100%;
+  border: 1px solid #b1b1b1;
 }
 
 /*---*/
