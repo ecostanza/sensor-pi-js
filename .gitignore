@@ -7,8 +7,13 @@ yarn-error.log*
 lerna-debug.log*
 
 datadump*
+data_20220428*
 
 *.img.gz
+*.csv
+export_*
+*.xz
+minicom*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
