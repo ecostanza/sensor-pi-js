@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let SHIFT_BY = 4;
     let WINDOW = 8;
+    let FLAG = false;
+    let timeOfInactivity = 60000;
     let sunrise, sunset;
     const consumptionUnit = 1;
 
@@ -48,6 +50,41 @@ document.addEventListener("DOMContentLoaded", function() {
         "pm10_env": 'PM 1.0',
         "pm25_env": 'PM 2.5'
     };
+
+
+    let deltaMinutes = 60;
+
+    startTimer();
+
+    function startTimer() { 
+        // window.setTimeout returns an Id that can be used to start and stop a timer
+        timeoutId = window.setTimeout(refreshData, timeOfInactivity)
+    }
+
+    function resetTimeOfInactivity(){
+        timeOfInactivity = 60000;
+    }
+
+    // Periodical refresh if FLAG is down
+    // setInterval(
+        async function refreshData() {
+            const measurement = 'electricity_consumption';
+            const sensor_id = '100';
+            let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-1&showAll=true&points=80`;
+            if(FLAG == false){
+                try{
+                    result = await d3.json(dataUrl);
+                    console.log(result)
+                    drawGraphs();
+                }catch(e){
+                    console.log(e);
+                }
+            }
+        }//,
+        // deltaMinutes / 60 * 60 * 1000
+        // 20 * 1000 // call every 1 minute
+    // );
+
 
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
@@ -257,6 +294,9 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#btnEarlier').on('click', getEarlierData);
 
         d3.select('#btnRecent').on('click', e => {
+
+            resetTimeOfInactivity();
+
             tmp = xScale.domain();
             maxTime = new Date();
             minTime = maxTime - WINDOW * 60 * 60 *1000;
@@ -276,6 +316,8 @@ document.addEventListener("DOMContentLoaded", function() {
         });
         
         d3.select('#btnLater').on('click', e =>{
+            resetTimeOfInactivity()
+
             tmp = xScale.domain()
             minTime = new Date(tmp[0].setHours(tmp[0].getHours()+SHIFT_BY));
             maxTime = new Date(minTime);
@@ -303,6 +345,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#btnScale24').on('click', e =>{
             WINDOW = 24;
             SHIFT_BY = 12;
+            resetTimeOfInactivity();
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScale24').classed('selected',true)
@@ -332,6 +375,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#btnScale8').on('click', e =>{
             WINDOW = 8;
             SHIFT_BY = 4;
+            resetTimeOfInactivity();
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScale8').classed('selected',true)
@@ -360,6 +404,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#btnScaleWeek').on('click', e =>{
             WINDOW = 24*7;
             SHIFT_BY = 24*4;
+            resetTimeOfInactivity();
 
             d3.selectAll('.scaleBtn').classed('selected',false)
             d3.select('#btnScaleWeek').classed('selected',true)
@@ -408,7 +453,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // "&& d.sensor_id==100;" >> temporary FIX!!
             allSeries = allSeries.filter(function (d) {
-                return toKeep.includes(d.measurement) && d.sensor_id==100;//d.sensor_id==2;
+                return toKeep.includes(d.measurement) && (d.sensor_id <=100 && d.sensor_id >= 96);//d.sensor_id==2;
             });
 
             allSeries = allSeries.map(function (item) {
@@ -494,7 +539,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function getEarlierData(e){
-        // e =>{
+        resetTimeOfInactivity();
+
         tmp = xScale.domain();
         minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
         // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
@@ -567,21 +613,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
         function brushStart({selection}) {
             if(WINDOW == 24*7) { return }
+            resetTimeOfInactivity();
+
             // console.log('brush started');
             d3.select('.saveBtnContainer').remove();
+            
+            d3.select('#infoBox').html('').style('display','none');
 
         }
 
         function brushEnd(event) {
+            resetTimeOfInactivity();
             if (!event.sourceEvent) return;
             if(WINDOW == 24*7) { 
                 d3.select('#infoBox').html('You cannot annotate at this scale.')
                 clearBrushSelection();
                 return
             }
-         
-            // console.log('brush ended');
+
+            console.log('brush ended');
             selection = event.selection;
+
+            allEvents.sort( (a,b) => { return new Date(b.start) - new Date(a.start); })
 
             // check it was not a random click
             if( selection && selection.length >= 2){
@@ -589,28 +642,46 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Check if started within a already annotated area
                 // if so push to the nearest non-annotated right/left side
                 let sx = selection.map(xScale.invert);
-                let newStart = new Date (sx[0]),
+                /* let newStart = new Date (sx[0]),
                     newEnd = new Date (sx[1]),
                     flag = false;
+    
+                 for (const e of allEvents){
+                    tmpStart = new Date(e.start);
+                    tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
 
-                allEvents.forEach( e => {
-                    if( sx[0] <= e.start && sx[1] >= e.start && flag == false){
-                       newEnd = e.start;
+                    if( sx[0] <= tmpStart && sx[1] >= tmpStart && flag == false){
+                       newEnd = tmpStart;
                        flag = true;
-                    }else if( sx[0] >= e.start && sx[0] <= e.end && flag == false){
-                       newStart = e.end;
+                    }else if( sx[0] >= tmpStart && sx[0] <= tmpEnd && flag == false){
+                       newStart = tmpEnd;
                        flag = true;
                     }
 
-                    if(flag == true && newStart == e.start){
-                       newStart = e.end;
+                    if(flag == true && newStart == tmpStart){
+                       newStart = tmpEnd;
+                       flag = false;
                     }
+                }
 
-                });
-
+                // check if start/end reversed
                 sx = [newStart,newEnd];
                 if( flag == true){
                     brushContainer.call(brush.move,sx.map(xScale))
+                } */
+                // Check if any of the brush is inside an existing annotation. If so 
+                // return.
+                for (const e of allEvents){
+                    tmpStart = new Date(e.start);
+                    tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
+
+                    if ( (sx[0] <= tmpEnd && sx[0]>= tmpStart) ||
+                         (sx[1] <= tmpEnd && sx[1]>= tmpStart)){
+                        clearBrushSelection();
+                        brushContainer.call(brush.move,null);
+                        d3.select('#infoBox').html('You cannot have overlapping annotations').style('display','block');
+                        return;
+                    }
                 }
                 
                 // Create a button to save event
@@ -642,7 +713,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function brushing({selection}) {
-            // console.log('brush hapenning')
+            console.log('brush hapenning')
+            resetTimeOfInactivity();
+
+            FLAG = true;
 
             if (selection === null) {
                clearBrushSelection();
@@ -701,6 +775,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function getDialogueValues(type){
+            resetTimeOfInactivity();
+
             let evnt = {};
             console.log('Capturing...')
 
@@ -732,7 +808,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 return '';
             }
         };
-
 
         sanitize = function (event) {
             if (event.description === undefined) {
@@ -791,6 +866,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         show_event_dialog = function(event){
+            resetTimeOfInactivity();
+
             d3.select("#dialogueBox")
               .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
               .style('display','block');
@@ -937,7 +1014,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 closeDialogue();
 
             });
-
         }
 
         function closeDialogue() {
@@ -946,6 +1022,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             clearBrushSelection();
             brushContainer.call(brush.move,null);
+            FLAG = false;
         }
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
@@ -1127,6 +1204,8 @@ document.addEventListener("DOMContentLoaded", function() {
     d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
 
     async function exportCSVAnnotation(){
+        resetTimeOfInactivity();
+
         let csvContent = "data:text/csv;charset=utf-8," 
         
         result = await d3.json('/annotations');
@@ -1146,7 +1225,7 @@ document.addEventListener("DOMContentLoaded", function() {
             for (const key in e) {
                     pp += e[key] + ',';
             }
-            pp = pp.slice(0, -1); 
+            pp = pp.slice(0, -1);
             csvContent += pp + "\n";
         });
         
@@ -1160,36 +1239,43 @@ document.addEventListener("DOMContentLoaded", function() {
         link.click(); // This will download the data file named "my_data.csv".
     }  
 
-    function exportCSVElectricity(){
-        let csvContent = "data:text/csv;charset=utf-8," 
-        
-        // save label names
-        pp = '';
-        for (const key in allEvents[0]) {
-            pp += key + ',';
+    async function exportCSVElectricity(){
+        resetTimeOfInactivity();
+
+        console.log('button#download-button');
+        const sensor_id = '100';
+        const measurement = 'electricity_consumption';
+        const url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
+        const now = luxon.DateTime.now();
+        const today = new luxon.DateTime(now.year, now.month, now.day);
+        const start = today.minus({weeks: 5});
+        const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
+        let all_data = [];
+        for (let d=0; d<total_days; d+=1) {
+            const curr = start.plus({'days': d});
+            const next = curr.plus({'days': 1});
+            console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
+            const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}`;
+            const data = await d3.json(url+query);
+            console.log('data:', data);
+            all_data = all_data.concat(data.readings);
         }
-        pp = pp.slice(0, -1); 
-        csvContent += pp + "\n";
+        console.log('all_data:', all_data);
 
-        // save data 
-        allEvents.forEach( (e,i) => {
-            pp = '';
-            for (const key in e) {
-                    pp += e[key] + ',';
-            }
-            pp = pp.slice(0, -1); 
-            csvContent += pp + "\n";
-        });
-        
-        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
-        var encodedUri = encodeURI(csvContent);
+        let csv_content = "data:text/csv;charset=utf-8,";
+
+        all_data.forEach(function(row) {
+            csv_content += `${row.time},${row.value}` + "\r\n";
+        });        
+
+        const encoded_uri = encodeURI(csv_content);
         var link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "my_data.csv");
+        link.setAttribute("href", encoded_uri);
+        link.setAttribute("download", `${measurement}_${sensor_id}.csv`);
         document.body.appendChild(link); // Required for FF
-
-        link.click(); // This will download the data file named "my_data.csv".
-    }
+        
+        link.click(); // This will download the data file named "my_data.csv".        
+    };
 
     function getSunriseSunset(data){
         d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
