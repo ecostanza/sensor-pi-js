@@ -95,7 +95,8 @@ double sum;
 double readings_sum;
 unsigned int curr_readings = 0;
 #define N_READINGS 10
-#define READING_PERIOD 30000
+#define READING_PERIOD 3000
+// frequency = N_READINGS * READING_PERIOD 
 //#define READING_PERIOD 60000
 
 unsigned long start;
@@ -176,14 +177,15 @@ void loop() {
     payload[0] = 20; // electricity consumption (double, so it will go into [1-4])
     memcpy(payload+1,(byte *)&avg, sizeof(avg));
     
-    payload[5] = 21; // battery (uint16_t, so it will go into [5-6]
+    payload[5] = 21; // battery (uint16_t, so it will go into [6-7]
     memcpy(payload+6,(byte *)&battery, sizeof(battery)); 
         
     // we safely still have some room!
     // TODO: consider sending less frequently and packing more data into packet?
     
     DEBUG_PRINTLN("Sending");
-    if (radio.sendWithRetry(1, payload, 60, 3, 20)) {
+//    if (radio.sendWithRetry(1, payload, 60, 3, 20)) {
+    if (radio.sendWithRetry(1, payload, 8, 3, 20)) {
       DEBUG_PRINTLN("ACK received");
     } else {
       DEBUG_PRINTLN("No ACK");
