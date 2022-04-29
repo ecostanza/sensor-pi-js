@@ -135,9 +135,10 @@ document.addEventListener("DOMContentLoaded", function() {
     function drawGraphs (response,sensor_id,series){
 
         let newdata = formatData(response.readings);
+
         let freshData = false;
 
-        if(data.length == 0){ freshData=true; }
+        if(data.length == 0){ freshData = true; }
         
         data = data.concat(newdata);
 
@@ -146,12 +147,24 @@ document.addEventListener("DOMContentLoaded", function() {
         // Get initial min-max values for the x axis
         // If it is the first time the page is loaded show all
         // Else show an offest to avoid jumps in the scrollling
-        max = d3.max(newdata, d => new Date(d.time.getTime()));
 
-        // if(freshData == false) { max.setHours(max.getHours() + WINDOW); }
-        if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
-        min = new Date(max);
-        min.setHours(max.getHours() - WINDOW)
+        // Check if data is empty, eg becase there are no values for today
+        // force the max value as today and move backwards in time
+        if(newdata.length == 0){
+            max = new Date();
+            min = max.getTime() - WINDOW * 60 * 60 *1000;
+ 
+            // getEarlierData();
+            // return;
+        }else{
+
+            max = d3.max(newdata, d => new Date(d.time.getTime()));
+
+            // if(freshData == false) { max.setHours(max.getHours() + WINDOW); }
+            if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
+            min = new Date(max);
+            min.setHours(max.getHours() - WINDOW)
+        }
 
         xScale = d3.scaleTime(
             // d3.extent(data, d => new Date(d.time.getTime())),
@@ -241,78 +254,7 @@ document.addEventListener("DOMContentLoaded", function() {
         addBrushing(response);
         drawAnnotations();
 
-        // TODO Check why so many nulls
-        function updateGraph(dataF, firstCall){
-            
-            d3.select('.dataPoints').selectAll('rect')
-                .data(dataF)
-                .join("rect")
-                .attr("width", () => {
-                    if( WINDOW == 24){ return 5; }
-                    else if (WINDOW == 24*7){ return 1;} 
-                    else{ return 15; }
-                })
-                .attr("height", d => {
-                    if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
-                        return 0;
-                    } 
-                    if (d.value === null) {
-                        return 0;
-                    } else {
-                        return svgHeight-svgMarginBottom - yScale(d.value);
-                    }
-                })
-                .attr("y", d => { return yScale(d.value); })       
-
-            // Only transition with existing data, 
-            // avoid animation 
-            if(!firstCall){
-                d3.select('.dataPoints').selectAll('rect')
-                .transition()
-                .attr("x", d => { 
-                    return xScale(new Date(d.time.getTime())); })
-            }else{
-               d3.select('.dataPoints').selectAll('rect')
-                .attr("x", d => { 
-                    return xScale(new Date(d.time.getTime())); })
-            }
-        
-            d3.select('.dataPoints').selectAll('rect.annottated')
-                .style('fill','steelblue')
-        }
-
-        d3.select('#btnEarlier').on('click', e =>{
-
-            tmp = xScale.domain();
-            minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
-            // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
-
-            // Check if almost out of bounds
-            if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ){
-                // GET EARLIER DATA
-                // move backwards in time based on the 'startMinutes' measure
-                // the endMinutes is set so as to not requery existing data
-                console.log("CALLING NEW DATA")
-                endMinutes = startMinutes.valueOf();
-                startMinutes += startMinutes;
-                loadData();
-                // drawAnnotations();
-            }
-            d3.select('#btnLater').classed('disabled',false)
-            d3.select('#btnRecent').classed('disabled',false)
-
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
-            
-            updateXAxis();
-            updateGraph(data,false);
-            updateSunriseSunset();
-            updateAnnotationBar();
-        });
+        d3.select('#btnEarlier').on('click', getEarlierData);
 
         d3.select('#btnRecent').on('click', e => {
             tmp = xScale.domain();
@@ -462,10 +404,11 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.json(seriesUrl).then(function (allSeries) {
             console.log(allSeries)
             toKeep = "electricity_consumption";
+            // toKeep = "TVOC";
 
             // "&& d.sensor_id==100;" >> temporary FIX!!
             allSeries = allSeries.filter(function (d) {
-                return toKeep.includes(d.measurement) && d.sensor_id==100;
+                return toKeep.includes(d.measurement) && d.sensor_id==100;//d.sensor_id==2;
             });
 
             allSeries = allSeries.map(function (item) {
@@ -505,10 +448,85 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
+    // TODO Check why so many nulls
+    function updateGraph(dataF, firstCall){
+        
+        d3.select('.dataPoints').selectAll('rect')
+            .data(dataF)
+            .join("rect")
+            .attr("width", () => {
+                if( WINDOW == 24){ return 5; }
+                else if (WINDOW == 24*7){ return 1;} 
+                else{ return 15; }
+            })
+            .attr("height", d => {
+                if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
+                    return 0;
+                } 
+                if (d.value === null) {
+                    return 0;
+                } else {
+                    return svgHeight-svgMarginBottom - yScale(d.value);
+                }
+            })
+            .attr("y", d => { return yScale(d.value); })       
+
+        // Only transition with existing data, 
+        // avoid animation 
+        if(!firstCall){
+            d3.select('.dataPoints').selectAll('rect')
+            .transition()
+            .attr("x", d => { 
+                return xScale(new Date(d.time.getTime())); })
+        }else{
+           d3.select('.dataPoints').selectAll('rect')
+            .attr("x", d => { 
+                return xScale(new Date(d.time.getTime())); })
+        }
+    
+        d3.select('.dataPoints').selectAll('rect.annottated')
+            .style('fill','steelblue')
+    }
+
     function clearBrushSelection(){
         d3.select('.saveBtnContainer').remove();
         d3.selectAll('.dataPoints rect').style("opacity", '1');
     }
+
+    function getEarlierData(e){
+        // e =>{
+        tmp = xScale.domain();
+        minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
+        // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        // Check if almost out of bounds
+        if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ||
+            data.length == 0
+         ){
+            // GET EARLIER DATA
+            // move backwards in time based on the 'startMinutes' measure
+            // the endMinutes is set so as to not requery existing data
+            console.log("CALLING NEW DATA")
+            endMinutes = startMinutes.valueOf();
+            startMinutes += startMinutes;
+            loadData();
+            // drawAnnotations();
+        }
+        d3.select('#btnLater').classed('disabled',false)
+        d3.select('#btnRecent').classed('disabled',false)
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+        
+        updateXAxis();
+        updateGraph(data,false);
+        updateSunriseSunset();
+        updateAnnotationBar();
+    };
 
     async function drawAnnotations(){
 
@@ -533,9 +551,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }catch(e){
             console.log("error " + e)
         }
-
     }
-
 
     function addBrushing (response){
         brush = d3.brushX()
@@ -928,7 +944,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
-
     }
 
     function deleteAnnotationBar(id){
@@ -1029,9 +1044,9 @@ document.addEventListener("DOMContentLoaded", function() {
         anntContainer
             .append('text')
             .attr('font-size','15px')
-            .attr('x', 20)
+            .attr('x', 26)
             // .attr('y',svgMarginTop-35)
-            .attr('y',svgHeight - svgMarginBottom +25)
+            .attr('y',svgHeight - svgMarginBottom +30)
             .text(event.type)
 
         anntContainer
@@ -1051,9 +1066,9 @@ document.addEventListener("DOMContentLoaded", function() {
             array.push(1);
         }
 
-        blockC.append('text').text(event.consumption.toFixed(2)+"KW")
-              .attr('x', xScale(event.start))
-              .attr('y',svgHeight - svgMarginBottom +45)
+        blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
+              .attr('x', 0)//xScale(event.start))
+              .attr('y',svgHeight - svgMarginBottom +50)
 
         y = -1;j=-1;
 
@@ -1251,14 +1266,18 @@ document.addEventListener("DOMContentLoaded", function() {
     function drawSunriseSunset(data){
 
         d3.selectAll('.backgroundData rect').remove()
+        d3.selectAll('.backgroundData text').remove()
+        let nights = [];
 
-        counter = data[0].time.getDate();
-        nights = data.filter(d => {
-            if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
-                counter++;
-                return true ;
-            }
-        })
+        if(data.length > 0 ){
+            counter = data[0].time.getDate();
+            nights = data.filter(d => {
+                if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
+                    counter++;
+                    return true ;
+                }
+            })
+        }
 
         lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
 
