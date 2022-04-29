@@ -4,21 +4,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let data = [];
 
-    let svgWidth = window.innerWidth;
-    let svgHeight = svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
+    let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
+    let svgHeight =  svgWidth / 2 > window.innerHeight - 250 ? window.innerHeight - 250:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
     const adj = 30;
 
     var xScale, yScale, brush;
-    const svgMarginTop = 40;
-    const svgMarginLeft = 50;
+    const svgMarginTop = 30;
+    const svgMarginBottom = 100;
+    const svgMarginLeft = 0;
 
     let loadData = undefined;
 
     let allEvents = [];
-    let ids = 0;
 
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
@@ -55,22 +55,26 @@ document.addEventListener("DOMContentLoaded", function() {
     
         svgContainer = d3.select("div#container");
 
+
+        // Check to see if it exists
         if(svgContainer.select('#'+measurement.id + 'Chart').node() !== null ){
             return;
         }
 
-        svgContainer
-            .append("h4")
-            .attr('id', measurement.id)
-            .text(name);
+        // svgContainer
+        //     .append("h4")
+        //     .attr('id', measurement.id)
+        //     .text(name);
 
         svgContainer
             .append("svg")
             .attr('id', measurement.id + 'Chart')
             .attr("preserveAspectRatio", "xMinYMin meet")
+            // .attr('width',svgWidth)
+            // .attr('height',svgHeight)
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
-                + adj + " "
+                + 2.5*adj + " "
                 + (svgWidth + adj*3) + " "
                 + (svgHeight + adj*4))
             .style("padding", padding)
@@ -131,22 +135,36 @@ document.addEventListener("DOMContentLoaded", function() {
     function drawGraphs (response,sensor_id,series){
 
         let newdata = formatData(response.readings);
+
         let freshData = false;
 
-        if(data.length == 0){ freshData=true; }
+        if(data.length == 0){ freshData = true; }
         
         data = data.concat(newdata);
 
-        data.sort( (a,b) => { return a.time - b.time})
+        // data.sort( (a,b) => { return a.time - b.time})
 
         // Get initial min-max values for the x axis
         // If it is the first time the page is loaded show all
         // Else show an offest to avoid jumps in the scrollling
-        max = d3.max(newdata, d => new Date(d.time.getTime()));
-        console.log('MAX HOUR: ' + max)
-        if( freshData == false) { max.setHours(max.getHours() + WINDOW); }
-        min = new Date(max);
-        min.setHours(max.getHours() - WINDOW)
+
+        // Check if data is empty, eg becase there are no values for today
+        // force the max value as today and move backwards in time
+        if(newdata.length == 0){
+            max = new Date();
+            min = max.getTime() - WINDOW * 60 * 60 *1000;
+ 
+            // getEarlierData();
+            // return;
+        }else{
+
+            max = d3.max(newdata, d => new Date(d.time.getTime()));
+
+            // if(freshData == false) { max.setHours(max.getHours() + WINDOW); }
+            if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
+            min = new Date(max);
+            min.setHours(max.getHours() - WINDOW)
+        }
 
         xScale = d3.scaleTime(
             // d3.extent(data, d => new Date(d.time.getTime())),
@@ -154,32 +172,50 @@ document.addEventListener("DOMContentLoaded", function() {
             [0, svgWidth-svgMarginLeft]
         );
 
-        let yScale = d3.scaleLinear(
+        yScale = d3.scaleLinear(
             [(0), 1.1 * d3.max(data, d => +d.value)],
-            [svgHeight, svgMarginTop]
+            [svgHeight-svgMarginBottom, svgMarginTop]
         );
         
-        let xAxis = d3.axisBottom()
+        let xAxis = d3.axisTop()
             .ticks(15)
+            .tickSize(-svgHeight+svgMarginBottom)
             .tickFormat(d3.timeFormat('%b %d %H:%M'))
+            .scale(xScale);
+
+        let xAxisSecond = d3.axisBottom()
+            .ticks(0)
+            // .tickSize(-svgHeight+svgMarginBottom)
+            // .tickFormat(d3.timeFormat('%b %d %H:%M'))
             .scale(xScale);
 
         let yAxis = d3.axisLeft()
             .scale(yScale); 
 
         let svg = d3.select('svg#' + series.id + 'Chart');
-        svg.selectAll("*").remove();
+        // svg.selectAll("*").remove();
+        svg.selectAll('.axis').remove();
+        svg.selectAll('.annotationBar').remove();
+
 
         svg.append("g")
             .attr("class", "axis x-axis")
-            .attr("transform", "translate(0," + svgHeight + ")")
+            .attr("transform", "translate(0," + 0 + ")")
             .call(xAxis)
                 .selectAll("text")  
-                .style("text-anchor", "end")
-                .attr("dx", "-.8em")
-                .attr("dy", ".15em")
+                .style("text-anchor", "start")
+                .attr("dx", ".8em")
+                .attr("dy", "-.5em")
+                .attr('y',0)
+                // .attr("dx", "-.8em")
+                // .attr("dy", ".15em")
                 .attr("transform", "rotate(-45)");
     
+        svg.append("g")
+            .attr("transform", "translate(0," + (svgHeight- svgMarginBottom ) + ")")
+            .attr("class", "axis x-axis")
+            .call(xAxisSecond)
+
         let label = series.name;
         if (label.includes(' (sensor')) {
             label = label.split(' (sensor')[0];
@@ -207,95 +243,18 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('x',xScale.range()[0])
               .attr('y',yScale.range()[1])
               .attr('width',xScale.range()[1]-xScale.range()[0])
-              .attr('height',yScale.range()[0]-yScale.range()[1])
+              .attr('height',yScale.range()[0]-yScale.range()[1] + svgMarginBottom)
 
         // Add clipping path for making the animation look better
         svgGroup = svg.append("g").attr("class","dataPoints")
                         .attr("clip-path", "url(#clip)");
 
-        // dataF = data.filter(d => {
-        //     return (d.time >= min && d.time<=max)
-        // })
-
         updateGraph(data,true);
         getSunriseSunset(data);
         addBrushing(response);
-
         drawAnnotations();
 
-        // TODO Check why so many nulls
-        function updateGraph(dataF, firstCall){
-            
-            d3.select('.dataPoints').selectAll('rect')
-                .data(dataF)
-                .join("rect")
-                // .style("fill", "rgba(100,100,100,1)")
-                .attr("width", () => {
-                    if( WINDOW == 24){ return 5; }
-                    else if (WINDOW == 24*7){ return 1;} 
-                    else{ return 15; }
-                })
-                .attr("height", d => {
-                    if (svgHeight - yScale(d.value) < 0) {
-                        return 0;
-                    } 
-                    if (d.value === null) {
-                        return 0;
-                    } else {
-                        return svgHeight - yScale(d.value);
-                    }
-                })
-                .attr("y", d => { return yScale(d.value); })       
-
-            // Only transition with existing data, 
-            // avoid animation 
-            if(!firstCall){
-                d3.select('.dataPoints').selectAll('rect')
-                .transition()
-                .attr("x", d => { 
-                    return xScale(new Date(d.time.getTime())); })
-            }else{
-               d3.select('.dataPoints').selectAll('rect')
-                .attr("x", d => { 
-                    return xScale(new Date(d.time.getTime())); })
-            }
-        
-            d3.select('.dataPoints').selectAll('rect.annottated')
-                // .style('fill','steelblue')
-        }
-
-        d3.select('#btnEarlier').on('click', e =>{
-
-            tmp = xScale.domain();
-            minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
-            // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
-
-            // Check if almost out of bounds
-            if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ){
-                // GET EARLIER DATA
-                // move backwards in time based on the 'startMinutes' measure
-                // the endMinutes is set so as to not requery existing data
-                console.log("CALLING NEW DATA")
-                endMinutes = startMinutes.valueOf();
-                startMinutes += startMinutes;
-                loadData();
-                drawAnnotations();
-            }
-            d3.select('#btnLater').classed('disabled',false)
-            d3.select('#btnRecent').classed('disabled',false)
-
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
-            
-            updateXAxis();
-            updateGraph(data,false);
-            updateSunriseSunset();
-            updateAnnotationBar();
-        });
+        d3.select('#btnEarlier').on('click', getEarlierData);
 
         d3.select('#btnRecent').on('click', e => {
             tmp = xScale.domain();
@@ -445,10 +404,11 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.json(seriesUrl).then(function (allSeries) {
             console.log(allSeries)
             toKeep = "electricity_consumption";
+            // toKeep = "TVOC";
 
             // "&& d.sensor_id==100;" >> temporary FIX!!
             allSeries = allSeries.filter(function (d) {
-                return toKeep.includes(d.measurement) && d.sensor_id==100;
+                return toKeep.includes(d.measurement) && d.sensor_id==100;//d.sensor_id==2;
             });
 
             allSeries = allSeries.map(function (item) {
@@ -471,7 +431,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
 
             loadData = function () {
-                d3.select("div#container").selectAll('div.graphContainer').remove();
+                // d3.select("div#container").selectAll('div.graphContainer').remove();
                 _series.forEach(m => appendSvg(m));
                 d3.select('div.main-loading').style('display', 'block');
                 const promises = _series.map(m => loadMeasurementData(m));
@@ -488,10 +448,85 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
+    // TODO Check why so many nulls
+    function updateGraph(dataF, firstCall){
+        
+        d3.select('.dataPoints').selectAll('rect')
+            .data(dataF)
+            .join("rect")
+            .attr("width", () => {
+                if( WINDOW == 24){ return 5; }
+                else if (WINDOW == 24*7){ return 1;} 
+                else{ return 15; }
+            })
+            .attr("height", d => {
+                if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
+                    return 0;
+                } 
+                if (d.value === null) {
+                    return 0;
+                } else {
+                    return svgHeight-svgMarginBottom - yScale(d.value);
+                }
+            })
+            .attr("y", d => { return yScale(d.value); })       
+
+        // Only transition with existing data, 
+        // avoid animation 
+        if(!firstCall){
+            d3.select('.dataPoints').selectAll('rect')
+            .transition()
+            .attr("x", d => { 
+                return xScale(new Date(d.time.getTime())); })
+        }else{
+           d3.select('.dataPoints').selectAll('rect')
+            .attr("x", d => { 
+                return xScale(new Date(d.time.getTime())); })
+        }
+    
+        d3.select('.dataPoints').selectAll('rect.annottated')
+            .style('fill','steelblue')
+    }
+
     function clearBrushSelection(){
         d3.select('.saveBtnContainer').remove();
         d3.selectAll('.dataPoints rect').style("opacity", '1');
     }
+
+    function getEarlierData(e){
+        // e =>{
+        tmp = xScale.domain();
+        minTime = tmp[0] - SHIFT_BY * 60 * 60 *1000;
+        // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        // Check if almost out of bounds
+        if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ||
+            data.length == 0
+         ){
+            // GET EARLIER DATA
+            // move backwards in time based on the 'startMinutes' measure
+            // the endMinutes is set so as to not requery existing data
+            console.log("CALLING NEW DATA")
+            endMinutes = startMinutes.valueOf();
+            startMinutes += startMinutes;
+            loadData();
+            // drawAnnotations();
+        }
+        d3.select('#btnLater').classed('disabled',false)
+        d3.select('#btnRecent').classed('disabled',false)
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+        
+        updateXAxis();
+        updateGraph(data,false);
+        updateSunriseSunset();
+        updateAnnotationBar();
+    };
 
     async function drawAnnotations(){
 
@@ -502,7 +537,6 @@ document.addEventListener("DOMContentLoaded", function() {
             allEvents = result;
             console.log(result.length)
             allEvents.forEach( g => {
-                console.log(g);
 
                 tmpDate = new Date(g.start);
 
@@ -517,13 +551,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }catch(e){
             console.log("error " + e)
         }
-
     }
-
 
     function addBrushing (response){
         brush = d3.brushX()
-                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight]])
+                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight-svgMarginBottom]])
                         .on('start', brushStart)
                         .on('end', brushEnd)
                         .on('brush', brushing)
@@ -534,13 +566,20 @@ document.addEventListener("DOMContentLoaded", function() {
               .call(brush)
 
         function brushStart({selection}) {
+            if(WINDOW == 24*7) { return }
             // console.log('brush started');
             d3.select('.saveBtnContainer').remove();
+
         }
 
         function brushEnd(event) {
             if (!event.sourceEvent) return;
-      
+            if(WINDOW == 24*7) { 
+                d3.select('#infoBox').html('You cannot annotate at this scale.')
+                clearBrushSelection();
+                return
+            }
+         
             // console.log('brush ended');
             selection = event.selection;
 
@@ -581,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function() {
                   .style('cursor','pointer')
                   .on('click', () => { createEvent(sx); })
                   // Show the save button aligned to the selection
-                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+svgMarginTop+')')
+                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+(svgMarginTop)+')')
                 
                 d3.select('.saveBtnContainer')
                     .append('rect')
@@ -642,6 +681,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function resetDialogue(){
+            d3.select('#dialogueBox #infoBoxDialogue').html('').style('display','none');
            // evnt = {
            //  'start' :'',
            //  'end'   : '',
@@ -685,10 +725,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function validate_form(){
-            if (d3.select('#evntType').node().value === '') {
+            // if (d3.select('#evntType').node().value === 'undefined') {
+            if (d3.selectAll('#iconField .icon.selected').nodes().length == 0){
                 return "ERROR: Please choose an icon before pressing OK.";
+            }else{
+                return '';
             }
-            return '';
         };
 
 
@@ -750,7 +792,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         show_event_dialog = function(event){
             d3.select("#dialogueBox")
-              .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
+              .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
               .style('display','block');
 
             populateDialogBox(event);
@@ -758,11 +800,13 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select('#submitEventBtn').on('click',null);
             d3.select('#submitEventBtn').on('click', (r) =>{
                 console.log('SUMBITING EVENT')  
+
                 errormessage = validate_form();
                 if (errormessage !== '') {
-                    alert(errormessage);
-                    // TODO: check what does false do?
-                    return false;                       
+                    // alert(errormessage);
+                    d3.select('#infoBoxDialogue').html('Please choose an event type.')
+                                        .style('display','block')
+                    return;                       
                 }
 
                 if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
@@ -905,7 +949,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         d3.select('#closebtnDialogue').on('click', closeDialogue);
-
     }
 
     function deleteAnnotationBar(id){
@@ -917,13 +960,11 @@ document.addEventListener("DOMContentLoaded", function() {
     function editAnnotationBar(event, id){
         // console.log(event)
 
-        dd = d3.select(".annotationBar").filter(d => { return (d.id == id) })
-
-        dd.select('image').attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-        dd.select('text').text(event.type)
-
+        dd = d3.selectAll(".annotationBar").filter(d => { return (d.id == id) })
+        dd.data(event);
+        dd.select('image').attr("xlink:href", (d) => { return '/static/imgs/event_icons/' + d.type + '_black.png'})
+        dd.select('text').text((d) => { return d.type; })
     }
-
 
     function editEvent(e, evnt){
         if (!e.srcElement) return;
@@ -932,47 +973,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#dialogueBox h4').html('Edit event')
         d3.select('#dialogueBox').attr('isCreate','false')
 
-        console.log(allEvents)
-
         let localEvent = allEvents.filter(d => { return (d.id == evnt.id) })[0]
-        console.log(localEvent)
-
-        // d3.select("#dialogueBox")
-        //   .style('left', () => { return (window.innerWidth/2 - 150 )+ "px";})
-        //   .style('display','block');
-
-        // printDate = d3.timeFormat('%b %d %H:%M');
-        // d3.select('#dialogueBox #evntDuration').html(evnt.duration);
-        // d3.select('#dialogueBox #evntStart').html(printDate(new Date(evnt.start)));
-        // d3.select('#dialogueBox #evntEnd').html(printDate(new Date(evnt.end)));
-        // d3.select('#dialogueBox #evntConsumption').html( (+(evnt.consumption)).toFixed(1)+" KW");
-        // d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
-        // d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
-        // d3.select('#dialogueBox #evntId').node().value = evnt.id;
-
-        // d3.select("#iconField").empty();
-        // d3.select("#iconField")
-        //     .selectAll('img')
-        //     .data(event_types)
-        //     .join('img')
-        //     .attr('class', d => { return 'icon ' + d})
-        //     .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
-        //     .attr('alt', d => {return d})          
-        //     .attr('title', d => {return d})
-        //     .classed('selected', d => { return d == evnt.type })
-        //     .on('click', d => {
-        //        evnt.type = d.target['__data__'];
-        //        d3.selectAll('#iconField img').classed('selected',false)
-        //        d3.select('.'+evnt.type).classed('selected',true)
-        //     })
-        
-        // // d3.select('#dialogueBox #evntFlexibility').on('change', {
-        // //     evnt.flexibility = d3.select('#dialogueBox #evntFlexibility').node().value;
-        // // })
-
-        // d3.select('#dialogueBox #evntType').node().value = evnt.type;
-        // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
-        // d3.select('#dialogueBox #evntUpdated').node().value = new Date();
 
         show_event_dialog(localEvent)
     }
@@ -981,7 +982,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const anntLine = d3.line()
                      .x(d => (d))
-                     .y(svgMarginTop-30);
+                     .y(svgHeight- svgMarginBottom + 10)
 
         event.id = id;
 
@@ -1006,48 +1007,72 @@ document.addEventListener("DOMContentLoaded", function() {
         anntContainer
             .append('text')
             .attr('font-size','15px')
-            .attr('x', 20)
-            .attr('y',svgMarginTop-35)
+            .attr('x', 26)
+            // .attr('y',svgMarginTop-35)
+            .attr('y',svgHeight - svgMarginBottom +30)
             .text(event.type)
 
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
-            .attr("x", 0 ).attr("y", svgMarginTop-50)
+            .attr("x", 0 )
+            .attr("y", svgHeight - svgMarginBottom +15)
+            // .attr("y", svgMarginTop-50)
             .attr("width", 20).attr("height", 20)
 
-/*            blockC = anntContainer
+        blockC = anntContainer
                  .append('g').attr('class','blocksContainer')
 
-        const amnt = (evnt.consumption/consumptionUnit).toFixed(0)
+        const amnt = (event.consumption/consumptionUnit).toFixed(0)
         array = [];
         for (var i = 0; i <amnt; i++) {
             array.push(1);
         }
 
-        blockC.append('text').text(evnt.consumption.toFixed(2)+"KW")
-              .attr('x', xScale(event.start))
-              .attr('y',svgMarginTop-10)
+        blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
+              .attr('x', 0)//xScale(event.start))
+              .attr('y',svgHeight - svgMarginBottom +50)
 
         y = -1;j=-1;
+
+        linesize = (xScale(event.end)-xScale(tmpDate));
         blockC.selectAll('rect')
               .data(array, d => {return d})
               .join('rect')
-              .attr('width',15)
-              .attr('height',15)
+              .attr('width',10)
+              .attr('height',10)
               .attr('transform', (d,i) => { 
 
-                if( j*20 > svgMarginLeft*2){ y++;j=0;}
+                if( j*15 > linesize){ y++;j=0;}
                 else{ j++; }
-                x = xScale(event.start) + j*20;
-                return 'translate('+x+','+(y*20+svgMarginTop+15)+')';
+                // x = xScale(new Date(event.start)) + j*20;
+                return 'translate('+(j*15)+','+(y*15+svgHeight - svgMarginBottom +70)+')';
               })
-              .style('fill','#ff9620')
-*/
+              .style('fill','#ff9620');
+
+        setAnnotationBarVisibility();
     }
 
+    function setAnnotationBarVisibility(){
+        // Hide text in day view, hide everything in week view
+        if( WINDOW == 24){
+            d3.selectAll('.annotationBar text').style('opacity',0)
+            d3.selectAll('.annotationBar image').style('opacity',1)
+            d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+
+        }else if(WINDOW == 24*7){
+            d3.selectAll('.annotationBar text').style('opacity',0)
+            d3.selectAll('.annotationBar image').style('opacity',0)
+            d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+        }else{
+           d3.selectAll('.annotationBar text').style('opacity',1)
+           d3.selectAll('.annotationBar image').style('opacity',1)
+           d3.selectAll('.annotationBar .blocksContainer').style('opacity',1)
+        }
+    }
 
     function updateAnnotationBar(){
+        
         d3.selectAll('.annotationBar')
          .transition()
          .attr('transform', d => {
@@ -1057,25 +1082,85 @@ document.addEventListener("DOMContentLoaded", function() {
             tmpDate = new Date(ff.start);
             return 'translate('+xScale(tmpDate)+',0)';
         })
+
+        d3.selectAll('.annotationBar').each( (d,i) =>{
+            console.log(d)
+            console.log(i)
+
+            tmpDate = new Date(d.start);
+            end = new Date( tmpDate.getTime() + (+d.duration_seconds));
+
+            const anntLine = d3.line()
+             .x(d => (d))
+             .y(svgHeight- svgMarginBottom + 10)
+           
+           // TODO Make more elegant
+            parentNode = d3.selectAll('.annotationBar').nodes()[i];
+            d3.select(parentNode).select('path')
+                .datum([0,(xScale(end)-xScale(tmpDate))])
+                .attr('d', anntLine) 
+
+        })
+
+        setAnnotationBarVisibility();
     }
 
     function updateXAxis(){
-            xAxis = d3.axisBottom()
+            xAxis = d3.axisTop()
                 .ticks(15)
+                .tickSize(-svgHeight+svgMarginBottom)
                 .tickFormat(d3.timeFormat('%b %d %H:%M'))
                 .scale(xScale);
 
-            d3.selectAll(".x-axis").call(xAxis)
+            d3.select(".x-axis")
+                    .transition()
+                    .call(xAxis)
                     .selectAll("text")  
-                    .style("text-anchor", "end")
-                    .attr("dx", "-.8em")
-                    .attr("dy", ".15em")
+                    .style("text-anchor", "start")
+                    .attr("dx", ".8em")
+                    .attr("dy", "-.5em")
+                    .attr('y',0)
                     .attr("transform", "rotate(-45)");
     }
     
-    d3.select('#saveCSV').on('click', exportCSV);
+    d3.select('#saveCSVElectricity').on('click', exportCSVElectricity);
+    d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
 
-    function exportCSV(){
+    async function exportCSVAnnotation(){
+        let csvContent = "data:text/csv;charset=utf-8," 
+        
+        result = await d3.json('/annotations');
+        console.log('get result', result);
+
+        // save label names
+        pp = '';
+        for (const key in result[0]) {
+            pp += key + ',';
+        }
+        pp = pp.slice(0, -1); 
+        csvContent += pp + "\n";
+
+        // save data 
+        result.forEach( (e,i) => {
+            pp = '';
+            for (const key in e) {
+                    pp += e[key] + ',';
+            }
+            pp = pp.slice(0, -1); 
+            csvContent += pp + "\n";
+        });
+        
+        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "my_data.csv");
+        document.body.appendChild(link); // Required for FF
+
+        link.click(); // This will download the data file named "my_data.csv".
+    }  
+
+    function exportCSVElectricity(){
         let csvContent = "data:text/csv;charset=utf-8," 
         
         // save label names
@@ -1144,14 +1229,18 @@ document.addEventListener("DOMContentLoaded", function() {
     function drawSunriseSunset(data){
 
         d3.selectAll('.backgroundData rect').remove()
+        d3.selectAll('.backgroundData text').remove()
+        let nights = [];
 
-        counter = data[0].time.getDate();
-        nights = data.filter(d => {
-            if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
-                counter++;
-                return true ;
-            }
-        })
+        if(data.length > 0 ){
+            counter = data[0].time.getDate();
+            nights = data.filter(d => {
+                if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
+                    counter++;
+                    return true ;
+                }
+            })
+        }
 
         lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
 
@@ -1166,7 +1255,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 tmp2.setHours(tmp2.getHours() + lengthOfNight);
                 return (xScale(tmp2)- xScale(tmp)); 
             })
-            .attr('height', svgHeight)
+            .attr('height', svgHeight- svgMarginBottom )
             .style('opacity',0.1)
              .style('fill','gray')
 

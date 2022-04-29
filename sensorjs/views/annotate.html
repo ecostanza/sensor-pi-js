@@ -15,39 +15,46 @@
   </head>
   <body>
     
-    <button id="saveCSV" class="btn">saveCSV</button>
-    <button id="btnEarlier" class="btn">earlier</button>
-    <button id="btnLater" class="btn disabled">later</button>
-    <button id="btnRecent" class="btn disabled">Most recent</button>
+    <h2>Electricity Consumption</h2>
 
 
-    <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button>
-    <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
-    <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+    <div class="timeContainer">
+      <button id="btnEarlier" class="btn">earlier</button>
+      <button id="btnLater" class="btn disabled">later</button>
+      <button id="btnRecent" class="btn disabled">Most recent</button>
+    </div>
+
+    <div class="scalingContainer">
+      <!-- <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button> -->
+      <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+      <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
+   </div>
+    <div id="infoBox"></div>
 
     <div id="container"></div>
     <div class="dialog">
       <form id="dialogueBox" action="event" method="post">
-        <h4 style="margin-bottom: -30px;">Create Event</h4>
+        <h4 >Create Event</h4>
         <input type="button" value="Delete Event" id="deleteEventBtn" class="btn"/>
-        <div> Event Start: <label id="evntStartLabel"></label> </div>
+        <div id="infoBoxDialogue" style="display: none;"></div>
+        <div> <i>Event Start:</i> <label id="evntStartLabel"></label> </div>
         <!-- <div> Event End: <label id="evntEndLabel"></label> </div> -->
-        <div> Duration: <label id="evntDurationLabel"></label> </div>
-        <div> Consumption: <label id="evntConsumptionLabel"></label> </div>
+        <div> <i>Duration:</i> <label id="evntDurationLabel"></label> </div>
+        <div> <i>Consumption:</i> <label id="evntConsumptionLabel"></label> </div>
 
         <div> 
-          <label>Select an event icon</label>
+          <i>Select an event icon (required)</i><br>
           <div id="iconField"></div>
         </div>
 
         <div> 
-          <label> Flexibility </label><br>
-          <textarea id="evntFlexibility" name="flexibility" rows="1" cols="35"> </textarea> 
+           <i>Flexibility</i> <br>
+          <textarea id="evntFlexibility" name="flexibility" rows="3" cols="35"> </textarea> 
         </div>
 
         <div> 
-          <label> Describe the event </label><br>
-          <textarea id="evntDescription" name="notes" rows="5" cols="35"></textarea>
+          <i> Describe the event</i> <br>
+          <textarea id="evntDescription" name="notes" rows="3" cols="35"></textarea>
         </div>
 
 
@@ -65,6 +72,9 @@
         <input id="evntId" type="hidden" name="id" value="" />
       </form>
     </div>
+
+    <button id="saveCSVElectricity" class="btn">Download Electricity Data</button>
+    <button id="saveCSVAnnotation" class="btn">Download Annotation Data</button>
 
     <!-- Optional JavaScript -->
     <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
