@@ -42,7 +42,7 @@ const influx = new Influx.InfluxDB({
 router.get('/', function(req, res) {
   checkDiskSpace('/').then((info) => {
     const free_ratio = info.free / info.size;
-    const free = `${(100 * free_ratio).toFixed()}%`;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
     res.render('index.html', { 
       title: 'Express',
@@ -57,7 +57,7 @@ router.get('/', function(req, res) {
 router.get('/check', function(req, res) {
   checkDiskSpace('/').then((info) => {
     const free_ratio = info.free / info.size;
-    const free = `${(100 * free_ratio).toFixed()}%`;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
     res.render('check.html', { 
       title: 'Check',
@@ -72,7 +72,7 @@ router.get('/check', function(req, res) {
 router.get('/annotate', function(req, res) {
   checkDiskSpace('/').then((info) => {
     const free_ratio = info.free / info.size;
-    const free = `${(100 * free_ratio).toFixed()}%`;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
     res.render('annotate.html', { 
       title: 'Annotate',

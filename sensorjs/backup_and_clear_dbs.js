@@ -150,6 +150,7 @@ async function get_and_delete_serie_data (dirname, measurement, sensor, remove=f
                 end = endConstraint;
             }
         }
+        end = end.plus({'days': 1});
         // console.log('end:', end);
         console.log('end:', end.toISODate());
 
