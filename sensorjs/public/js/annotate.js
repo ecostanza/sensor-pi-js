@@ -64,14 +64,14 @@ document.addEventListener("DOMContentLoaded", function() {
         window.clearTimeout(timeoutId)
         startTimer();
 
-        timeOfInactivity = 1*60*1000;
+        timeOfInactivity = 2*60*1000;
     }
 
     // Periodical refresh if FLAG is down
     async function refreshData() {
         const measurement = 'electricity_consumption';
         const sensor_id = sensorId;
-        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-1&showAll=true&points=80`;
+        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-2&showAll=true&points=80`;
         if(FLAG == false){
             try{
                 result = await d3.json(dataUrl);
