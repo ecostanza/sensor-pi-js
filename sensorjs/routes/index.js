@@ -109,9 +109,11 @@ router.get('/series/', function(req, res) {
   const query = `SELECT LAST(value) FROM /.*/ GROUP BY *`;
   influx.query(query)
       .then( function(result) {
+          // console.log(result);
           const rearranged = result.groupRows.map(function (item) {
               return {
                   'measurement': item.name,
+                  'value': item.rows[0].last,
                   'sensor_id': item.tags.sensor_id,
                   'latest': item.rows[0].time
               };
