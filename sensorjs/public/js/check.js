@@ -146,6 +146,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 'sensor_id': item.sensor_id,
                 'name': name,
                 'latest': latest,
+                'value': item.value,
                 'age': age,
                 'id': id,
             };
@@ -167,6 +168,7 @@ document.addEventListener("DOMContentLoaded", function() {
         headtr.append('th').attr('scope',"col").html('Sensor ID');
         headtr.append('th').attr('scope',"col").html('Age');
         headtr.append('th').attr('scope',"col").html('Latest');
+        headtr.append('th').attr('scope',"col").html('Value');
         headtr.append('th').attr('scope',"col").html('Measurement');
         headtr.append('th').attr('scope',"col").html('Name');
 
@@ -197,6 +199,9 @@ document.addEventListener("DOMContentLoaded", function() {
         trs.append('td')
             .html(function (d) { return d.latest.toLocaleString(luxon.DateTime.DATETIME_FULL); });
 
+        trs.append('td')
+            .html(function (d) { return d.value.toFixed(2); });
+        
         trs.append('td')
             .html(function (d) { return d.measurement; });
         
