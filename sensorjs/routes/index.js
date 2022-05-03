@@ -22,7 +22,7 @@
 var express = require('express');
 var router = express.Router();
 // var diskfree = require('diskfree');
-const checkDiskSpace = require('check-disk-space');//.default
+const checkDiskSpace = require('check-disk-space').default;
 const os = require('os');
 const { DateTime } = require('luxon');
 const { exec } = require('child_process');
@@ -168,7 +168,7 @@ function buildQueries(start, end, points, measurement, sensor_id, recentOnly) {
   }
 
   const deltaMinutes = start - end;
-  const interval = 2 // Math.ceil(deltaMinutes / points);
+  const interval = 1 // Math.ceil(deltaMinutes / points);
 
   const select = 'SELECT "time", mean("value") as "value"';
   const groupBy = `GROUP BY time(${interval}m)`;
