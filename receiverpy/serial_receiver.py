@@ -15,7 +15,8 @@ client.switch_database('sdstore')
 
 patt = re.compile(r'\[(\d+)\] to \[(\d+)\] ([\dA-F]+)\s+\[RX_RSSI:\-(\d+)\]')
 
-with serial.Serial('/dev/ttyAMA0', 115200, timeout=.2) as ser:
+# with serial.Serial('/dev/ttyAMA0', 115200, timeout=.2) as ser:
+with serial.Serial('/dev/serial0', 115200, timeout=.2) as ser:
     try:
         while True:
             line = ser.readline()   # read a '\n' terminated line
@@ -32,11 +33,12 @@ with serial.Serial('/dev/ttyAMA0', 115200, timeout=.2) as ser:
                 if m:
                     time_received = datetime.utcnow()
                     sender, destination, data, rssi = m.groups()
+                    rssi = int(rssi)
                     if destination != '1':
                         print('destination is not 1!')
                         print(line)
                         continue
-                    # print(sender, destination, data, rssi)
+                    print(sender, destination, data, rssi)
                     int_data = []
                     it = iter(data)
                     for c in it:
@@ -78,6 +80,17 @@ with serial.Serial('/dev/ttyAMA0', 115200, timeout=.2) as ser:
                             print('error! Data type not recognized')
                             continue
                     
+                    current = {
+                        'time': time_received,
+                        'measurement': 'rssi',
+                        'tags': {
+                            'sensor_id': sender
+                        },
+                        'fields': {
+                            'value': rssi
+                        }
+                    }
+                    data_points.append(current)
                     if len(data_points) > 0:
                         written = client.write_points(data_points)
                         print(f'written: {written}')

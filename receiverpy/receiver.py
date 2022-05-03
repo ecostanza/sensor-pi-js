@@ -39,6 +39,10 @@ network_id = 100
 #recipient_id = 2
 
 print('setting radio up')
+# for radio modules directly connected to the RPi the parameters should be:
+# interruptPin=24, 
+# resetPin=5, 
+# spiDevice=0
 with Radio(
         FREQ_433MHZ, 
         node_id, 
@@ -65,6 +69,7 @@ with Radio(
                 print ('packet', packet)
                 time_received = packet.received
                 print(time_received)
+                # print(dir(packet))
                 #print ('data', packet.data_string)
                 # decode data buffer
                 # types 1, 2 and 3 are floats, 4-15 are uint16 (aka unsigned short)
@@ -101,6 +106,19 @@ with Radio(
                         print('error! Data type not recognized')
                         continue
                         # raise NotImplementedError(f'item:{item}')
+                # store RSSI
+                current = {
+                    'time': time_received,
+                    'measurement': 'rssi',
+                    'tags': {
+                        'sensor_id': packet.sender
+                    },
+                    'fields': {
+                        'value': packet.RSSI
+                    }
+                }
+                data_points.append(current)
+
             if len(data_points) > 0:
                 written = client.write_points(data_points)
                 print(f'written: {written}')
