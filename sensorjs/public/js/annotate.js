@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let SHIFT_BY = 4;
     let WINDOW = 8;
     let FLAG = false;
+    let sensorId = 100;
     let timeOfInactivity = 60000;
     let sunrise, sunset;
     const consumptionUnit = 1;
@@ -51,9 +52,6 @@ document.addEventListener("DOMContentLoaded", function() {
         "pm25_env": 'PM 2.5'
     };
 
-
-    let deltaMinutes = 60;
-
     startTimer();
 
     function startTimer() { 
@@ -62,29 +60,51 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function resetTimeOfInactivity(){
-        timeOfInactivity = 60000;
+ 
+        window.clearTimeout(timeoutId)
+        startTimer();
+
+        timeOfInactivity = 2*60*1000;
     }
 
     // Periodical refresh if FLAG is down
-    // setInterval(
-        async function refreshData() {
-            const measurement = 'electricity_consumption';
-            const sensor_id = '100';
-            let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-1&showAll=true&points=80`;
-            if(FLAG == false){
-                try{
-                    result = await d3.json(dataUrl);
-                    console.log(result)
-                    drawGraphs();
-                }catch(e){
-                    console.log(e);
-                }
-            }
-        }//,
-        // deltaMinutes / 60 * 60 * 1000
-        // 20 * 1000 // call every 1 minute
-    // );
+    async function refreshData() {
+        const measurement = 'electricity_consumption';
+        const sensor_id = sensorId;
+        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-2&showAll=true&points=80`;
+        if(FLAG == false){
+            try{
+                result = await d3.json(dataUrl);
+                console.log(result.readings);
 
+                formattedData = formatData(result.readings);
+                
+                let dd = [];
+
+                // Checks that there are no duplicates pushed in the data
+                // Assumes the the data array is sorted!
+                formattedData.forEach( g => {
+                    tmp = false;
+                    for( i = data.length-1; i>=0;i--){
+                        if(g.time.getTime() > data[i].time.getTime() && tmp==false ){
+                            dd.push(g);
+                            tmp = true;
+                        }else if(data[i].time.getTime() <= g.time.getTime()){
+                           return;
+                        } 
+                    }
+                });
+
+                data = data.concat(dd);
+
+                data.sort((a,b)=> { return (new Date(a.start)) - (new Date(b.start));})
+                updateGraph(data,false);
+                resetTimeOfInactivity();
+            }catch(e){
+                console.log(e);
+            }
+        }
+    }
 
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
@@ -123,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
+        sensorId = sensor_id;
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
@@ -130,7 +151,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         return d3.json(dataUrl).then(function (response) {
-            console.log(response);
             drawGraphs(response,sensor_id,series);
         });
     }
@@ -191,13 +211,10 @@ document.addEventListener("DOMContentLoaded", function() {
             max = new Date();
             min = max.getTime() - WINDOW * 60 * 60 *1000;
  
-            // getEarlierData();
-            // return;
         }else{
 
             max = d3.max(newdata, d => new Date(d.time.getTime()));
 
-            // if(freshData == false) { max.setHours(max.getHours() + WINDOW); }
             if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
             min = new Date(max);
             min.setHours(max.getHours() - WINDOW)
@@ -436,7 +453,6 @@ document.addEventListener("DOMContentLoaded", function() {
             'datetime': (new Date()).toISOString()
         })
     }).then( (data) => {
-        console.log('settime post response:', data);
   
         let seriesUrl = '/series/?showAll=true';
         // if (showAll !== true) {
@@ -502,7 +518,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr("width", () => {
                 if( WINDOW == 24){ return 5; }
                 else if (WINDOW == 24*7){ return 1;} 
-                else{ return 15; }
+                else{ return 3; }
             })
             .attr("height", d => {
                 if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
@@ -578,10 +594,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         try{
             result = await d3.json('/annotations');
-            console.log('get result', result);
 
             allEvents = result;
-            console.log(result.length)
             allEvents.forEach( g => {
 
                 tmpDate = new Date(g.start);
@@ -748,7 +762,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // TODO: add always on function
             evnt.consumption = d3.sum(response.readings.filter(d => {
-                return new Date(d.time) >= evnt.start && new Date(d.time) < evnt.end;
+                return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
             }), function (d) {return d.value;}) // - always_on;
 
             show_event_dialog(evnt);
@@ -778,7 +792,6 @@ document.addEventListener("DOMContentLoaded", function() {
             resetTimeOfInactivity();
 
             let evnt = {};
-            console.log('Capturing...')
 
             if( type == 'create'){
                 evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
@@ -793,9 +806,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;
                 evnt.id = d3.select('#dialogueBox #evntId').node().value;
             }
-            console.log(evnt.flexibility)
-
-            console.log(evnt)
 
             return evnt;
         }
@@ -822,8 +832,6 @@ document.addEventListener("DOMContentLoaded", function() {
         function populateDialogBox(evnt){
             // event = sanitize(evnt);
             event = evnt;
-            console.log('populateDialogBox')
-            console.log(event);
 
             printDate = d3.timeFormat('%b %d %H:%M');
 
@@ -991,7 +999,6 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
 
                         let tmpEvntStart = new Date(allEvents[index].start);
-                        console.log(tmpEvntStart);
 
                         // De-Highlight the annotated area
                         d3.selectAll('.dataPoints rect').filter( d => { 
@@ -1029,8 +1036,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function deleteAnnotationBar(id){
-        console.log('id'+id)
-       dd = d3.selectAll(".annotationBar").filter(d => { console.log(d);return (d.id == id) })
+       dd = d3.selectAll(".annotationBar").filter(d => { return (d.id == id) })
        dd.remove();    
     }
 
@@ -1161,8 +1167,6 @@ document.addEventListener("DOMContentLoaded", function() {
         })
 
         d3.selectAll('.annotationBar').each( (d,i) =>{
-            console.log(d)
-            console.log(i)
 
             tmpDate = new Date(d.start);
             end = new Date( tmpDate.getTime() + (+d.duration_seconds));
@@ -1209,7 +1213,6 @@ document.addEventListener("DOMContentLoaded", function() {
         let csvContent = "data:text/csv;charset=utf-8," 
         
         result = await d3.json('/annotations');
-        console.log('get result', result);
 
         // save label names
         pp = '';
@@ -1243,7 +1246,7 @@ document.addEventListener("DOMContentLoaded", function() {
         resetTimeOfInactivity();
 
         console.log('button#download-button');
-        const sensor_id = '100';
+        const sensor_id = sensorId;
         const measurement = 'electricity_consumption';
         const url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
         const now = luxon.DateTime.now();
