@@ -762,7 +762,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // TODO: add always on function
             evnt.consumption = d3.sum(response.readings.filter(d => {
-                return new Date(d.time) >= evnt.start && new Date(d.time) < evnt.end;
+                return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
             }), function (d) {return d.value;}) // - always_on;
 
             show_event_dialog(evnt);
