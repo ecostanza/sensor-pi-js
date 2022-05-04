@@ -154,6 +154,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         console.log('allSeries', allSeries);
         allSeries.sort(function (a, b) {return b['latest'] - a['latest'];});
+        // allSeries.splice(0, 0, {});
         console.log('sorted allSeries', allSeries);
 
         // if (showAll === true) {
@@ -170,10 +171,10 @@ document.addEventListener("DOMContentLoaded", function() {
         headtr.append('th').attr('scope',"col").html('Latest');
         headtr.append('th').attr('scope',"col").html('Value');
         headtr.append('th').attr('scope',"col").html('Measurement');
-        headtr.append('th').attr('scope',"col").html('Name');
+        // headtr.append('th').attr('scope',"col").html('Name');
 
         const trs = d3.select('#series-info')
-            .selectAll('tr')
+            .selectAll(null)
             .data(allSeries)
             .enter()
             .append('tr')
@@ -205,8 +206,8 @@ document.addEventListener("DOMContentLoaded", function() {
         trs.append('td')
             .html(function (d) { return d.measurement; });
         
-        trs.append('td')
-            .html(function (d) { return d.name; });
+        // trs.append('td')
+        //     .html(function (d) { return d.name; });
 
         d3.select('div.main-loading').style('display', 'none');
     });
