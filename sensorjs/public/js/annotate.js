@@ -155,6 +155,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // TODO: remove because not used?
     function addDataToGraphs(response,sensor_id,series){
         let data = response.readings;
         data = data.map(function (d) {
@@ -446,67 +447,58 @@ document.addEventListener("DOMContentLoaded", function() {
 
     }
 
-    d3.json('/settime/', {
-        method: 'POST', 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify({
-            'datetime': (new Date()).toISOString()
-        })
-    }).then( (data) => {
-  
-        let seriesUrl = '/series/?showAll=true';
-        // if (showAll !== true) {
-        //     seriesUrl = '/series/';
-        // }
-        // if (daysParam !== undefined) {
-        //     seriesUrl = seriesUrl + '&days=' + daysParam;
-        // }
-       
-        d3.json(seriesUrl).then(function (allSeries) {
-            console.log(allSeries)
-            toKeep = "electricity_consumption";
-            // toKeep = "TVOC";
+    let seriesUrl = '/series/?showAll=true';
+    // if (showAll !== true) {
+    //     seriesUrl = '/series/';
+    // }
+    // if (daysParam !== undefined) {
+    //     seriesUrl = seriesUrl + '&days=' + daysParam;
+    // }
+    
+    d3.json(seriesUrl).then(function (allSeries) {
+        console.log(allSeries)
+        toKeep = "electricity_consumption";
+        // toKeep = "TVOC";
 
-            // "&& d.sensor_id==100;" >> temporary FIX!!
-            allSeries = allSeries.filter(function (d) {
-                return toKeep.includes(d.measurement) && (d.sensor_id <=100 && d.sensor_id >= 96);//d.sensor_id==2;
+        // "&& d.sensor_id==100;" >> temporary FIX!!
+        allSeries = allSeries.filter(function (d) {
+            return toKeep.includes(d.measurement) && (d.sensor_id <=100 && d.sensor_id >= 96);//d.sensor_id==2;
+        });
+
+        allSeries = allSeries.map(function (item) {
+                const id = `${item.measurement}_${item.sensor_id}`;
+                let name = item.measurement;
+                if (name in nameLUT) {
+                    name = nameLUT[name];
+                } 
+                // if (allSensors.length > 1) {
+                //     name = `${name} (sensor #${item.sensor_id})`;
+                // }
+                // name = capitalize(name);
+                
+                return {
+                    'measurement': item.measurement,
+                    'sensor_id': item.sensor_id,
+                    'name': name,
+                    'id': id,
+                };
             });
 
-            allSeries = allSeries.map(function (item) {
-                    const id = `${item.measurement}_${item.sensor_id}`;
-                    let name = item.measurement;
-                    if (name in nameLUT) {
-                        name = nameLUT[name];
-                    } 
-                    // if (allSensors.length > 1) {
-                    //     name = `${name} (sensor #${item.sensor_id})`;
-                    // }
-                    // name = capitalize(name);
-                    
-                    return {
-                        'measurement': item.measurement,
-                        'sensor_id': item.sensor_id,
-                        'name': name,
-                        'id': id,
-                    };
-                });
+        loadData = function () {
+            // d3.select("div#container").selectAll('div.graphContainer').remove();
+            _series.forEach(m => appendSvg(m));
+            d3.select('div.main-loading').style('display', 'block');
+            const promises = _series.map(m => loadMeasurementData(m));
+            Promise.all(promises).then( () => {
+                console.log('all loaded');
+                d3.select('div.main-loading').style('display', 'none');
+            });
+        };
 
-            loadData = function () {
-                // d3.select("div#container").selectAll('div.graphContainer').remove();
-                _series.forEach(m => appendSvg(m));
-                d3.select('div.main-loading').style('display', 'block');
-                const promises = _series.map(m => loadMeasurementData(m));
-                Promise.all(promises).then( () => {
-                    console.log('all loaded');
-                    d3.select('div.main-loading').style('display', 'none');
-                });
-            };
+        _series = allSeries.map( d => {return d;});
 
-            _series = allSeries.map( d => {return d;});
+        loadData();
 
-            loadData();
-
-        });
     });
 
     // TODO Check why so many nulls
@@ -760,10 +752,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             evnt.duration_seconds = evnt.end.getTime() - evnt.start.getTime();
 
-            // TODO: add always on function
-            evnt.consumption = d3.sum(response.readings.filter(d => {
+            const event_readings = data.filter(d => {
                 return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
-            }), function (d) {return d.value;}) // - always_on;
+            });
+            // TODO: add always on function
+            evnt.consumption = d3.sum(event_readings, d => d.value); // - always_on;
 
             show_event_dialog(evnt);
         }
@@ -835,7 +828,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             printDate = d3.timeFormat('%b %d %H:%M');
 
-            durationInHours = (+evnt.duration_seconds / 60000).toFixed(0)/60;
+            durationInHours = Math.floor(+evnt.duration_seconds / 60000 / 60);
             durationInMinutes = (+evnt.duration_seconds/60000) % 60;
             durationLabel = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
 
@@ -1263,9 +1256,9 @@ document.addEventListener("DOMContentLoaded", function() {
             const next = curr.plus({'days': 1});
             console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
             const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}`;
-            const data = await d3.json(url+query);
-            console.log('data:', data);
-            all_data = all_data.concat(data.readings);
+            const response = await d3.json(url+query);
+            console.log('response:', response);
+            all_data = all_data.concat(response.readings);
         }
         console.log('all_data:', all_data);
 

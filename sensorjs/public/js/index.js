@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // fix spacing for navbar
-    const bbox = d3.selectAll('.navbar').node().getBoundingClientRect();
+    const bbox = d3.select('.navbar').node().getBoundingClientRect();
     const navbarHeight = bbox.height;
     d3.select('body').style('padding-top',navbarHeight+'px');
 
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('id', measurement.id)
             .text(name);
 
-        svgWidth = d3.selectAll('.graphContainer').node().getBoundingClientRect().width;
+        svgWidth = d3.select('.graphContainer').node().getBoundingClientRect().width;
         svgHeight = svgWidth/2;
 
          svgContainer
@@ -548,7 +548,7 @@ document.addEventListener("DOMContentLoaded", function() {
             loadData();
 
             d3.select('select#measurementSelect')
-                .selectAll('option')
+                .selectAll(null)
                 .data(allMeasurements)
                 .enter()
                 .append('option')
@@ -556,7 +556,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .html(function (d) { return d; });
 
             d3.select('select#sensorSelect')
-                .selectAll('option')
+                .selectAll(null)
                 .data(allSensors)
                 .enter()
                 .append('option')
