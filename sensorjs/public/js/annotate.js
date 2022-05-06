@@ -941,26 +941,30 @@ document.addEventListener("DOMContentLoaded", function() {
                                 'description':event.description,
                             }
 
-                        result  = await d3.json(`/annotations/${event.id}`, {
-                            method: 'POST', 
-                            headers: { "Content-Type": "application/json; charset=UTF-8" },
-                            'body': JSON.stringify(eventSanitized)
-                        });
+                        try{
+                            result  = await d3.json(`/annotations/${event.id}`, {
+                                method: 'POST', 
+                                headers: { "Content-Type": "application/json; charset=UTF-8" },
+                                'body': JSON.stringify(eventSanitized)
+                            });
 
-                        // Update the local events
-                        let index = 0;
-                        for(i=0;i<allEvents.length;i++){
-                            if( allEvents[i].id == event.id ){
-                                index = i;
-                                break;
+                            // Update the local events
+                            let index = 0;
+                            for(i=0;i<allEvents.length;i++){
+                                if( allEvents[i].id == event.id ){
+                                    index = i;
+                                    break;
+                                }
                             }
-                        }
-                        allEvents[index].type = event.type;
-                        allEvents[index].description = event.description;
-                        allEvents[index].flexibility = event.flexibility;
+                            allEvents[index].type = event.type;
+                            allEvents[index].description = event.description;
+                            allEvents[index].flexibility = event.flexibility;
 
-                        // Update the visuals
-                        editAnnotationBar(eventSanitized,event.id);                 
+                            // Update the visuals
+                            editAnnotationBar(eventSanitized,event.id);  
+                        }catch(e){
+                            console.log(e);
+                        }               
                     }
                 }
 
