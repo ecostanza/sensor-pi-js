@@ -14,13 +14,18 @@
     <title>Energy Consumption </title>
   </head>
   <body>
-   <!--      <select class="form-select" id="measurementSelect" aria-label="Select measurement">
-            <option selected>Any Measurement</option>
-        </select>
+    <select class="form-select" id="measurementSelect" aria-label="Select measurement">
+        <option selected>Any Measurement</option>
+    </select>
 
-        <select class="form-select" id="sensorSelect" aria-label="Select sensor">
-            <option selected>Any Sensor</option>
-        </select> -->
+    <select class="form-select" id="sensorSelect" aria-label="Select sensor">
+        <option selected>Any Sensor</option>
+    </select>
+
+        <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
+          <span class="visually-hidden">Loading...</span>
+        </div>
+
     
     <h2>Electricity Consumption</h2>
 
@@ -50,7 +55,7 @@
         <div> <i>Consumption:</i> <label id="evntConsumptionLabel"></label> </div>
 
         <div> 
-          <i>Select an event icon (required)</i><br>
+          <i>Select an event type (required)</i><br>
           <div id="iconField"></div>
         </div>
 

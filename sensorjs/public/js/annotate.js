@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let startMinutes = 24*60;
     let endMinutes = 0;
 
-    let data = [];
+    let data = {};
 
     let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
     let svgHeight =  svgWidth / 2 > window.innerHeight -200? window.innerHeight -200:svgWidth / 2;
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let SHIFT_BY = 4;
     let WINDOW = 8;
     let FLAG = false;
-    let sensorId = 100;
+    let sensorId = 96;
     let timeOfInactivity = 60000;
     let sunrise, sunset;
     const consumptionUnit = 2;
@@ -57,61 +57,6 @@ document.addEventListener("DOMContentLoaded", function() {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-
-
-    startTimer();
-
-    function startTimer() { 
-        // window.setTimeout returns an Id that can be used to start and stop a timer
-        timeoutId = window.setTimeout(refreshData, timeOfInactivity)
-    }
-
-    function resetTimeOfInactivity(){
- 
-        window.clearTimeout(timeoutId)
-        startTimer();
-
-        timeOfInactivity = 2*60*1000;
-    }
-
-    // Periodical refresh if FLAG is down
-    async function refreshData() {
-        const measurement = 'electricity_consumption';
-        const sensor_id = sensorId;
-        let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-2&showAll=true&points=80`;
-        if(FLAG == false){
-            try{
-                result = await d3.json(dataUrl);
-                console.log(result.readings);
-
-                formattedData = formatData(result.readings);
-                
-                let dd = [];
-
-                // Checks that there are no duplicates pushed in the data
-                // Assumes the the data array is sorted!
-                formattedData.forEach( g => {
-                    tmp = false;
-                    for( i = data.length-1; i>=0;i--){
-                        if(g.time.getTime() > data[i].time.getTime() && tmp==false ){
-                            dd.push(g);
-                            tmp = true;
-                        }else if(data[i].time.getTime() <= g.time.getTime()){
-                           return;
-                        } 
-                    }
-                });
-
-                data = data.concat(dd);
-
-                data.sort((a,b)=> { return (new Date(a.start)) - (new Date(b.start));})
-                updateGraph(data,false);
-                resetTimeOfInactivity();
-            }catch(e){
-                console.log(e);
-            }
-        }
-    }
 
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
@@ -147,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
-        sensorId = sensor_id;
+        // sensorId = series.sensor_id;
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
@@ -155,6 +100,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         return d3.json(dataUrl).then(function (response) {
+            console.log(response)
             drawGraphs(response,sensor_id,series);
         });
     }
@@ -199,8 +145,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let freshData = false;
 
-        if(data.length == 0){ freshData = true; }
-        data = data.concat(newdata);
+        if(!data[series.id]){
+            console.log('Fresh data. Creating data['+series.id+']');
+            freshData = true; 
+            data[series.id] = [];
+        }
+
+        data[series.id] = data[series.id].concat(newdata);
 
         // data.sort( (a,b) => { return a.time - b.time})
 
@@ -213,12 +164,13 @@ document.addEventListener("DOMContentLoaded", function() {
         if(newdata.length == 0){
             max = new Date();
             min = max.getTime() - WINDOW * 60 * 60 *1000;
- 
         }else{
 
             max = d3.max(newdata, d => new Date(d.time.getTime()));
 
-            if(freshData == false) { max = new Date(max.getTime() + WINDOW*60*60*1000); };
+            if(freshData == false) { 
+               max = new Date(max.getTime() + WINDOW*60*60*1000); 
+            };
             min = new Date(max);
             min.setHours(max.getHours() - WINDOW)
         }
@@ -230,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function() {
         );
 
         yScale = d3.scaleLinear(
-            [(0), 1.1 * d3.max(data, d => +d.value)],
+            [(0), 1.1 * d3.max(data[series.id], d => +d.value)],
             [svgHeight-svgMarginBottom, svgMarginTop]
         );
         
@@ -250,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .scale(yScale); 
 
         let svg = d3.select('svg#' + series.id + 'Chart');
+
         // svg.selectAll("*").remove();
         svg.selectAll('.axis').remove();
         svg.selectAll('.backgroundData').remove();
@@ -257,9 +210,8 @@ document.addEventListener("DOMContentLoaded", function() {
         svg.selectAll('.brush').remove();
         svg.selectAll('#clip').remove();
 
-
         svg.append("g")
-            .attr("class", "axis x-axis")
+            .attr("class", "axis x-axis top")
             .attr("transform", "translate(0," + 0 + ")")
             .call(xAxis)
                 .selectAll("text")  
@@ -312,10 +264,14 @@ document.addEventListener("DOMContentLoaded", function() {
                             .attr("clip-path", "url(#clip)");
         }
 
-        updateGraph = function (dataF, firstCall){
+        updateGraph = function (dataF, firstCall,id){
             
-            svg = d3.select('svg#' + series.id + 'Chart');
-            
+            if(id) {
+                svg = d3.select('svg#' + id + 'Chart');
+            }else{
+                svg = d3.select('svg#' + series.id + 'Chart');
+            }
+
             svg.select('.dataPoints').selectAll('rect')
                 .data(dataF)
                 .join("rect")
@@ -358,159 +314,582 @@ document.addEventListener("DOMContentLoaded", function() {
                .style('fill','steelblue')
         }
 
-        updateGraph(data,true);
-        getSunriseSunset(data);
-        addBrushing(response);
-        drawAnnotations();
+        addBrushing = function (){
+            brush = d3.brushX()
+                            .extent([[0,svgMarginTop], [svgWidth+20, svgHeight-svgMarginBottom]])
+                            .on('start', brushStart)
+                            .on('end', brushEnd)
+                            .on('brush', brushing)
 
-        d3.select('#btnEarlier').on('click', getEarlierData);
+            // svg = d3.select('svg#' + series.id + 'Chart');
+            
+            let brushContainer = svg.append("g")
+                                    .attr('class','brush')
+                                    .call(brush)
 
-        d3.select('#btnRecent').on('click', e => {
+            function brushStart({selection}) {
+                if(WINDOW == 24*7) { return }
+                resetTimeOfInactivity();
 
-            resetTimeOfInactivity();
+                // console.log('brush started');
+                svg.select('.saveBtnContainer').remove();
+                
+                // TODO MAKE GENERAL
+                d3.select('#infoBox').html('').style('display','none');
 
-            tmp = xScale.domain();
-            maxTime = new Date();
-            minTime = maxTime - WINDOW * 60 * 60 *1000;
-            // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
-            // minTime.setHours(maxTime.getHours()+WINDOW);
-
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
-
-            updateXAxis();
-            updateGraph(data,false);
-            updateSunriseSunset();
-            updateAnnotationBar();
-
-        });
-        
-        d3.select('#btnLater').on('click', e =>{
-            resetTimeOfInactivity()
-
-            tmp = xScale.domain()
-            minTime = new Date(tmp[0].setHours(tmp[0].getHours()+SHIFT_BY));
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
-
-            // hardMaximum = minTime + WINDOW/2 * 60 * 60 * 1000
-            if( maxTime > d3.max(data, d =>{ return d.time }) ){
-                d3.select('#btnLater').classed('disabled',true)
-                return;
             }
 
-            d3.select('#btnEarlier').classed('disabled',false)
-            
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
+            function brushEnd(event) {
+                resetTimeOfInactivity();
+                if (!event.sourceEvent) return;
+                if(WINDOW == 24*7) { 
+                    d3.select('#infoBox').html('You cannot annotate at this scale.')
+                    clearBrushSelection();
+                    return
+                }
 
-            updateXAxis();
-            updateGraph(data,false)
-            updateSunriseSunset();
-            updateAnnotationBar();
-        });
+                console.log('brush ended');
+                selection = event.selection;
 
-        d3.select('#btnScale24').on('click', e =>{
-            WINDOW = 24;
-            SHIFT_BY = 12;
-            resetTimeOfInactivity();
+                allEvents.sort( (a,b) => { return new Date(b.start) - new Date(a.start); })
 
-            d3.selectAll('.scaleBtn').classed('selected',false)
-            d3.select('#btnScale24').classed('selected',true)
+                // check it was not a random click
+                if( selection && selection.length >= 2){
 
-            d3.select('#btnEarlier').classed('disabled',false)
-            d3.select('#btnLater').classed('disabled',false)
-            clearBrushSelection();
-            d3.selectAll("div#container svg .brush").call(brush.move,null);
+                    let sx = selection.map(xScale.invert);
+                    
+                    // Check if any of the brush is inside an existing annotation. If so 
+                    // return.
+                    for (const e of allEvents){
+                        tmpStart = new Date(e.start);
+                        tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
 
-            tmp = xScale.domain()
-            minTime = new Date(tmp[0]);
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
+                        if ( (sx[0] <= tmpEnd && sx[0]>= tmpStart) ||
+                             (sx[1] <= tmpEnd && sx[1]>= tmpStart)){
+                            clearBrushSelection();
+                            brushContainer.call(brush.move,null);
+                            d3.select('#infoBox').html('You cannot have overlapping annotations').style('display','block');
+                            return;
+                        }
+                    }
+                    
+                    // Create a button to save event
+                    svg.append('g')
+                      .attr('class','saveBtnContainer')
+                      .style('cursor','pointer')
+                      .on('click', () => { createEvent(sx); })
+                      // Show the save button aligned to the selection
+                      .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+(svgMarginTop)+')')
+                    
+                    svg.select('.saveBtnContainer')
+                        .append('rect')
+                        .attr('id','saveButton')
+                        .attr('width',100)
+                        .attr('height',30)
+                        .attr('rx',15)
+                    svg.select('.saveBtnContainer')
+                        .append('text')
+                        .text('SAVE')
+                        .attr('dy',20)
+                        .attr('dx',50)
+                        .attr('text-anchor','middle')
+                        .style('fill','white')
+                  
+                }else{
+                    clearBrushSelection();
+                }
+            }
 
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
+            function brushing({selection}) {
+                console.log('brush hapenning')
+                resetTimeOfInactivity();
 
-            updateXAxis();
-            updateGraph(data)
-            updateAnnotationBar();
-            updateSunriseSunset();
+                FLAG = true;
 
-        });
+                if (selection === null) {
+                   clearBrushSelection();
+                } else {
+                  const sx = selection.map(xScale.invert);
 
-        d3.select('#btnScale8').on('click', e =>{
-            WINDOW = 8;
-            SHIFT_BY = 4;
-            resetTimeOfInactivity();
+                  svg.selectAll('.dataPoints rect').style("opacity", d => { 
+                    return sx[0] <= d.time && d.time <= sx[1] ? "1" : '0.2'; });
+                }
+            }
 
-            d3.selectAll('.scaleBtn').classed('selected',false)
-            d3.select('#btnScale8').classed('selected',true)
+            function createEvent(selection){
+                let evnt = {};
 
-            d3.select('#btnEarlier').classed('disabled',false)
-            d3.select('#btnLater').classed('disabled',false)
-            clearBrushSelection();
-            d3.selectAll("div#container svg .brush").call(brush.move,null);
+                // TODO MAKE GENERAL
+                d3.select('#dialogueBox h4').html('Create Event')
+                d3.select('#dialogueBox').attr('isCreate','true')
 
-            tmp = xScale.domain()
-            minTime = new Date(tmp[0]);
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
+                evnt.series = series.id;
 
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
+                evnt.flexibility = ''
+                evnt.description = ''
 
-            updateXAxis();
-            updateGraph(data)
-            updateAnnotationBar();
-            updateSunriseSunset();
-        });
+                // TODO: add more acccurate time mapping based on the bars not the brushing
+                evnt.start = selection[0]; 
+                evnt.end = selection[1];
 
-        d3.select('#btnScaleWeek').on('click', e =>{
-            WINDOW = 24*7;
-            SHIFT_BY = 24*4;
-            resetTimeOfInactivity();
+                evnt.duration_seconds = evnt.end.getTime() - evnt.start.getTime();
 
-            d3.selectAll('.scaleBtn').classed('selected',false)
-            d3.select('#btnScaleWeek').classed('selected',true)
-            clearBrushSelection();
-            d3.selectAll("div#container svg .brush").call(brush.move,null);
+                const event_readings = data[series.id].filter(d => {
+                    return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
+                });
 
-            tmp = xScale.domain()
-            minTime = new Date(tmp[0]);
-            maxTime = new Date(minTime);
-            maxTime.setHours(maxTime.getHours()+WINDOW);
+                // TODO: add always on function
+                evnt.consumption = d3.sum(event_readings, d => d.value); // - always_on;
 
-            xScale = d3.scaleTime(
-                [minTime , maxTime],
-                [0, svgWidth-svgMarginLeft]
-            );
+                show_event_dialog(evnt);
+            }
 
-            updateXAxis();
-            updateGraph(data)
-            updateAnnotationBar();
-            updateSunriseSunset();
-        });
+            function resetDialogue(){
+                d3.select('#dialogueBox #infoBoxDialogue').html('').style('display','none');
+               // evnt = {
+               //  'start' :'',
+               //  'end'   : '',
+               //  'duration': 0,
+               //  'consumption': 0,
+               //  'id':'',
+               //  'type':'',
+               //  'notes':''
+               // }
+
+                // d3.select('#dialogueBox #evntDuration').html('');
+                // d3.select('#dialogueBox #evntStart').html('');
+                // d3.select('#dialogueBox #evntEnd').html('');
+                // d3.select('#dialogueBox #evntConsumption').html('');
+                // document.getElementById('#evntDescription').value = '';
+                // d3.selectAll("#iconField img").classed('selected',false)
+            }
+
+            function getDialogueValues(type){
+                resetTimeOfInactivity();
+
+                let evnt = {};
+
+                if( type == 'create'){
+                    evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
+                    evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
+                    evnt.start =  new Date( d3.select('#dialogueBox #evntStart').node().value); 
+                    evnt.duration_seconds = d3.select('#dialogueBox #evntDuration').node().value;
+                    evnt.consumption =  d3.select('#dialogueBox #evntConsumption').node().value;
+                    evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;                
+                }else{
+                    evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
+                    evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
+                    evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;
+                    evnt.id = d3.select('#dialogueBox #evntId').node().value;
+                }
+
+                return evnt;
+            }
+
+            function validate_form(){
+                // if (d3.select('#evntType').node().value === 'undefined') {
+                if (d3.selectAll('#iconField .icon.selected').nodes().length == 0){
+                    return "ERROR: Please choose an icon before pressing OK.";
+                }else{
+                    return '';
+                }
+            };
+
+            sanitize = function (event) {
+                if (event.description === undefined) {
+                    event.description = '';
+                }
+                if (event.event_type_id === undefined) {
+                    event.type = '';
+                }
+                return event;
+            };
+
+            function populateDialogBox(evnt){
+                // event = sanitize(evnt);
+                event = evnt;
+
+                printDate = d3.timeFormat('%b %d %H:%M');
+
+                durationInHours = Math.floor(+evnt.duration_seconds / 60000 / 60);
+                durationInMinutes = (+evnt.duration_seconds/60000) % 60;
+                durationLabel = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
+
+                d3.select('#dialogueBox #evntDurationLabel').html(durationLabel);
+                d3.select('#dialogueBox #evntStartLabel').html(printDate( new Date(evnt.start)));
+                d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(1)+" KW");
+
+                d3.select("#iconField").empty();
+                d3.select("#iconField")
+                    .selectAll('img')
+                    .data(event_types)
+                    .join('img')
+                    .attr('class', d => { return 'icon ' + d})
+                    .attr('value', d => {return d})
+                    .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
+                    .attr('alt', d => {return d})          
+                    .attr('title', d => {return d})
+                    .on('click', d => {
+                       evnt.type = d.target['__data__'];
+                       d3.selectAll('#iconField img').classed('selected',false)
+                       d3.select('.'+evnt.type).classed('selected',true)
+                    })
+
+                if(evnt.type) { d3.select('#iconField img.'+evnt.type).classed('selected',true) }
+
+                d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
+                d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
+
+                d3.select('#dialogueBox #evntStart').node().value = evnt.start;
+                d3.select('#dialogueBox #evntDuration').node().value = evnt.duration_seconds;
+                d3.select('#dialogueBox #evntConsumption').node().value = evnt.consumption;
+                d3.select('#dialogueBox #evntType').node().value = evnt.type;
+                // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
+                // d3.select('#dialogueBox #evntUpdated').node().value = -1;
+                d3.select('#dialogueBox #evntId').node().value = evnt.id;
+            }
+
+            show_event_dialog = function(event){
+                resetTimeOfInactivity();
+
+                d3.select("#dialogueBox")
+                  .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
+                  .style('display','block');
+
+                populateDialogBox(event);
+
+                d3.select('#submitEventBtn').on('click',null);
+                d3.select('#submitEventBtn').on('click', (r) =>{
+                    console.log('SUMBITING EVENT')  
+
+                    errormessage = validate_form();
+                    if (errormessage !== '') {
+                        // alert(errormessage);
+                        d3.select('#infoBoxDialogue').html('Please choose an event type.')
+                                            .style('display','block')
+                        return;                       
+                    }
+
+                    if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
+                       console.log('CREATE EVENT')  
+                      
+                        createNewAnnotation();
+
+                        async function createNewAnnotation()
+                        {
+                            // If new Push this event to a list of all
+                            let event = getDialogueValues('create')
+                            let eventSanitized = {
+                                    'start': event.start.toISOString(),
+                                    'duration_seconds':+event.duration_seconds,
+                                    'type': event.type,
+                                    'description':event.description,
+                                    'consumption':event.consumption,
+                                    'flexibility':event.flexibility,
+                                    'sensor': series.measurement, // sensor_id
+                                    'measurement': series.id //'electricity_consumption'
+                                }
+                            try{
+                                d3.select('#spinner').style('display','block');
+
+                                let result  = await d3.json('/annotations', {
+                                    method: 'PUT', 
+                                    headers: { "Content-Type": "application/json; charset=UTF-8" },
+                                    'body': JSON.stringify(eventSanitized)
+                                });
+                                
+                                eventSanitized.id = result.lastInsertRowid;
+
+                                allEvents.push(eventSanitized);
+                                addAnnotationBar(event,eventSanitized.id, series.id);
+                                d3.select('#spinner').style('display','none')
+                            }catch(e){
+                                console.log(e);
+                                d3.select('#spinner').style('display','none');
+                                d3.select('#spinner').html(e);
+                            }
+                        }
+                    }else{
+                     console.log('EDIT EVENT')  
+                            
+                        editAnnotation();
+
+                        async function editAnnotation(){
+
+                            let event = getDialogueValues('edit');
+                            let eventSanitized = {
+                                    'flexibility':event.flexibility,
+                                    'type': event.type,
+                                    'description':event.description,
+                                }
+
+                            try{
+
+                                d3.select('#spinner').style('display','block');
+
+                                result  = await d3.json(`/annotations/${event.id}`, {
+                                    method: 'POST', 
+                                    headers: { "Content-Type": "application/json; charset=UTF-8" },
+                                    'body': JSON.stringify(eventSanitized)
+                                });
+
+                                // Update the local events
+                                let index = 0;
+                                for(i=0;i<allEvents.length;i++){
+                                    if( allEvents[i].id == event.id ){
+                                        index = i;
+                                        break;
+                                    }
+                                }
+                                allEvents[index].type = event.type;
+                                allEvents[index].description = event.description;
+                                allEvents[index].flexibility = event.flexibility;
+
+                                // Update the visuals
+                                editAnnotationBar(eventSanitized,event.id);
+                                d3.select('#spinner').style('display','none')
+                            }catch(e){
+                                console.log(e);
+                                d3.select('#spinner').style('display','none');
+                                d3.select('#spinner').html(e);
+                            }               
+                        }
+                    }
+
+                    // Highlight the annotated area
+                    d3.selectAll('.dataPoints rect').filter( d => { 
+                        // console.log(event.start.getTime() + event.duration)
+                        return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
+                    })
+                    .classed('annottated',true)
+
+                    // Reset and close the dialogue
+                    resetDialogue();
+                    closeDialogue();
+                });
+
+                d3.select('#deleteEventBtn').on('click',null);
+                d3.select('#deleteEventBtn').on('click', (r) =>{
+                    
+                    let id = d3.select('#dialogueBox #evntId').node().value;
+
+                    deleteAnnotation(id);
+                    
+                    async function deleteAnnotation(id){
+                        try{
+
+                            d3.select('#spinner').style('display','block');
+                            result  = await d3.json(`/annotations/${id}`, {
+                                method: 'DELETE'
+                            });
+                           
+                            // Delete from local events
+                            let index = 0;
+                            for(i=0;i<allEvents.length;i++){
+                                if( allEvents[i].id == id ){
+                                    index = i;
+                                    break;
+                                }
+                            }
+
+                            let tmpEvntStart = new Date(allEvents[index].start);
+
+                            // De-Highlight the annotated area
+                            d3.selectAll('.dataPoints rect').filter( d => { 
+                                return d.time >= tmpEvntStart && d.time <= (tmpEvntStart.getTime() + (+allEvents[index].duration_seconds));
+                            })
+                            .classed('annottated',false)
+                            .style('fill', 'rgba(100,100,100,1)')
+
+                            deleteAnnotationBar(id);
+                            allEvents.splice(index, 1)
+                            d3.select('#spinner').style('display','none')
+                        }catch(e){
+                            console.log(e)
+                            d3.select('#spinner').style('display','none')
+                            d3.select('#infoBox').html(e);
+                        }
+
+                        // Reset and close the dialogue
+                    }
+
+                    resetDialogue();
+                    closeDialogue();
+
+                });
+            }
+
+            function closeDialogue() {
+                d3.select("#dialogueBox")
+                  .style('display','none');
+
+                clearBrushSelection();
+                brushContainer.call(brush.move,null);
+                FLAG = false;
+            }
+
+            d3.select('#closebtnDialogue').on('click', closeDialogue);
+
+
+            function clearBrushSelection(){
+                svg.select('.saveBtnContainer').remove();
+                svg.selectAll('.dataPoints rect').style("opacity", '1');
+            }
+
+        }
+
+        updateGraph(data[series.id],true);
+        getSunriseSunset(data[series.id]);
+        addBrushing();
+        drawAnnotations(series.id);
 
     }
+    
+    d3.select('#btnEarlier').on('click', getEarlierData);
+
+    d3.select('#btnRecent').on('click', e => {
+
+        resetTimeOfInactivity();
+
+        tmp = xScale.domain();
+        maxTime = new Date();
+        minTime = maxTime - WINDOW * 60 * 60 *1000;
+        // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
+        // minTime.setHours(maxTime.getHours()+WINDOW);
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+
+        updateXAxis();
+        allSensorIds = Object.keys(data);            
+        allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
+        updateSunriseSunset();
+        updateAnnotationBar();
+    });
+    
+    d3.select('#btnLater').on('click', e =>{
+        resetTimeOfInactivity()
+
+        tmp = xScale.domain()
+        minTime = new Date(tmp[0].setHours(tmp[0].getHours()+SHIFT_BY));
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        // hardMaximum = minTime + WINDOW/2 * 60 * 60 * 1000
+        allSensorIds = Object.keys(data);            
+        if( maxTime > d3.max(data[allSensorIds[0]], d =>{ return d.time }) ){
+            d3.select('#btnLater').classed('disabled',true)
+            return;
+        }
+
+        d3.select('#btnEarlier').classed('disabled',false)
+        
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+
+        updateXAxis();
+        allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
+        updateSunriseSunset();
+        updateAnnotationBar();
+    });
+
+    d3.select('#btnScale24').on('click', e =>{
+        WINDOW = 24;
+        SHIFT_BY = 12;
+        resetTimeOfInactivity();
+
+        d3.selectAll('.scaleBtn').classed('selected',false)
+        d3.select('#btnScale24').classed('selected',true)
+
+        d3.select('#btnEarlier').classed('disabled',false)
+        d3.select('#btnLater').classed('disabled',false)
+        // clearBrushSelection();
+        d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+        tmp = xScale.domain()
+        minTime = new Date(tmp[0]);
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+
+
+        updateXAxis();
+        allSensorIds = Object.keys(data);            
+        allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
+        updateAnnotationBar();
+        updateSunriseSunset();
+    });
+
+    d3.select('#btnScale8').on('click', e =>{
+        WINDOW = 8;
+        SHIFT_BY = 4;
+        resetTimeOfInactivity();
+
+        d3.selectAll('.scaleBtn').classed('selected',false)
+        d3.select('#btnScale8').classed('selected',true)
+
+        d3.select('#btnEarlier').classed('disabled',false)
+        d3.select('#btnLater').classed('disabled',false)
+        // clearBrushSelection();
+        d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+        tmp = xScale.domain()
+        minTime = new Date(tmp[0]);
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+
+        updateXAxis();
+        allSensorIds = Object.keys(data);            
+        allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
+        updateAnnotationBar();
+        updateSunriseSunset();
+    });
+
+    d3.select('#btnScaleWeek').on('click', e =>{
+        WINDOW = 24*7;
+        SHIFT_BY = 24*4;
+        resetTimeOfInactivity();
+
+        d3.selectAll('.scaleBtn').classed('selected',false)
+        d3.select('#btnScaleWeek').classed('selected',true)
+        // clearBrushSelection();
+        d3.selectAll("div#container svg .brush").call(brush.move,null);
+
+        tmp = xScale.domain()
+        minTime = new Date(tmp[0]);
+        maxTime = new Date(minTime);
+        maxTime.setHours(maxTime.getHours()+WINDOW);
+
+        xScale = d3.scaleTime(
+            [minTime , maxTime],
+            [0, svgWidth-svgMarginLeft]
+        );
+
+        updateXAxis();
+        allSensorIds = Object.keys(data);            
+        allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
+        updateAnnotationBar();
+        updateSunriseSunset();
+    });
 
     let seriesUrl = '/series/?showAll=true';
-    // if (showAll !== true) {
-    //     seriesUrl = '/series/';
-    // }
-    // if (daysParam !== undefined) {
-    //     seriesUrl = seriesUrl + '&days=' + daysParam;
-    // }
-    
+
     d3.json(seriesUrl).then(function (allSeries) {
         console.log(allSeries)
+
         // toKeep = [
         //             "temperature",
         //             "humidity",
@@ -518,10 +897,11 @@ document.addEventListener("DOMContentLoaded", function() {
         //             "TVOC",
         //          ];
         toKeep = "electricity_consumption";
+        // toKeep = "humidity";
 
         // "&& d.sensor_id==100;" >> temporary FIX!!
         allSeries = allSeries.filter(function (d) {
-            return toKeep.includes(d.measurement) && (d.sensor_id <=100 && d.sensor_id >= 96);//d.sensor_id==2;
+            return toKeep.includes(d.measurement) && (d.sensor_id <=96 && d.sensor_id >= 96);//d.sensor_id==2;
         });
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];
@@ -562,7 +942,77 @@ document.addEventListener("DOMContentLoaded", function() {
 
         loadData();
 
-       /* d3.select('select#measurementSelect')
+        // Periodical refresh if FLAG is down
+        function refreshData() {
+            const promises = _series.map(m => refreshMeasurementData(m));
+            Promise.all(promises).then( () => {
+                console.log('all refreshed');
+            });
+        }
+
+        async function refreshMeasurementData(m){
+            const measurement = m.measurement;
+            const sensor_id = m.sensor_id;
+            // const measurement = 'electricity_consumption';
+            // const sensor_id = sensorId;
+
+            let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-2&showAll=true&points=80`;
+            if(FLAG == false){
+                try{
+                    d3.select('#spinner').style('display','block');
+
+                    result = await d3.json(dataUrl);
+                    // console.log(result.readings);
+
+                    formattedData = formatData(result.readings);
+                    
+                    let dd = [];
+                    let sID = measurement+'_'+sensor_id;
+                    // Checks that there are no duplicates pushed in the data
+                    // Assumes the the data array is sorted!
+                    formattedData.forEach( g => {
+                        tmp = false;
+                        for( i = data[sID].length-1; i>=0;i--){
+                            if(g.time.getTime() > data[sID][i].time.getTime() && tmp==false ){
+                                dd.push(g);
+                                tmp = true;
+                            }else if(data[sID][i].time.getTime() <= g.time.getTime()){
+                               return;
+                            } 
+                        }
+                    });
+
+                    data[sID] = data[sID].concat(dd);
+
+                    data[sID].sort((a,b)=> { return (new Date(a.start)) - (new Date(b.start));})
+                    updateGraph(data[sID],false,sID);
+                    resetTimeOfInactivity();
+                    d3.select('#spinner').style('display','none')
+                }catch(e){
+                    console.log(e);
+                    d3.select('#spinner').style('display','none')
+                    d3.select('#infoBox').html(e);
+
+                }
+            }
+        }
+
+        startTimer();
+
+        function startTimer() { 
+            // window.setTimeout returns an Id that can be used to start and stop a timer
+            timeoutId = window.setTimeout(refreshData, timeOfInactivity)
+        }
+
+        resetTimeOfInactivity = function (){
+     
+            window.clearTimeout(timeoutId)
+            startTimer();
+
+            timeOfInactivity = 2*60*1000;
+        }
+
+        d3.select('select#measurementSelect')
             .selectAll(null)
             .data(allMeasurements)
             .enter()
@@ -588,18 +1038,22 @@ document.addEventListener("DOMContentLoaded", function() {
             if (sensor_id !== 'Any Sensor') {
                 _series = _series.filter(function (serie) {return serie.sensor_id === sensor_id;});
             }
+
+            d3.selectAll('#container svg').remove();
+            d3.selectAll('#container h4').remove();
+
+            // Go back to the begining
+            startMinutes = 24*60;
+            endMinutes = 0;
+
             loadData();
         };
         
         d3.select('select#measurementSelect').on('change', handle_select);
         d3.select('select#sensorSelect').on('change', handle_select);
-        */
-    });
 
-    function clearBrushSelection(){
-        d3.select('.saveBtnContainer').remove();
-        d3.selectAll('.dataPoints rect').style("opacity", '1');
-    }
+
+    });
 
     function getEarlierData(e){
         resetTimeOfInactivity();
@@ -610,9 +1064,12 @@ document.addEventListener("DOMContentLoaded", function() {
         maxTime = new Date(minTime);
         maxTime.setHours(maxTime.getHours()+WINDOW);
 
+        // TODO: THIS DOES NOT WORK FOR MULTIPLE SENSORS/MEASUREMENTS
         // Check if almost out of bounds
-        if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data, d =>{ return d.time }) ||
-            data.length == 0
+        allSensorIds = Object.keys(data);  
+        console.log(allSensorIds[0])          
+        if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data[allSensorIds[0]], d =>{ return d.time }) ||
+            data[allSensorIds[0]].length == 0
          ){
             // GET EARLIER DATA
             // move backwards in time based on the 'startMinutes' measure
@@ -628,17 +1085,18 @@ document.addEventListener("DOMContentLoaded", function() {
             );
             
             updateXAxis();
-            updateGraph(data,false);
+            allSensorIds.forEach( h => { updateGraph(data[h],false,h); })
             updateSunriseSunset();
             updateAnnotationBar();   
         }
         d3.select('#btnLater').classed('disabled',false)
         d3.select('#btnRecent').classed('disabled',false)
-
     };
 
-    async function drawAnnotations(){
+    async function drawAnnotations(seriesId){
         try{
+            d3.select('#spinner').style('display','block');
+
             result = await d3.json('/annotations');
 
             allEvents = result;
@@ -647,444 +1105,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 tmpDate = new Date(g.start);
 
                 // Highlight the annotated area
-                d3.selectAll('.dataPoints rect').filter( d => { 
+                d3.select('#'+seriesId+'Chart').selectAll('.dataPoints rect').filter( d => { 
                     return d.time >= tmpDate && d.time <= (tmpDate.getTime() + (+g.duration_seconds));
                 })
                 .classed('annottated',true)
 
-                addAnnotationBar(g, g.id);
+                addAnnotationBar(g, g.id, seriesId);
             })
             console.log("DRAWING ANNOTATIONS")
+            d3.select('#spinner').style('display','none')
         }catch(e){
             console.log("error " + e)
-        }
-    }
-
-    function addBrushing (response){
-        brush = d3.brushX()
-                        .extent([[0,svgMarginTop], [svgWidth+20, svgHeight-svgMarginBottom]])
-                        .on('start', brushStart)
-                        .on('end', brushEnd)
-                        .on('brush', brushing)
-
-        let brushContainer = d3.selectAll("div#container svg")
-              .append("g")
-              .attr('class','brush')
-              .call(brush)
-
-        function brushStart({selection}) {
-            if(WINDOW == 24*7) { return }
-            resetTimeOfInactivity();
-
-            // console.log('brush started');
-            d3.select('.saveBtnContainer').remove();
-            
-            d3.select('#infoBox').html('').style('display','none');
+            d3.select('#spinner').style('display','none');
+            d3.select('#spinner').html(e);
 
         }
-
-        function brushEnd(event) {
-            resetTimeOfInactivity();
-            if (!event.sourceEvent) return;
-            if(WINDOW == 24*7) { 
-                d3.select('#infoBox').html('You cannot annotate at this scale.')
-                clearBrushSelection();
-                return
-            }
-
-            console.log('brush ended');
-            selection = event.selection;
-
-            allEvents.sort( (a,b) => { return new Date(b.start) - new Date(a.start); })
-
-            // check it was not a random click
-            if( selection && selection.length >= 2){
-
-                // Check if started within a already annotated area
-                // if so push to the nearest non-annotated right/left side
-                let sx = selection.map(xScale.invert);
-                /* let newStart = new Date (sx[0]),
-                    newEnd = new Date (sx[1]),
-                    flag = false;
-    
-                 for (const e of allEvents){
-                    tmpStart = new Date(e.start);
-                    tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
-
-                    if( sx[0] <= tmpStart && sx[1] >= tmpStart && flag == false){
-                       newEnd = tmpStart;
-                       flag = true;
-                    }else if( sx[0] >= tmpStart && sx[0] <= tmpEnd && flag == false){
-                       newStart = tmpEnd;
-                       flag = true;
-                    }
-
-                    if(flag == true && newStart == tmpStart){
-                       newStart = tmpEnd;
-                       flag = false;
-                    }
-                }
-
-                // check if start/end reversed
-                sx = [newStart,newEnd];
-                if( flag == true){
-                    brushContainer.call(brush.move,sx.map(xScale))
-                } */
-                // Check if any of the brush is inside an existing annotation. If so 
-                // return.
-                for (const e of allEvents){
-                    tmpStart = new Date(e.start);
-                    tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
-
-                    if ( (sx[0] <= tmpEnd && sx[0]>= tmpStart) ||
-                         (sx[1] <= tmpEnd && sx[1]>= tmpStart)){
-                        clearBrushSelection();
-                        brushContainer.call(brush.move,null);
-                        d3.select('#infoBox').html('You cannot have overlapping annotations').style('display','block');
-                        return;
-                    }
-                }
-                
-                // Create a button to save event
-                d3.select('div#container svg')
-                  .append('g')
-                  .attr('class','saveBtnContainer')
-                  .style('cursor','pointer')
-                  .on('click', () => { createEvent(sx); })
-                  // Show the save button aligned to the selection
-                  .attr('transform', 'translate(' +(xScale(sx[0]) + (xScale(sx[1])-xScale(sx[0]))/2 - 50)+','+(svgMarginTop)+')')
-                
-                d3.select('.saveBtnContainer')
-                    .append('rect')
-                    .attr('id','saveButton')
-                    .attr('width',100)
-                    .attr('height',30)
-                    .attr('rx',15)
-                d3.select('.saveBtnContainer')
-                    .append('text')
-                    .text('SAVE')
-                    .attr('dy',20)
-                    .attr('dx',50)
-                    .attr('text-anchor','middle')
-                    .style('fill','white')
-              
-            }else{
-                clearBrushSelection();
-            }
-        }
-
-        function brushing({selection}) {
-            console.log('brush hapenning')
-            resetTimeOfInactivity();
-
-            FLAG = true;
-
-            if (selection === null) {
-               clearBrushSelection();
-            } else {
-              const sx = selection.map(xScale.invert);
-
-              d3.selectAll('.dataPoints rect').style("opacity", d => { 
-                return sx[0] <= d.time && d.time <= sx[1] ? "1" : '0.2'; });
-            }
-        }
-
-        function createEvent(selection){
-            let evnt = {};
-
-            d3.select('#dialogueBox h4').html('Create Event')
-            d3.select('#dialogueBox').attr('isCreate','true')
-
-            evnt.createdAt = (new Date()).toISOString()
-            evnt.series = '';
-
-            evnt.flexibility = ''
-            evnt.description = ''
-
-            // TODO: add more acccurate time mapping based on the bars not the brushing
-            evnt.start = selection[0]; 
-            evnt.end = selection[1];
-
-            evnt.duration_seconds = evnt.end.getTime() - evnt.start.getTime();
-
-            const event_readings = data.filter(d => {
-                return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
-            });
-            // TODO: add always on function
-            evnt.consumption = d3.sum(event_readings, d => d.value); // - always_on;
-
-            show_event_dialog(evnt);
-        }
-
-        function resetDialogue(){
-            d3.select('#dialogueBox #infoBoxDialogue').html('').style('display','none');
-           // evnt = {
-           //  'start' :'',
-           //  'end'   : '',
-           //  'duration': 0,
-           //  'consumption': 0,
-           //  'id':'',
-           //  'type':'',
-           //  'notes':''
-           // }
-
-            // d3.select('#dialogueBox #evntDuration').html('');
-            // d3.select('#dialogueBox #evntStart').html('');
-            // d3.select('#dialogueBox #evntEnd').html('');
-            // d3.select('#dialogueBox #evntConsumption').html('');
-            // document.getElementById('#evntDescription').value = '';
-            // d3.selectAll("#iconField img").classed('selected',false)
-        }
-
-        function getDialogueValues(type){
-            resetTimeOfInactivity();
-
-            let evnt = {};
-
-            if( type == 'create'){
-                evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
-                evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
-                evnt.start =  new Date( d3.select('#dialogueBox #evntStart').node().value); 
-                evnt.duration_seconds = d3.select('#dialogueBox #evntDuration').node().value;
-                evnt.consumption =  d3.select('#dialogueBox #evntConsumption').node().value;
-                evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;                
-            }else{
-                evnt.description = d3.select('#dialogueBox #evntDescription').node().value;
-                evnt.flexibility =  d3.select('#dialogueBox #evntFlexibility').node().value;
-                evnt.type = d3.select('#dialogueBox #iconField img.selected').node().alt;
-                evnt.id = d3.select('#dialogueBox #evntId').node().value;
-            }
-
-            return evnt;
-        }
-
-        function validate_form(){
-            // if (d3.select('#evntType').node().value === 'undefined') {
-            if (d3.selectAll('#iconField .icon.selected').nodes().length == 0){
-                return "ERROR: Please choose an icon before pressing OK.";
-            }else{
-                return '';
-            }
-        };
-
-        sanitize = function (event) {
-            if (event.description === undefined) {
-                event.description = '';
-            }
-            if (event.event_type_id === undefined) {
-                event.type = '';
-            }
-            return event;
-        };
-
-        function populateDialogBox(evnt){
-            // event = sanitize(evnt);
-            event = evnt;
-
-            printDate = d3.timeFormat('%b %d %H:%M');
-
-            durationInHours = Math.floor(+evnt.duration_seconds / 60000 / 60);
-            durationInMinutes = (+evnt.duration_seconds/60000) % 60;
-            durationLabel = durationInHours.toFixed(0) + " hours and "+ durationInMinutes.toFixed(0) +" minutes";
-
-            d3.select('#dialogueBox #evntDurationLabel').html(durationLabel);
-            d3.select('#dialogueBox #evntStartLabel').html(printDate( new Date(evnt.start)));
-            d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(1)+" KW");
-
-            d3.select("#iconField").empty();
-            d3.select("#iconField")
-                .selectAll('img')
-                .data(event_types)
-                .join('img')
-                .attr('class', d => { return 'icon ' + d})
-                .attr('value', d => {return d})
-                .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
-                .attr('alt', d => {return d})          
-                .attr('title', d => {return d})
-                .on('click', d => {
-                   evnt.type = d.target['__data__'];
-                   d3.selectAll('#iconField img').classed('selected',false)
-                   d3.select('.'+evnt.type).classed('selected',true)
-                })
-
-            if(evnt.type) { d3.select('#iconField img.'+evnt.type).classed('selected',true) }
-
-            d3.select('#dialogueBox #evntFlexibility').node().value = evnt.flexibility;
-            d3.select('#dialogueBox #evntDescription').node().value = evnt.description;
-
-            d3.select('#dialogueBox #evntStart').node().value = evnt.start;
-            d3.select('#dialogueBox #evntDuration').node().value = evnt.duration_seconds;
-            d3.select('#dialogueBox #evntConsumption').node().value = evnt.consumption;
-            d3.select('#dialogueBox #evntType').node().value = evnt.type;
-            // d3.select('#dialogueBox #evntCreated').node().value = evnt.createdAt;
-            // d3.select('#dialogueBox #evntUpdated').node().value = -1;
-            d3.select('#dialogueBox #evntId').node().value = evnt.id;
-        }
-
-        show_event_dialog = function(event){
-            resetTimeOfInactivity();
-
-            d3.select("#dialogueBox")
-              .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
-              .style('display','block');
-
-            populateDialogBox(event);
-
-            d3.select('#submitEventBtn').on('click',null);
-            d3.select('#submitEventBtn').on('click', (r) =>{
-                console.log('SUMBITING EVENT')  
-
-                errormessage = validate_form();
-                if (errormessage !== '') {
-                    // alert(errormessage);
-                    d3.select('#infoBoxDialogue').html('Please choose an event type.')
-                                        .style('display','block')
-                    return;                       
-                }
-
-                if( d3.select('#dialogueBox').attr('isCreate') == 'true'){
-                   console.log('CREATE EVENT')  
-                  
-                    createNewAnnotation();
-                    async function createNewAnnotation()
-                    {
-                        // If new Push this event to a list of all
-                        let event = getDialogueValues('create')
-                        let eventSanitized = {
-                                'start': event.start.toISOString(),
-                                'duration_seconds':+event.duration_seconds,
-                                'type': event.type,
-                                'description':event.description,
-                                'consumption':event.consumption,
-                                'flexibility':event.flexibility,
-                                'sensor': '100', 
-                                'measurement': 'electricity_consumption'
-                            }
-                        try{
-                            let result  = await d3.json('/annotations', {
-                                method: 'PUT', 
-                                headers: { "Content-Type": "application/json; charset=UTF-8" },
-                                'body': JSON.stringify(eventSanitized)
-                            });
-                            
-                            eventSanitized.id = result.lastInsertRowid;
-
-                            allEvents.push(eventSanitized);
-                            addAnnotationBar(event,eventSanitized.id);
-                        }catch(e){
-                            console.log(e);
-                        }
-                    }
-                }else{
-                 console.log('EDIT EVENT')  
-                        
-                    editAnnotation();
-
-                    async function editAnnotation(){
-
-                        let event = getDialogueValues('edit');
-                        let eventSanitized = {
-                                'flexibility':event.flexibility,
-                                'type': event.type,
-                                'description':event.description,
-                            }
-
-                        try{
-                            result  = await d3.json(`/annotations/${event.id}`, {
-                                method: 'POST', 
-                                headers: { "Content-Type": "application/json; charset=UTF-8" },
-                                'body': JSON.stringify(eventSanitized)
-                            });
-
-                            // Update the local events
-                            let index = 0;
-                            for(i=0;i<allEvents.length;i++){
-                                if( allEvents[i].id == event.id ){
-                                    index = i;
-                                    break;
-                                }
-                            }
-                            allEvents[index].type = event.type;
-                            allEvents[index].description = event.description;
-                            allEvents[index].flexibility = event.flexibility;
-
-                            // Update the visuals
-                            editAnnotationBar(eventSanitized,event.id);  
-                        }catch(e){
-                            console.log(e);
-                        }               
-                    }
-                }
-
-                // Highlight the annotated area
-                d3.selectAll('.dataPoints rect').filter( d => { 
-                    // console.log(event.start.getTime() + event.duration)
-                    return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
-                })
-                .classed('annottated',true)
-
-                // Reset and close the dialogue
-                resetDialogue();
-                closeDialogue();
-            });
-
-            d3.select('#deleteEventBtn').on('click',null);
-            d3.select('#deleteEventBtn').on('click', (r) =>{
-                
-                let id = d3.select('#dialogueBox #evntId').node().value;
-
-                deleteAnnotation(id);
-                
-                async function deleteAnnotation(id){
-                    try{
-                        result  = await d3.json(`/annotations/${id}`, {
-                            method: 'DELETE'
-                        });
-                       
-                        // Delete from local events
-                        let index = 0;
-                        for(i=0;i<allEvents.length;i++){
-                            if( allEvents[i].id == id ){
-                                index = i;
-                                break;
-                            }
-                        }
-
-                        let tmpEvntStart = new Date(allEvents[index].start);
-
-                        // De-Highlight the annotated area
-                        d3.selectAll('.dataPoints rect').filter( d => { 
-                            // console.log(event.start.getTime() + event.duration)
-                            return d.time >= tmpEvntStart && d.time <= (tmpEvntStart.getTime() + (+allEvents[index].duration_seconds));
-                        })
-                        .classed('annottated',false)
-
-                        deleteAnnotationBar(id);
-                        allEvents.splice(index, 1)
-
-                    }catch(e){
-                        console.log(e)
-                    }
-
-                    // Reset and close the dialogue
-                }
-
-                resetDialogue();
-                closeDialogue();
-
-            });
-        }
-
-        function closeDialogue() {
-            d3.select("#dialogueBox")
-              .style('display','none');
-
-            clearBrushSelection();
-            brushContainer.call(brush.move,null);
-            FLAG = false;
-        }
-
-        d3.select('#closebtnDialogue').on('click', closeDialogue);
     }
 
     function deleteAnnotationBar(id){
@@ -1112,7 +1147,7 @@ document.addEventListener("DOMContentLoaded", function() {
         show_event_dialog(localEvent)
     }
 
-    function addAnnotationBar(event,id){
+    function addAnnotationBar(event,id,seriesId){
 
         const anntLine = d3.line()
                      .x(d => (d))
@@ -1122,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tmpDate = new Date(event.start);
 
-        anntContainer = d3.select("div#container svg")
+        anntContainer = d3.select("div#container svg#"+seriesId+'Chart')
           .append('g').attr('class','annotationBar')
           .datum(event)
           .attr('transform','translate('+xScale(tmpDate)+',0)')
@@ -1244,7 +1279,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .tickFormat(d3.timeFormat('%b %d %H:%M'))
                 .scale(xScale);
 
-            d3.select(".x-axis")
+            d3.selectAll(".x-axis.top")
                     .transition()
                     .call(xAxis)
                     .selectAll("text")  
@@ -1260,6 +1295,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     async function exportCSVAnnotation(){
         resetTimeOfInactivity();
+
+        d3.select('#spinner').style('display','block')
 
         let csvContent = "data:text/csv;charset=utf-8," 
         
@@ -1290,12 +1327,16 @@ document.addEventListener("DOMContentLoaded", function() {
         link.setAttribute("download", "my_data.csv");
         document.body.appendChild(link); // Required for FF
 
+        d3.select('#spinner').style('display','none')
+
         link.click(); // This will download the data file named "my_data.csv".
     }  
 
     async function exportCSVElectricity(){
         resetTimeOfInactivity();
 
+        d3.select('#spinner').style('display','block')
+   
         console.log('button#download-button');
         const sensor_id = sensorId;
         const measurement = 'electricity_consumption';
@@ -1327,7 +1368,9 @@ document.addEventListener("DOMContentLoaded", function() {
         link.setAttribute("href", encoded_uri);
         link.setAttribute("download", `${measurement}_${sensor_id}.csv`);
         document.body.appendChild(link); // Required for FF
-        
+            
+        d3.select('#spinner').style('display','none')
+
         link.click(); // This will download the data file named "my_data.csv".        
     };
 
