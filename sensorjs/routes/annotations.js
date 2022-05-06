@@ -23,7 +23,7 @@ var express = require('express');
 var router = express.Router();
 // const { PrismaClient } = require('@prisma/client');
 // const prisma = new PrismaClient()
-const db = require('better-sqlite3')('./db.sqlite3');
+const Database = require('better-sqlite3');
 
 router.get('/annotations-test', async function(req, res) {
     return res.render('annotations-test.html');
@@ -54,6 +54,7 @@ router.get('/annotations', async function(req, res) {
         const annotation_columns = annotation_fields.map(f => f['name']);
         const query = `SELECT ${annotation_columns.join()} from annotations;`;
         // console.log('query:', query);
+        const db = Database('./db.sqlite3');
         const select = db.prepare(query);
         // console.log('prepare returned:', select);
         const annotations = select.all();
@@ -103,6 +104,7 @@ router.put('/annotations', async function(req, res) {
         VALUES (${values.join(",\n")});
         `;
         // console.log('query:', query);
+        const db = Database('./db.sqlite3');
         const insert = db.prepare(query);
         // console.log('prepare returned:', insert);
         const info = insert.run();
@@ -120,6 +122,7 @@ router.delete('/annotations/:id', async function (req, res) {
     const annotation_id = parseInt(req.params['id'], 10);
     try {
         const query = `DELETE from annotations where id = ${annotation_id}`;
+        const db = Database('./db.sqlite3');
         const statment = db.prepare(query);
         const result = statment.run();
         // console.log('delete result:', result);
@@ -152,6 +155,7 @@ router.post('/annotations/:id', async function (req, res) {
         WHERE id = ${annotation_id};
         `;
         console.log('query', query);
+        const db = Database('./db.sqlite3');
         const statement = db.prepare(query);
         const result = statement.run();
         // console.log('update result:', result);
