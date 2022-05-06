@@ -14,23 +14,24 @@
     <title>Energy Consumption </title>
   </head>
   <body>
-    <select class="form-select" id="measurementSelect" aria-label="Select measurement">
-        <option selected>Any Measurement</option>
-    </select>
+    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <select class="form-select " id="measurementSelect" aria-label="Select measurement">
+          <option selected>Any Measurement</option>
+      </select>
 
-    <select class="form-select" id="sensorSelect" aria-label="Select sensor">
-        <option selected>Any Sensor</option>
-    </select>
+      <select class="form-select " id="sensorSelect" aria-label="Select sensor">
+          <option selected>Any Sensor</option>
+      </select>
+    </div>
+    </nav>
+    <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
+      <span class="visually-hidden">Loading...</span>
+    </div>
 
-        <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
-          <span class="visually-hidden">Loading...</span>
-        </div>
+    <!-- <h2>Electricity Consumption</h2> -->
 
-    
-    <h2>Electricity Consumption</h2>
-
-
-    <div class="timeContainer">
+    <div class="timeContainer" style="margin-top: 4em;">
       <button id="btnEarlier" class="btn">earlier</button>
       <button id="btnLater" class="btn disabled">later</button>
       <button id="btnRecent" class="btn disabled">Most recent</button>
@@ -41,6 +42,8 @@
       <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
       <button id="btnScale8" class="btn scaleBtn selected">Show 8hours</button>
    </div>
+
+
     <div id="infoBox"></div>
 
     <div id="container"></div>
@@ -53,7 +56,6 @@
         <!-- <div> Event End: <label id="evntEndLabel"></label> </div> -->
         <div> <i>Duration:</i> <label id="evntDurationLabel"></label> </div>
         <div> <i>Consumption:</i> <label id="evntConsumptionLabel"></label> </div>
-
         <div> 
           <i>Select an event type (required)</i><br>
           <div id="iconField"></div>

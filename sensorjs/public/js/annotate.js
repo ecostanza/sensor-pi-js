@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let data = {};
 
     let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
-    let svgHeight =  svgWidth / 2 > window.innerHeight -200? window.innerHeight -200:svgWidth / 2;
+    let svgHeight =  svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // svg.selectAll("*").remove();
         svg.selectAll('.axis').remove();
         svg.selectAll('.backgroundData').remove();
-        svg.selectAll('.annotationBar').remove();
+        svg.selectAll('.annotations').remove();
         svg.selectAll('.brush').remove();
         svg.selectAll('#clip').remove();
 
@@ -256,6 +256,8 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('y',yScale.range()[1])
               .attr('width',xScale.range()[1]-xScale.range()[0])
               .attr('height',yScale.range()[0]-yScale.range()[1] + svgMarginBottom)
+
+        svg.append('g').attr('class','annotations').attr("clip-path", "url(#clip)")
 
         // Add clipping path for making the animation look better
         // But make sure it doesnt exist first.
@@ -1157,7 +1159,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tmpDate = new Date(event.start);
 
-        anntContainer = d3.select("div#container svg#"+seriesId+'Chart')
+        anntContainer = d3.select("div#container svg#"+seriesId+'Chart .annotations')
           .append('g').attr('class','annotationBar')
           .datum(event)
           .attr('transform','translate('+xScale(tmpDate)+',0)')
