@@ -1,8 +1,14 @@
 document.addEventListener("DOMContentLoaded", function() { 
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramMeasurement = urlParams.get('measurement') ;
+    const paramSensorid = urlParams.get('sensor');
+
     let startMinutes = 24*60;
     let endMinutes = 0;
 
     let data = {};
+    let allEvents = [];
 
     let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
     let svgHeight =  svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
@@ -10,15 +16,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const margin = 5;
     const padding = 5;
     const adj = 30;
-
-    var xScale, yScale, brush;
     const svgMarginTop = 30;
     const svgMarginBottom = 200;
     const svgMarginLeft = 0;
 
+    let xScale, yScale, brush;
     let loadData = undefined;
-
-    let allEvents = [];
 
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
@@ -30,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function() {
     let SHIFT_BY = 4;
     let WINDOW = 8;
     let FLAG = false;
-    let sensorId = 96;
     let timeOfInactivity = 60000;
     let sunrise, sunset;
     const consumptionUnit = 2;
@@ -57,13 +59,11 @@ document.addEventListener("DOMContentLoaded", function() {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-
     /*Creates SVG & its title*/
     const appendSvg = function (measurement) {
         let name = measurement.name;
     
         svgContainer = d3.select("div#container");
-
 
         // Check to see if it exists
         if(svgContainer.select('#'+measurement.id + 'Chart').node() !== null ){
@@ -92,7 +92,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
-        // sensorId = series.sensor_id;
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
@@ -123,8 +122,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function formatData(data){
         let offset = 0;
-
-        // console.log(data)
 
         data = data.map(function (d) {
             let v = +d.value + offset;
@@ -588,8 +585,8 @@ document.addEventListener("DOMContentLoaded", function() {
                                     'description':event.description,
                                     'consumption':event.consumption,
                                     'flexibility':event.flexibility,
-                                    'sensor': series.measurement, // sensor_id
-                                    'measurement': series.id //'electricity_consumption'
+                                    'sensor': series.sensor_id, // sensor_id
+                                    'measurement': series.measurement //'electricity_consumption'
                                 }
                             try{
                                 d3.select('#spinner').style('display','block');
@@ -737,11 +734,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 svg.select('.saveBtnContainer').remove();
                 svg.selectAll('.dataPoints rect').style("opacity", '1');
             }
-
         }
 
         updateGraph(data[series.id],true);
-        getSunriseSunset(data[series.id]);
+        getSunriseSunset(data[series.id],series.id);
         addBrushing();
         drawAnnotations(series.id);
 
@@ -892,18 +888,24 @@ document.addEventListener("DOMContentLoaded", function() {
     d3.json(seriesUrl).then(function (allSeries) {
         console.log(allSeries)
 
+        if( paramMeasurement && paramSensorid){
+            toKeep = paramMeasurement;
+        }else{
+            // toKeep = "electricity_consumption";
+            toKeep = "TVOC";
+        }
         // toKeep = [
         //             "temperature",
         //             "humidity",
         //             "electricity_consumption",
         //             "TVOC",
         //          ];
-        toKeep = "electricity_consumption";
-        // toKeep = "humidity";
+        // toKeep = "electricity_consumption";
+        // toKeep = "TVOC";
 
         // "&& d.sensor_id==100;" >> temporary FIX!!
         allSeries = allSeries.filter(function (d) {
-            return toKeep.includes(d.measurement) && (d.sensor_id <=96 && d.sensor_id >= 96);//d.sensor_id==2;
+            return toKeep.includes(d.measurement) // && (d.sensor_id <=96 && d.sensor_id >= 96);//d.sensor_id==2;
         });
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];
@@ -948,6 +950,7 @@ document.addEventListener("DOMContentLoaded", function() {
         function refreshData() {
             const promises = _series.map(m => refreshMeasurementData(m));
             Promise.all(promises).then( () => {
+                console.log(data)
                 console.log('all refreshed');
             });
         }
@@ -1107,12 +1110,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 tmpDate = new Date(g.start);
 
                 // Highlight the annotated area
-                d3.select('#'+seriesId+'Chart').selectAll('.dataPoints rect').filter( d => { 
+                // d3.select('#'+seriesId+'Chart')
+                d3.select('#'+g.measurement+"_"+g.sensor+'Chart')
+                  .selectAll('.dataPoints rect')
+                  .filter( d => { 
                     return d.time >= tmpDate && d.time <= (tmpDate.getTime() + (+g.duration_seconds));
-                })
-                .classed('annottated',true)
+                  })
+                  .classed('annottated',true)
 
-                addAnnotationBar(g, g.id, seriesId);
+                addAnnotationBar(g, g.id, g.measurement+"_"+g.sensor);
             })
             console.log("DRAWING ANNOTATIONS")
             d3.select('#spinner').style('display','none')
@@ -1120,7 +1126,6 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log("error " + e)
             d3.select('#spinner').style('display','none');
             d3.select('#spinner').html(e);
-
         }
     }
 
@@ -1376,22 +1381,22 @@ document.addEventListener("DOMContentLoaded", function() {
         link.click(); // This will download the data file named "my_data.csv".        
     };
 
-    function getSunriseSunset(data){
+    function getSunriseSunset(data, id){
         d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
           .then(function (sun) {
             // console.log(data);
 
-            d3.selectAll('div#container svg')
+            d3.selectAll('div#container svg#'+id+'Chart')
               .append('g').lower()
               .attr('class','backgroundData')
               .attr("clip-path", "url(#clip)");
 
             sunset = new Date(sun.results.sunset);
             sunrise = new Date(sun.results.sunrise);
-             
+
             drawSunriseSunset(data);
         });
-    } 
+    }
 
     function updateSunriseSunset(){
         lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();

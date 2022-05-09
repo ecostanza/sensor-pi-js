@@ -80,9 +80,7 @@ router.get('/annotate', function(req, res) {
     });
 
   });
-
 });
-
 
 
 router.get('/favicon.ico', function(req, res) {
