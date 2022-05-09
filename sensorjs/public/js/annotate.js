@@ -1331,7 +1331,9 @@ document.addEventListener("DOMContentLoaded", function() {
         var encodedUri = encodeURI(csvContent);
         var link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "my_data.csv");
+
+        dateToday = new Date().getDate() +"-" + new Date().getMonth()+ "-"+new Date().getFullYear();
+        link.setAttribute("download", "annotations-"+dateToday+".csv");
         document.body.appendChild(link); // Required for FF
 
         d3.select('#spinner').style('display','none')
