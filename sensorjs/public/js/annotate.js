@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const svgMarginBottom = 200;
     const svgMarginLeft = 0;
 
+
+    let sensorId = 96;
     let xScale, yScale, brush;
     let loadData = undefined;
 
@@ -92,6 +94,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
+        sensorId = series.sensor_id;
 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
@@ -400,7 +403,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             function brushing({selection}) {
-                console.log('brush hapenning')
+                // console.log('brush hapenning')
                 resetTimeOfInactivity();
 
                 FLAG = true;
@@ -891,8 +894,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if( paramMeasurement && paramSensorid){
             toKeep = paramMeasurement;
         }else{
-            // toKeep = "electricity_consumption";
-            toKeep = "TVOC";
+            toKeep = "electricity_consumption";
+            // toKeep = "TVOC";
         }
         // toKeep = [
         //             "temperature",
@@ -950,8 +953,7 @@ document.addEventListener("DOMContentLoaded", function() {
         function refreshData() {
             const promises = _series.map(m => refreshMeasurementData(m));
             Promise.all(promises).then( () => {
-                console.log(data)
-                console.log('all refreshed');
+                console.log('All refreshed');
             });
         }
 
@@ -1349,13 +1351,14 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log('button#download-button');
         const sensor_id = sensorId;
         const measurement = 'electricity_consumption';
+        // const measurement = 'TVOC'
         const url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
         const start = today.minus({weeks: 5});
         const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
         let all_data = [];
-        for (let d=0; d<total_days; d+=1) {
+        for (let d=0; d<=total_days; d+=1) {
             const curr = start.plus({'days': d});
             const next = curr.plus({'days': 1});
             console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
