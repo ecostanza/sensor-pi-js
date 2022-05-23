@@ -1187,7 +1187,7 @@ document.addEventListener("DOMContentLoaded", function() {
         anntContainer
             .append('text')
             .attr('font-size','15px')
-            .attr('x', 35)
+            .attr('x', 45)
             // .attr('y',svgMarginTop-35)
             .attr('y',svgHeight - svgMarginBottom +30)
             .text(event.type)
@@ -1198,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr("x", 0 )
             .attr("y", svgHeight - svgMarginBottom +15)
             // .attr("y", svgMarginTop-50)
-            .attr("width",30).attr("height", 30)
+            .attr("width",40).attr("height", 40)
 
         blockC = anntContainer
                  .append('g').attr('class','blocksContainer')
@@ -1210,8 +1210,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
-              .attr('x', 35)//xScale(event.start))
-              .attr('y',svgHeight - svgMarginBottom +50)
+              .attr('x', 45)//xScale(event.start))
+              .attr('y',svgHeight - svgMarginBottom + 50)
 
         y = -1;j=-1;
 
@@ -1226,7 +1226,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if( j*15 > linesize){ y++;j=0;}
                 else{ j++; }
                 // x = xScale(new Date(event.start)) + j*20;
-                return 'translate('+(j*15)+','+(y*15+svgHeight - svgMarginBottom +70)+')';
+                return 'translate('+(j*15)+','+(y*15+svgHeight - svgMarginBottom +75)+')';
               })
               .style('fill','#ff9620');
 
