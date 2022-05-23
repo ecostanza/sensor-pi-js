@@ -22,23 +22,29 @@
 /*eslint no-undef: "error"*/
 /*eslint-env browser*/
 
-document.addEventListener("DOMContentLoaded", function() { 
+document.addEventListener("DOMContentLoaded",  function() { 
 
-    d3.select('#submitBtn').on('click', function () {
+    d3.select('#submitBtn').on('click', async function () {
         const ssid = d3.select('#ssid').node().value;
         const password = d3.select('#networkPassword').node().value;
         console.log(ssid, password);
 
-        d3.json('/wificonfig/', {
-            method: 'POST', 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify({
-                'ssid': ssid, 
-                'networkPassword': password
+        try {
+            let result = await d3.json('/wificonfig/', {
+                method: 'POST', 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({
+                    'ssid': ssid, 
+                    'networkPassword': password
+                })
             })
-        }).then(function (data) {
-            console.log('post response:', data);
-        })
+
+            d3.select('#infoBox').style('color','green').style('font-style','italic').style('margin-top','1em').html('Submission successful!')
+            console.log('post response:', result);
+        }catch(e){
+            console.log(e);
+            d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html(e)
+        }
 
     });
 
