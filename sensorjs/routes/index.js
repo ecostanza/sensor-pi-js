@@ -329,6 +329,40 @@ router.post('/wificonfig/', function (req, res) {
   
 });
 
+router.post('/system/', function (req, res) {
+  console.log(req.body);
+  const command = req.body.command;
+
+  if( command === 'reboot'){
+    exec('sudo reboot', function (error, stdout, stderr) {
+      if (error) {
+        res.json({
+          'err': error
+        })
+      } else {
+        res.json({
+          'stdout': stdout,
+          'stderr': stderr
+        })
+      }
+  });
+  }else if(command === 'poweroff'){
+    exec('sudo poweroff', function (error, stdout, stderr) {
+      if (error) {
+        res.json({
+          'err': error
+        })
+      } else {
+        res.json({
+          'stdout': stdout,
+          'stderr': stderr
+        })
+      }
+    })
+  }
+  
+});
+
 
 router.post('/settime/', function (req, res) {
   console.log(req.body);

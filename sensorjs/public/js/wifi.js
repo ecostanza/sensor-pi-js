@@ -24,28 +24,90 @@
 
 document.addEventListener("DOMContentLoaded",  function() { 
 
+
+    function checkPassword(pass){
+        if( pass.length < 8 || pass.length > 63)
+        {
+            return false;
+        }else{
+            return true;
+        }
+    }
+
     d3.select('#submitBtn').on('click', async function () {
         const ssid = d3.select('#ssid').node().value;
         const password = d3.select('#networkPassword').node().value;
         console.log(ssid, password);
 
-        try {
-            let result = await d3.json('/wificonfig/', {
-                method: 'POST', 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({
-                    'ssid': ssid, 
-                    'networkPassword': password
-                })
-            })
+        if(checkPassword(password)){        
 
-            d3.select('#infoBox').style('color','green').style('font-style','italic').style('margin-top','1em').html('Submission successful!')
-            console.log('post response:', result);
-        }catch(e){
-            console.log(e);
-            d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html(e)
+            try {
+                let result = await d3.json('/wificonfig/', {
+                    method: 'POST', 
+                    headers: { "Content-Type": "application/json" }, 
+                    body: JSON.stringify({
+                        'ssid': ssid, 
+                        'networkPassword': password
+                    })
+                })
+
+                d3.select('#infoBox').style('color','green').style('font-style','italic').style('margin-top','1em').html('Submission successful!')
+                console.log('post response:', result);
+            }catch(e){
+                console.log(e);
+                d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html(e)
+            }
+        }else{
+            d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html('Password should be 8-63 characters long');            
         }
 
     });
+
+
+    d3.select('#rebootBtn').on('click',async function () {
+        try {
+            d3.select('#infoBox').style('font-style','italic').style('margin-top','1em').style('color','black').html('Restarting..')
+            d3.select('#shutdownBtn').classed('disabled', true)
+            d3.select('#submitBtn').classed('disabled', true)
+            let result = await d3.json('/system/', {
+                method: 'POST', 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({
+                    'command': 'reboot', 
+                })
+            })
+
+        }catch(e){
+            console.log(e);
+            d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html(e)
+            d3.select('#shutdownBtn').classed('disabled', false)
+            d3.select('#submitBtn').classed('disabled', false)
+       }
+
+    });
+
+    d3.select('#shutdownBtn').on('click',async function () {
+        try {
+            d3.select('#infoBox').style('font-style','italic').style('margin-top','1em').html('Shutting down..')
+            d3.select('#rebootBtn').classed('disabled', true)
+            d3.select('#submitBtn').classed('disabled', true)
+    
+            let result = await d3.json('/system/', {
+                method: 'POST', 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({
+                    'command': 'poweroff', 
+                })
+            })
+
+        }catch(e){
+            console.log(e);
+            d3.select('#rebootBtn').classed('disabled', false)
+            d3.select('#submitBtn').classed('disabled', false)
+            // d3.select('#infoBox').style('color','indianred').style('font-style','italic').style('margin-top','1em').html(e)
+        }
+
+    });
+
 
 });
