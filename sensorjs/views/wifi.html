@@ -44,9 +44,11 @@ this program. If not, see <http://www.gnu.org/licenses/>.
         </div>
     </div>
     -->
-  <div class="container">
-      <button id="rebootBtn" class="btn btn-primary">Reboot Rpi</button>
-      <button id="shutdownBtn" class="btn btn-primary">Shut Down Rpi</button>
+  <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light" style="justify-content: end;">
+      <button id="rebootBtn" class="btn "> <img src="static/imgs/event_icons/reboot.svg" width=30px height="30px"><br>Reboot RPi</button>
+      <button id="shutdownBtn" class="btn "><img src="static/imgs/event_icons/shutdown.svg" width=30px height="30px"><br>Shutdown RPi</button>
+  </nav>
+  <div class="container" style="margin-top: 100px;">
     <div>
       <div class="mb-3">
         <label for="ssid" class="form-label">WiFi Network Name</label>
