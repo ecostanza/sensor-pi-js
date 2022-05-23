@@ -47,7 +47,7 @@ svg{
     position: absolute;
     top: 59px;
     min-height: 300px;
-    width: 500px;
+    width: 501px;
     background: rgba(250,250,250);
     border: 1px solid gray;
     display: none;
@@ -80,19 +80,28 @@ svg{
 .btn.disabled{
   color:grey ;
 }
+.btn: hover{
+  background-color:gray; 
+  color: black;
+}
 
 
 .icon{
-	background-color: black;
-	width: 50px;
-	height: 50px;
+	/*background-color: black;*/
+  border:  1px solid black;
+	width: 70px;
+	height: 70px;
 	margin: 0.2em;
 	cursor: pointer;
 	padding: 2px;
 }
 
+.icon:hover{
+  background-color: #FFB917;
+}
+
 .icon.selected{
-	background-color: steelblue;
+	background-color: #FFB917;
 }
 
 #infoBoxDialogue{

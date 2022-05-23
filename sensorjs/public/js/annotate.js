@@ -28,8 +28,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
                     'question_mark','toaster','air_cooling','heating','showering_and_hair-drying',
-                    'computer','diy','hob','ironing','lighting','meal_breakfast','meal_lunch','meal_dinner',
-                    'watching_tv'
+                    'computer','hob','ironing','lighting','meal_breakfast','meal_lunch','meal_dinner',
+                    'watching_tv', 'special_event', 'other'
                    ];
 
     let SHIFT_BY = 4;
@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const sensor_id = series.sensor_id;
         sensorId = series.sensor_id;
 
+        // check points 
         let dataUrl = `/measurement/${measurement}/sensor/${sensor_id}/data/?start=-${startMinutes}&showAll=true&points=80`;
         if (endMinutes > 0) {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
@@ -120,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 value: v
             }
         });
-   
     }
 
     function formatData(data){
@@ -278,9 +278,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 .data(dataF)
                 .join("rect")
                 .attr("width", () => {
-                    if( WINDOW == 24){ return 5; }
+                    if( WINDOW == 24){ return 35; }
                     else if (WINDOW == 24*7){ return 1;} 
+                    // else{ return 53; }
                     else{ return 3; }
+
                 })
                 .attr("height", d => {
                     if (svgHeight-svgMarginBottom - yScale(d.value) < 0) {
@@ -528,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .join('img')
                     .attr('class', d => { return 'icon ' + d})
                     .attr('value', d => {return d})
-                    .attr('src', d => { return '/static/imgs/event_icons/' + d + '.png'})
+                    .attr('src', d => { return '/static/imgs/event_icons/' + d + '.svg'})
                     .attr('alt', d => {return d})          
                     .attr('title', d => {return d})
                     .on('click', d => {
@@ -594,7 +596,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             try{
                                 d3.select('#spinner').style('display','block');
 
-                                let result  = await d3.json('/annotations', {
+                                let result = await d3.json('/annotations', {
                                     method: 'PUT', 
                                     headers: { "Content-Type": "application/json; charset=UTF-8" },
                                     'body': JSON.stringify(eventSanitized)
@@ -1140,7 +1142,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         dd = d3.selectAll(".annotationBar").filter(d => { return (d.id == id) })
         dd.data(event);
-        dd.select('image').attr("xlink:href", (d) => { return '/static/imgs/event_icons/' + d.type + '_black.png'})
+        dd.select('image').attr("xlink:href", (d) => { return '/static/imgs/event_icons/' + d.type + '.svg'})
         dd.select('text').text((d) => { return d.type; })
     }
 
@@ -1185,18 +1187,18 @@ document.addEventListener("DOMContentLoaded", function() {
         anntContainer
             .append('text')
             .attr('font-size','15px')
-            .attr('x', 26)
+            .attr('x', 35)
             // .attr('y',svgMarginTop-35)
             .attr('y',svgHeight - svgMarginBottom +30)
             .text(event.type)
 
         anntContainer
             .append('image')
-            .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '_black.png')
+            .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '.svg')
             .attr("x", 0 )
             .attr("y", svgHeight - svgMarginBottom +15)
             // .attr("y", svgMarginTop-50)
-            .attr("width", 20).attr("height", 20)
+            .attr("width",30).attr("height", 30)
 
         blockC = anntContainer
                  .append('g').attr('class','blocksContainer')
@@ -1208,7 +1210,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
-              .attr('x', 0)//xScale(event.start))
+              .attr('x', 35)//xScale(event.start))
               .attr('y',svgHeight - svgMarginBottom +50)
 
         y = -1;j=-1;
