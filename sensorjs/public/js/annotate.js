@@ -1367,7 +1367,8 @@ document.addEventListener("DOMContentLoaded", function() {
         result.forEach( (e,i) => {
             pp = '';
             for (const key in e) {
-                    pp += e[key] + ',';
+                    sanitised = (e[key]+'').replace(/,/g,' ')
+                    pp += sanitised + ',';
             }
             pp = pp.slice(0, -1);
             csvContent += pp + "\n";
@@ -1415,6 +1416,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let csv_content = "data:text/csv;charset=utf-8,";
 
+        // save label names
+        csv_content += 'time,value' + "\n";
+
         all_data.forEach(function(row) {
             csv_content += `${row.time},${row.value}` + "\r\n";
         });        
@@ -1429,6 +1433,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
         link.click(); // This will download the data file named "my_data.csv".        
     };
+
+
+    async function exportAnnotationsAsBoxes(){
+
+    };
+
 
     function getSunriseSunset(data, id){
         d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
