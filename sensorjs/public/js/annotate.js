@@ -32,8 +32,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     'watching_tv', 'special_event', 'other'
                    ];
 
-    let SHIFT_BY = 4;
-    let WINDOW = 8;
+    let SHIFT_BY =  8 // 4; // 30min CHECK
+    let WINDOW = 12; // 8 // 30min CHECK
     let FLAG = false;
     let timeOfInactivity = 60000;
     let sunrise, sunset;
@@ -280,8 +280,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("width", () => {
                     if( WINDOW == 24){ return 35; }
                     else if (WINDOW == 24*7){ return 1;} 
-                    // else{ return 53; }
-                    else{ return 3; }
+                    else{ return 53; } // 30min CHECK
+                    // else{ return 3; }
 
                 })
                 .attr("height", d => {
@@ -340,19 +340,28 @@ document.addEventListener("DOMContentLoaded", function() {
                 
                 // TODO MAKE GENERAL
                 d3.select('#infoBox').html('').style('display','none');
+                
+                // svg.selectAll('.dataPoints rect').style("opacity", 0.2)// d => { 
+                    // return sx[0] <= d.time && d.time < sx[1] ? "1" : '0.2'; });
+
 
             }
 
             function brushEnd(event) {
                 resetTimeOfInactivity();
                 if (!event.sourceEvent) return;
-                if(WINDOW == 24*7) { 
-                    d3.select('#infoBox').html('You cannot annotate at this scale.')
-                    clearBrushSelection();
-                    return
-                }
+                // if(WINDOW == 24*7) { 
+                //     d3.select('#infoBox').html('You cannot annotate at this scale.')
+                //     clearBrushSelection();
+                //     return
+                // }
 
                 console.log('brush ended');
+
+                // const d0 = event.selection.map(xScale.invert);
+                // const d1 = d0.map(interval.round);
+
+
                 selection = event.selection;
 
                 allEvents.sort( (a,b) => { return new Date(b.start) - new Date(a.start); })
@@ -360,8 +369,19 @@ document.addEventListener("DOMContentLoaded", function() {
                 // check it was not a random click
                 if( selection && selection.length >= 2){
 
-                    let sx = selection.map(xScale.invert);
-                    
+                    interval = d3.timeMinute.every(30) // check for 30min
+    
+                    let sx0 = selection.map(xScale.invert);
+                    let sx = sx0.map(interval.round);
+
+                    // If empty when rounded, use floor instead.
+                    if (sx[0] >= sx[1]) {
+                      sx[0] = interval.floor(sx0[0]);
+                      sx[1] = interval.offset(sx[0]);
+                    }
+
+                    d3.select(this).call(brush.move, sx.map(xScale));
+
                     // Check if any of the brush is inside an existing annotation. If so 
                     // return.
                     for (const e of allEvents){
@@ -376,7 +396,10 @@ document.addEventListener("DOMContentLoaded", function() {
                             return;
                         }
                     }
-                    
+
+                  svg.selectAll('.dataPoints rect').style("opacity", d => { 
+                    return sx[0] <= d.time && d.time < sx[1] ? "1" : '0.2'; });
+
                     // Create a button to save event
                     svg.append('g')
                       .attr('class','saveBtnContainer')
@@ -405,7 +428,8 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             function brushing({selection}) {
-                // console.log('brush hapenning')
+               if (!event.sourceEvent) return;
+               // console.log('brush hapenning')
                 resetTimeOfInactivity();
 
                 FLAG = true;
@@ -413,11 +437,24 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (selection === null) {
                    clearBrushSelection();
                 } else {
-                  const sx = selection.map(xScale.invert);
+                    // const sx = selection.map(xScale.invert);
+                    interval = d3.timeMinute.every(30)
+    
+                    let sx0 = selection.map(xScale.invert);
+                    let sx = sx0.map(interval.round);
+
+                    // If empty when rounded, use floor instead.
+                    if (sx[0] >= sx[1]) {
+                      sx[0] = interval.floor(sx0[0]);
+                      sx[1] = interval.offset(sx[0]);
+                    }
 
                   svg.selectAll('.dataPoints rect').style("opacity", d => { 
                     return sx[0] <= d.time && d.time <= sx[1] ? "1" : '0.2'; });
+
                 }
+                
+                // d3.select(this).call(brush.move, sx.map(xScale));
             }
 
             function createEvent(selection){
@@ -433,6 +470,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 evnt.description = ''
 
                 // TODO: add more acccurate time mapping based on the bars not the brushing
+
                 evnt.start = selection[0]; 
                 evnt.end = selection[1];
 
@@ -441,6 +479,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 const event_readings = data[series.id].filter(d => {
                     return (new Date(d.time)).getTime() >= evnt.start.getTime() && (new Date(d.time)).getTime() < evnt.end.getTime();
                 });
+
+                console.log(event_readings);
+
+                // evnt.duration_seconds = d3.max(event_readings, d => d.time).getTime() - d3.min(event_readings, d => d.time).getTime();
 
                 // TODO: add always on function
                 evnt.consumption = d3.sum(event_readings, d => d.value); // - always_on;
@@ -663,7 +705,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Highlight the annotated area
                     d3.selectAll('.dataPoints rect').filter( d => { 
                         // console.log(event.start.getTime() + event.duration)
-                        return d.time >= event.start && d.time <= (event.start.getTime() + (+event.duration_seconds));
+                        return d.time >= event.start && d.time < (event.start.getTime() + (+event.duration_seconds));
                     })
                     .classed('annottated',true)
 
@@ -832,8 +874,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     d3.select('#btnScale8').on('click', e =>{
-        WINDOW = 8;
-        SHIFT_BY = 4;
+        WINDOW = 12; // 8 // Change to 30min
+        SHIFT_BY = 8;// 4 /// Change to 30min
         resetTimeOfInactivity();
 
         d3.selectAll('.scaleBtn').classed('selected',false)
@@ -1364,7 +1406,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const curr = start.plus({'days': d});
             const next = curr.plus({'days': 1});
             console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
-            const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}`;
+            const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}&showAll=true&points=80`;
             const response = await d3.json(url+query);
             console.log('response:', response);
             all_data = all_data.concat(response.readings);
