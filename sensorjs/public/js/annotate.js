@@ -32,8 +32,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     'watching_tv', 'special_event', 'other'
                    ];
 
-    let SHIFT_BY =  8 // 4; // 30min CHECK
-    let WINDOW = 12; // 8 // 30min CHECK
+    let SHIFT_BY =  4 // 8 // ; // 30min CHECK
+    let WINDOW = 8 // 12; //  // 30min CHECK
     let FLAG = false;
     let timeOfInactivity = 60000;
     let sunrise, sunset;
@@ -280,8 +280,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("width", () => {
                     if( WINDOW == 24){ return 35; }
                     else if (WINDOW == 24*7){ return 1;} 
-                    else{ return 53; } // 30min CHECK
-                    // else{ return 3; }
+                    // else{ return 53; } // 30min CHECK
+                    else{ return 3; }
 
                 })
                 .attr("height", d => {
@@ -369,7 +369,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 // check it was not a random click
                 if( selection && selection.length >= 2){
 
-                    interval = d3.timeMinute.every(30) // check for 30min
+                    interval = d3.timeMinute.every(2) //30 // check for 30min
     
                     let sx0 = selection.map(xScale.invert);
                     let sx = sx0.map(interval.round);
@@ -874,8 +874,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     d3.select('#btnScale8').on('click', e =>{
-        WINDOW = 12; // 8 // Change to 30min
-        SHIFT_BY = 8;// 4 /// Change to 30min
+        WINDOW = 8 // 12; //  // Change to 30min
+        SHIFT_BY = 4;// 8 /// Change to 30min
         resetTimeOfInactivity();
 
         d3.selectAll('.scaleBtn').classed('selected',false)
@@ -1214,8 +1214,6 @@ document.addEventListener("DOMContentLoaded", function() {
           .append('g').attr('class','annotationBar')
           .datum(event)
           .attr('transform','translate('+xScale(tmpDate)+',0)')
-          .on('click', (e,d) => {
-                editEvent(e,d)})
 
         // TODO Make more elegant
         event.end = new Date( tmpDate.getTime() + (+event.duration_seconds));
@@ -1272,6 +1270,26 @@ document.addEventListener("DOMContentLoaded", function() {
               })
               .style('fill','#ff9620');
 
+
+        anntContainer
+            .append('image')
+            .attr("xlink:href", '/static/imgs/event_icons/edit.svg')
+            .attr("x", linesize -12)
+            .attr("y", svgHeight - svgMarginBottom +5)
+            .attr("width",40).attr("height", 40)
+            .style('cursor','pointer')
+            .attr('class','editBtn')
+            .on('mouseover', (e) => {
+                console.log(e)
+                d3.select(e.srcElement).attr("width",38);
+            })
+            .on('mouseout', (e) => {
+               d3.select(e.srcElement).attr("width",40);
+            })
+            .on('click', (e,d) => {
+                editEvent(e,d)})
+
+
         setAnnotationBarVisibility();
     }
 
@@ -1281,15 +1299,18 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.selectAll('.annotationBar text').style('opacity',0)
             d3.selectAll('.annotationBar image').style('opacity',1)
             d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+            d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
 
         }else if(WINDOW == 24*7){
             d3.selectAll('.annotationBar text').style('opacity',0)
             d3.selectAll('.annotationBar image').style('opacity',0)
             d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
+            d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
         }else{
            d3.selectAll('.annotationBar text').style('opacity',1)
            d3.selectAll('.annotationBar image').style('opacity',1)
            d3.selectAll('.annotationBar .blocksContainer').style('opacity',1)
+           d3.selectAll('.annotationBar .editBtn').style('visibility','visible')
         }
     }
 

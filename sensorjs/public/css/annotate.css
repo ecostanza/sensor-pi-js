@@ -13,6 +13,10 @@ svg{
   font-size: 9px;
 }
 
+.editBtn{
+  cursor: pointer;
+}
+
 .dataPoints rect{
    fill: rgba(100,100,100,1);
 }

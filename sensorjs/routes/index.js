@@ -168,7 +168,7 @@ function buildQueries(start, end, points, measurement, sensor_id, recentOnly) {
   }
 
   const deltaMinutes = start - end;
-  const interval = 30//2 // Math.ceil(deltaMinutes / points); 30min CHECK
+  const interval = 2// 30 // Math.ceil(deltaMinutes / points); 30min CHECK
 
   const select = 'SELECT "time", mean("value") as "value"';
   const groupBy = `GROUP BY time(${interval}m)`;
