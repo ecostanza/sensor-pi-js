@@ -998,10 +998,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Periodical refresh if FLAG is down
         function refreshData() {
-            const promises = _series.map(m => refreshMeasurementData(m));
-            Promise.all(promises).then( () => {
-                console.log('All refreshed');
-            });
+            if(FLAG == false){
+                window.location.reload();
+            }
+            // const promises = _series.map(m => refreshMeasurementData(m));
+            // Promise.all(promises).then( () => {
+            //     console.log('All refreshed');
+            // });
         }
 
         async function refreshMeasurementData(m){
@@ -1063,7 +1066,7 @@ document.addEventListener("DOMContentLoaded", function() {
             window.clearTimeout(timeoutId)
             startTimer();
 
-            timeOfInactivity = 2*60*1000;
+            timeOfInactivity = 6*60*1000;
         }
 
         d3.select('select#measurementSelect')
