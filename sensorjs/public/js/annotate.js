@@ -388,8 +388,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         tmpStart = new Date(e.start);
                         tmpEnd = new Date(tmpStart.getTime() + (+e.duration_seconds));
 
-                        if ( (sx[0] <= tmpEnd && sx[0]>= tmpStart) ||
-                             (sx[1] <= tmpEnd && sx[1]>= tmpStart)){
+                        if ( (sx[0] < tmpEnd && sx[0]>= tmpStart) ||
+                             (sx[1] <= tmpEnd && sx[1]> tmpStart)){
                             clearBrushSelection();
                             brushContainer.call(brush.move,null);
                             d3.select('#infoBox').html('You cannot have overlapping annotations').style('display','block');
@@ -1223,23 +1223,37 @@ document.addEventListener("DOMContentLoaded", function() {
         
         anntContainer
             .append('path')
+            .attr('class','topAnnotationLine')
             .datum([0,(xScale(event.end)-xScale(tmpDate))])
             .attr('d', anntLine) 
             .attr('stroke-width','2px')
 
-        anntContainer
-            .append('text')
-            .attr('font-size','15px')
-            .attr('x', 45)
-            // .attr('y',svgMarginTop-35)
-            .attr('y',25+svgHeight - svgMarginBottom +30)
-            .text(event.type)
+        anntContainer.append('path')
+                    .attr('class','leftAnnotationLine')
+                    .attr('d', 'M 0,'+(svgHeight- svgMarginBottom + 10)+' L 0,'+(svgHeight))
+                    .attr('stroke-width','0.5px')
+                    .attr('stroke-dasharray','3')
 
+        anntContainer.append('path')
+                    .attr('class','rightAnnotationLine')
+                    .attr('d', 'M '+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight))
+                    .attr('stroke-width','0.5px')
+                    .attr('stroke-dasharray','3')
+
+        // anntContainer
+        //     .append('text')
+        //     .attr('font-size','15px')
+        //     .attr('x', 45)
+        //     // .attr('y',svgMarginTop-35)
+        //     .attr('y',25+svgHeight - svgMarginBottom +30)
+        //     .text(event.type)
+
+        linesize = (xScale(event.end)-xScale(tmpDate));
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '.svg')
-            .attr("x", 0 )
-            .attr("y", 25+svgHeight - svgMarginBottom +15)
+            .attr("x", linesize/2 - 20 )
+            .attr("y", 23+svgHeight - svgMarginBottom +15)
             // .attr("y", svgMarginTop-50)
             .attr("width",40).attr("height", 40)
 
@@ -1252,13 +1266,13 @@ document.addEventListener("DOMContentLoaded", function() {
             array.push(1);
         }
 
-        blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
-              .attr('x', 45)//xScale(event.start))
-              .attr('y',25+svgHeight - svgMarginBottom + 50)
-
+        anntContainer.append('text').text( (+event.consumption).toFixed(2)+"KW")
+              .attr('x', linesize/2 - 24)//xScale(event.start))
+              .attr('y',55+svgHeight - svgMarginBottom + 40)
+              .style('font-size','14px')
+              .style('text-anchor','midle')
         y = -1;j=-1;
 
-        linesize = (xScale(event.end)-xScale(tmpDate));
         blockC.selectAll('rect')
               .data(array, d => {return d})
               .join('rect')
@@ -1269,7 +1283,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if( j*15 > linesize){ y++;j=0;}
                 else{ j++; }
                 // x = xScale(new Date(event.start)) + j*20;
-                return 'translate('+(j*15)+','+(25+y*15+svgHeight - svgMarginBottom +75)+')';
+                return 'translate('+(j*15+5)+','+(50+y*15+svgHeight - svgMarginBottom +75)+')';
               })
               .style('fill','#ff9620');
 
@@ -1337,9 +1351,16 @@ document.addEventListener("DOMContentLoaded", function() {
            
            // TODO Make more elegant
             parentNode = d3.selectAll('.annotationBar').nodes()[i];
-            d3.select(parentNode).select('path')
+
+            d3.select(parentNode).select('image')
+                .attr("x", (xScale(end)-xScale(tmpDate))/2 - 20)
+
+            d3.select(parentNode).select('path.topAnnotationLine')
                 .datum([0,(xScale(end)-xScale(tmpDate))])
                 .attr('d', anntLine) 
+
+            d3.select(parentNode).select('path.rightAnnotationLine')  
+                .attr('d', 'M '+(xScale(end)-xScale(tmpDate))+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(end)-xScale(tmpDate))+','+(svgHeight))
 
         })
 
