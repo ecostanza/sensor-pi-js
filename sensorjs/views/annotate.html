@@ -41,9 +41,8 @@
     <div class="scalingContainer">
       <!-- <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button> -->
       <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
-      <button id="btnScale8" class="btn scaleBtn selected">Show 8 hours</button><!--12  30min CHECK -->
+      <button id="btnScale8" class="btn scaleBtn selected">Show 12 hours</button><!--8  30min CHECK -->
    </div>
-
 
     <div id="infoBox"></div>
 
@@ -64,12 +63,12 @@
 
         <div> 
            <i>Flexibility</i> <br>
-          <textarea id="evntFlexibility" name="flexibility" rows="3" cols="35"> </textarea> 
+          <textarea id="evntFlexibility" name="flexibility" rows="2" cols="35" placeholder="How flexibile is this activity? Can you schedule it for later or earlier?"> </textarea> 
         </div>
 
         <div> 
-          <i> Describe the event</i> <br>
-          <textarea id="evntDescription" name="notes" rows="3" cols="35"></textarea>
+          <i>Describe the event</i> <br>
+          <textarea id="evntDescription" name="notes" rows="2" cols="35" placeholder=""></textarea>
         </div>
 
 
@@ -88,9 +87,14 @@
       </form>
     </div>
 
-    <button id="saveCSVElectricity" class="btn">Download Electricity Data</button>
-    <button id="saveCSVAnnotation" class="btn">Download Annotation Data CSV</button>
-    <button id="saveCSVAnnotation" class="btn">Download Annotation Data Boxes</button>
+    <button id="saveCSVElectricity" class="btn">Download Electricity Consumption Data</button>
+    <button id="saveCSVAnnotation" class="btn">Download Annotations</button>
+    <!-- <button id="saveCSVAnnotationBoxes" class="btn">Download Annotation Data Boxes</button> -->
+
+    <div id="containerBoxes">
+      <!-- <svg viewBox="0 0 1240 1754"></svg> -->
+    </div>
+
 
     <!-- Optional JavaScript -->
     <script src="/static/js/libs/bootstrap.bundle.min.js"></script>

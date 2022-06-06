@@ -11,30 +11,30 @@ document.addEventListener("DOMContentLoaded", function() {
     let allEvents = [];
 
     let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
-    let svgHeight =  svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
+    let svgHeight = window.innerHeight //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
     
     const margin = 5;
     const padding = 5;
     const adj = 30;
     const svgMarginTop = 30;
-    const svgMarginBottom = 200;
+    const svgMarginBottom = 300;
     const svgMarginLeft = 0;
-
 
     let sensorId = 96;
     let xScale, yScale, brush;
     let loadData = undefined;
 
-    // TODO fix which activities are included >>> make them activities not devices!
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
                     'question_mark','toaster','air_cooling','heating','showering_and_hair-drying',
                     'computer','hob','ironing','lighting','meal_breakfast','meal_lunch','meal_dinner',
                     'watching_tv', 'special_event', 'other'
                    ];
 
-    let SHIFT_BY =  4 // 8 // ; // 30min CHECK
-    let WINDOW = 8 // 12; //  // 30min CHECK
+    let SHIFT_BY =  8 // 4 // ; // 30min CHECK
+    let WINDOW = 12 // 8 //  // 30min CHECK
     let FLAG = false;
+    let SCALING_FACTOR = 0.22;
+
     let timeOfInactivity = 60000;
     let sunrise, sunset;
     const consumptionUnit = 2;
@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let offset = 0;
 
         data = data.map(function (d) {
-            let v = +d.value + offset;
+            let v = +d.value*SCALING_FACTOR + offset;
             if (d.value === null) {
                 v = null;
             }
@@ -278,10 +278,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 .data(dataF)
                 .join("rect")
                 .attr("width", () => {
-                    if( WINDOW == 24){ return 35; }
+                    if( WINDOW == 24){ return 30; }
                     else if (WINDOW == 24*7){ return 1;} 
-                    // else{ return 53; } // 30min CHECK
-                    else{ return 3; }
+                    else{ return 53; } // 30min CHECK
+                    // else{ return 3; }
 
                 })
                 .attr("height", d => {
@@ -369,7 +369,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 // check it was not a random click
                 if( selection && selection.length >= 2){
 
-                    interval = d3.timeMinute.every(2) //30 // check for 30min
+                    interval = d3.timeMinute.every(30) //2 // check for 30min
     
                     let sx0 = selection.map(xScale.invert);
                     let sx = sx0.map(interval.round);
@@ -485,7 +485,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 // evnt.duration_seconds = d3.max(event_readings, d => d.time).getTime() - d3.min(event_readings, d => d.time).getTime();
 
                 // TODO: add always on function
-                evnt.consumption = d3.sum(event_readings, d => d.value); // - always_on;
+                evnt.consumption = (30/60)*d3.sum(event_readings, d => d.value); //  (2/60) SAMPLING_INTERVAL CHECK 30min
+                // evnt.consumption = d3.sum(event_readings, d => d.value);
+                // evnt.consumption = ((SAMPLING_INTERVAL)/60) * d3.sum(event_readings, d => d.value); // - always_on;
+                                //  / number of samples (lenth of array) * (duration_minutes/60) 
 
                 show_event_dialog(evnt);
             }
@@ -599,7 +602,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 resetTimeOfInactivity();
 
                 d3.select("#dialogueBox")
-                  .style('left', () => { return (window.innerWidth/2 - 250 )+ "px";})
+                  .style('left', () => { return (window.innerWidth/2 - 580/2 )+ "px";})
                   .style('display','block');
 
                 populateDialogBox(event);
@@ -874,8 +877,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     d3.select('#btnScale8').on('click', e =>{
-        WINDOW = 8 // 12; //  // Change to 30min
-        SHIFT_BY = 4;// 8 /// Change to 30min
+        WINDOW = 12 // 8; //  //  30min CHECK
+        SHIFT_BY = 8;// 4 /// 30min CHECK
         resetTimeOfInactivity();
 
         d3.selectAll('.scaleBtn').classed('selected',false)
@@ -903,7 +906,7 @@ document.addEventListener("DOMContentLoaded", function() {
         updateSunriseSunset();
     });
 
-    d3.select('#btnScaleWeek').on('click', e =>{
+/*    d3.select('#btnScaleWeek').on('click', e =>{
         WINDOW = 24*7;
         SHIFT_BY = 24*4;
         resetTimeOfInactivity();
@@ -929,7 +932,7 @@ document.addEventListener("DOMContentLoaded", function() {
         updateAnnotationBar();
         updateSunriseSunset();
     });
-
+*/
     let seriesUrl = '/series/?showAll=true';
 
     d3.json(seriesUrl).then(function (allSeries) {
@@ -1160,7 +1163,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 d3.select('#'+g.measurement+"_"+g.sensor+'Chart')
                   .selectAll('.dataPoints rect')
                   .filter( d => { 
-                    return d.time >= tmpDate && d.time <= (tmpDate.getTime() + (+g.duration_seconds));
+                    return d.time >= tmpDate && d.time <(tmpDate.getTime() + (+g.duration_seconds));
                   })
                   .classed('annottated',true)
 
@@ -1229,14 +1232,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('font-size','15px')
             .attr('x', 45)
             // .attr('y',svgMarginTop-35)
-            .attr('y',svgHeight - svgMarginBottom +30)
+            .attr('y',25+svgHeight - svgMarginBottom +30)
             .text(event.type)
 
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '.svg')
             .attr("x", 0 )
-            .attr("y", svgHeight - svgMarginBottom +15)
+            .attr("y", 25+svgHeight - svgMarginBottom +15)
             // .attr("y", svgMarginTop-50)
             .attr("width",40).attr("height", 40)
 
@@ -1251,7 +1254,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         blockC.append('text').text( (+event.consumption).toFixed(2)+"KW")
               .attr('x', 45)//xScale(event.start))
-              .attr('y',svgHeight - svgMarginBottom + 50)
+              .attr('y',25+svgHeight - svgMarginBottom + 50)
 
         y = -1;j=-1;
 
@@ -1266,21 +1269,19 @@ document.addEventListener("DOMContentLoaded", function() {
                 if( j*15 > linesize){ y++;j=0;}
                 else{ j++; }
                 // x = xScale(new Date(event.start)) + j*20;
-                return 'translate('+(j*15)+','+(y*15+svgHeight - svgMarginBottom +75)+')';
+                return 'translate('+(j*15)+','+(25+y*15+svgHeight - svgMarginBottom +75)+')';
               })
               .style('fill','#ff9620');
-
 
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/edit.svg')
-            .attr("x", linesize -12)
+            .attr("x", linesize/2 - 20)
             .attr("y", svgHeight - svgMarginBottom +5)
             .attr("width",40).attr("height", 40)
             .style('cursor','pointer')
             .attr('class','editBtn')
             .on('mouseover', (e) => {
-                console.log(e)
                 d3.select(e.srcElement).attr("width",38);
             })
             .on('mouseout', (e) => {
@@ -1288,7 +1289,6 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .on('click', (e,d) => {
                 editEvent(e,d)})
-
 
         setAnnotationBarVisibility();
     }
@@ -1366,6 +1366,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
     d3.select('#saveCSVElectricity').on('click', exportCSVElectricity);
     d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
+    // d3.select('#saveCSVAnnotationBoxes').on('click', exportAnnotationsAsBoxes);
 
     async function exportCSVAnnotation(){
         resetTimeOfInactivity();
@@ -1457,6 +1458,193 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
     async function exportAnnotationsAsBoxes(){
+
+        const A4_WIDTH = 1240
+        const A4_HEIGHT = 1754
+
+        const MAX_CURVE_KW = 12
+        const MAX_CURVE_PIXELS = 658
+
+        const MAX_HOUR_PIXELS = 99
+
+        d3.select('#spinner').style('display','block')
+
+        // Draw all the boxes. Only then try to save them
+        try{
+            result = await d3.json('/annotations');
+    
+            let svgBoxes = d3.select('#containerBoxes').append('svg')
+                .attr('width', A4_WIDTH )///window.innerWidth)
+                .attr('height',2*A4_HEIGHT)//*window.innerHeight)
+                .append('g')
+                // .attr('transform','translate('+margin.top+','+margin.left+')')
+
+            let heightScale = d3.scaleLinear([0,MAX_CURVE_KW],[0,MAX_CURVE_PIXELS])
+            let widthScale = d3.scaleLinear([0,60*60*1000],[0,MAX_HOUR_PIXELS])
+     
+            // sort by size
+            result.sort((a,b)=>{
+                return (+a.duration_seconds) - (+b.duration_seconds)
+            })
+
+            groups = svgBoxes.selectAll('g')
+                .data(result, d => {return d})
+                .join('g')
+
+            groups.append('rect')
+                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', 0)
+                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face1')
+            groups.append('rect')
+                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return widthScale(+d.duration_seconds); })
+                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face3')
+
+            groups.append('rect')
+                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return 2*widthScale(+d.duration_seconds); })
+                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face5')
+
+            groups.append('rect')
+                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds); })
+                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face6')
+
+            groups.append('rect')
+                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
+                .attr('width', d => { return widthScale(+d.duration_seconds)/4; })
+                .attr('x', d => { return 4*widthScale(+d.duration_seconds); })
+                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
+                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','fold')
+
+            groups.append('rect')
+                .attr('height', d => {return widthScale(+d.duration_seconds); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return widthScale(+d.duration_seconds); })
+                .attr('y',  d => { return widthScale(+d.duration_seconds)/4; })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face2')
+
+            groups.append('rect')
+                .attr('height', d => {return widthScale(+d.duration_seconds); })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return widthScale(+d.duration_seconds); })
+                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 1.25*widthScale(+d.duration_seconds); })
+                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+                .attr('class','face3')
+
+            groups.append('rect')
+                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return widthScale(+d.duration_seconds); })
+                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 2.25*widthScale(+d.duration_seconds); })
+                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+            .attr('class','fold')
+
+
+            groups.append('rect')
+                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
+                .attr('width', d => { return widthScale(+d.duration_seconds); })
+                .attr('x', d => { return widthScale(+d.duration_seconds); })
+                .attr('y',  0)
+                .attr('class','fold')
+                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
+                .style('stroke','black')
+
+            groups.append('image')
+                .attr('xlink:href', d => {return 'static/imgs/event_icons/' + d.type + '.svg'})
+                // .text(d => { return d.type; })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2-10 })
+                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3-25; })
+                .attr('width',20)
+                .attr('height',20)
+
+            groups.append('text')
+                .text(d => { return d.type; })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
+                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+5; })
+                .attr('text-anchor','middle')
+                .attr('font-size',5)
+                .style('font-weight','bold')
+
+            groups.append('text')
+                .text(d => { return d.description; })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
+                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+20; })
+                .attr('text-anchor','middle')
+                .attr('font-size',5)
+
+            groups.append('text')
+                .text(d => { return (+d.consumption).toFixed(2)+"KWh"; })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
+                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+50; })
+                .attr('text-anchor','middle')
+                .attr('font-size',5)
+            groups.append('text')
+                .text(d => { return Math.round(+d.duration_seconds/60000)+"minutes"; })
+                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
+                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+40; })
+                .attr('text-anchor','middle')
+                .attr('font-size',5)
+
+            let runningX = 0;
+            let runningY = 0;
+            let currentMaxY = 0;
+            // let currentMaxX = 0;
+            groups.each( (gg, i) => {
+                // console.log(gg);
+
+                if( runningX + 4.25*widthScale(gg.duration_seconds) + 4 > A4_WIDTH){
+                    runningX = 0;
+                    runningY += currentMaxY + 4;
+                }
+                d3.select(groups.nodes()[i]).attr('transform','translate('+runningX+','+runningY+')')
+                runningX += 4*widthScale(gg.duration_seconds) + 40;
+                if(  (heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)) > currentMaxY) {
+                    currentMaxY = heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)
+                }
+            })
+        }catch(e){
+            console.log(e)
+        }
+
+        var html = d3.select("#containerBoxes svg")
+        .attr("version", 1.1)
+        .attr("xmlns", "http://www.w3.org/2000/svg")
+        .attr('xmlns:xlink',"http://www.w3.org/1999/xlink")
+        .node().parentNode.innerHTML;
+
+        var link = document.createElement("a");
+        link.setAttribute("href", "data:image/svg+xml;base64,\n" + btoa(html))
+        link.setAttribute("download", 'annotation-boxes.svg');
+        link.setAttribute("href-lang", "image/svg+xml")
+
+        document.body.appendChild(link); // Required for FF
+        link.click();
+
+        d3.select('#spinner').style('display','none')
+
 
     };
 
