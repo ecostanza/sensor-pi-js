@@ -13,11 +13,17 @@ document.addEventListener("DOMContentLoaded", function() {
     let svgWidth = window.innerWidth //+200; //> 700 ? 700:window.innerWidth ;
     let svgHeight = window.innerHeight //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
     
+    /*Check if mobile/portrait mode*/
+    if( svgWidth < svgHeight){
+        svgHeight = svgWidth;
+    }
+
+
     const margin = 5;
     const padding = 5;
     const adj = 30;
     const svgMarginTop = 30;
-    const svgMarginBottom = 300;
+    const svgMarginBottom = window.innerHeight > 530 ? 300:200;
     const svgMarginLeft = 0;
 
     let sensorId = 96;
@@ -33,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let SHIFT_BY =  8 // 4 // ; // 30min CHECK
     let WINDOW = 12 // 8 //  // 30min CHECK
     let FLAG = false;
-    let SCALING_FACTOR = 0.22;
+    let SCALING_FACTOR = 0.23;
 
     let timeOfInactivity = 60000;
     let sunrise, sunset;
@@ -75,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer
             .append("h4")
             .attr('id', measurement.id)
-            .text(name);
+            .text(name.replace('_',' '));
 
         svgContainer
             .append("svg")
@@ -167,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }else{
 
             max = d3.max(newdata, d => new Date(d.time.getTime()));
+            max = new Date(max.getTime() + 30*60*1000); // add 30min so as to see the laterst 
 
             if(freshData == false) { 
                max = new Date(max.getTime() + WINDOW*60*60*1000); 
@@ -247,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("y", 6)
                 .attr('x',-svgMarginTop)
                 .style("text-anchor", "end")
-                .text(label);
+                .text(label.replace('_',' ')+' (KW)');
         
         svg.append('clipPath')
               .attr("id", "clip")
@@ -280,7 +287,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("width", () => {
                     if( WINDOW == 24){ return 30; }
                     else if (WINDOW == 24*7){ return 1;} 
-                    else{ return 53; } // 30min CHECK
+                    else{ return (svgWidth- svgMarginLeft )/24}//53; } // 30min CHECK
                     // else{ return 3; }
 
                 })
@@ -801,6 +808,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tmp = xScale.domain();
         maxTime = new Date();
+        maxTime = new Date(max.getTime()+30*60*1000);        
         minTime = maxTime - WINDOW * 60 * 60 *1000;
         // new Date(tmp[0].setHours(tmp[0].getHours()-SHIFT_BY));
         // minTime.setHours(maxTime.getHours()+WINDOW);
