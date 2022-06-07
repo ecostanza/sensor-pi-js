@@ -28,6 +28,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let sensorId = 96;
     let xScale, yScale, brush;
+    let drawSolarGeneration = undefined;
     let loadData = undefined;
 
     event_types = ['washing_and_drying','housework','dishwasher','kettle','microwave','oven',
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let SCALING_FACTOR = 0.23;
 
     let timeOfInactivity = 60000;
-    let sunrise, sunset;
+    let sunrise, sunset, solarData;
     const consumptionUnit = 2;
 
     // TODO make global
@@ -111,6 +112,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return d3.json(dataUrl).then(function (response) {
             console.log(response)
             drawGraphs(response,sensor_id,series);
+            drawSolarGeneration();
         });
     }
 
@@ -193,6 +195,12 @@ document.addEventListener("DOMContentLoaded", function() {
             [svgHeight-svgMarginBottom, svgMarginTop]
         );
         
+        solarLine = d3.area()
+                     .x(d => xScale(d.datetime))
+                     .y1(d => yScale(d.P_GEN_RA))
+                     .y0(svgHeight -svgMarginBottom)
+
+
         let xAxis = d3.axisTop()
             .ticks(15)
             .tickSize(-svgHeight+svgMarginBottom)
@@ -793,11 +801,45 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
+        drawSolarGeneration = async function(){
+
+            if(solarData=== undefined){
+                today = new Date();
+                counter = 0;
+                solarData = await d3.csv('/static/data/solar_generation_patterndata.csv')
+
+               let dtmp = new Date(today);
+                solarData.forEach( tt =>{
+                   if(tt['t_time'] == '00:01:00'){
+                        dtmp.setDate(today.getDate() - counter)
+                        // /today.getTime() - counter*24*60*60*1000
+                        counter++;
+                        console.log(dtmp)
+                   }
+                   tt['datetime'] = new Date();
+                   tt['datetime'].setDate(dtmp.getDate())
+                   tt['datetime'].setHours(tt['t_h'])
+                   tt['datetime'].setMinutes(tt['t_m'])
+                })
+                svg.append('path')
+                .attr('id','solarData')
+                .datum(solarData)
+
+            }
+
+            console.log(solarData)
+            svg.select('#solarData')
+                .attr('d',solarLine)
+                .style('opacity','0.4')
+                .style('fill','yellow')
+                .attr("clip-path", "url(#clip)");
+        }
+
         updateGraph(data[series.id],true);
         getSunriseSunset(data[series.id],series.id);
         addBrushing();
         drawAnnotations(series.id);
-
+        updateSolarGeneration();
     }
     
     d3.select('#btnEarlier').on('click', getEarlierData);
@@ -823,6 +865,7 @@ document.addEventListener("DOMContentLoaded", function() {
         allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
         updateSunriseSunset();
         updateAnnotationBar();
+        updateSolarGeneration();
     });
     
     d3.select('#btnLater').on('click', e =>{
@@ -851,6 +894,7 @@ document.addEventListener("DOMContentLoaded", function() {
         allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
         updateSunriseSunset();
         updateAnnotationBar();
+        updateSolarGeneration();
     });
 
     d3.select('#btnScale24').on('click', e =>{
@@ -881,6 +925,7 @@ document.addEventListener("DOMContentLoaded", function() {
         allSensorIds = Object.keys(data);            
         allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
         updateAnnotationBar();
+        updateSolarGeneration()
         updateSunriseSunset();
     });
 
@@ -911,6 +956,7 @@ document.addEventListener("DOMContentLoaded", function() {
         allSensorIds = Object.keys(data);            
         allSensorIds.forEach( h => { updateGraph(data[h],false,h); });
         updateAnnotationBar();
+        updateSolarGeneration()
         updateSunriseSunset();
     });
 
@@ -1152,7 +1198,8 @@ document.addEventListener("DOMContentLoaded", function() {
             updateXAxis();
             allSensorIds.forEach( h => { updateGraph(data[h],false,h); })
             updateSunriseSunset();
-            updateAnnotationBar();   
+            updateAnnotationBar();
+            updateSolarGeneration();
         }
         d3.select('#btnLater').classed('disabled',false)
         d3.select('#btnRecent').classed('disabled',false)
@@ -1680,6 +1727,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     };
 
+
+    function updateSolarGeneration(){
+        d3.select('#solarData')
+          .transition()
+          .attr('d',solarLine)
+    }
 
     function getSunriseSunset(data, id){
         d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
