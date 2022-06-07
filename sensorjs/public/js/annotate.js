@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let timeOfInactivity = 60000;
     let sunrise, sunset, solarData;
-    const consumptionUnit = 2;
+    const consumptionUnit = 0.1;
 
     // TODO make global
     const unitLUT = {
@@ -79,10 +79,10 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        svgContainer
-            .append("h4")
-            .attr('id', measurement.id)
-            .text(name.replace('_',' '));
+        // svgContainer
+        //     .append("h4")
+        //     .attr('id', measurement.id)
+        //     .text(name.replace('_',' '));
 
         svgContainer
             .append("svg")
@@ -191,7 +191,8 @@ document.addEventListener("DOMContentLoaded", function() {
         );
 
         yScale = d3.scaleLinear(
-            [(0), 1.1 * d3.max(data[series.id], d => +d.value)],
+            [0, 2.5],
+            // [(0), 1.1 * d3.max(data[series.id], d => +d.value)],
             [svgHeight-svgMarginBottom, svgMarginTop]
         );
         
@@ -271,6 +272,11 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('y',yScale.range()[1])
               .attr('width',xScale.range()[1]-xScale.range()[0])
               .attr('height',yScale.range()[0]-yScale.range()[1] + svgMarginBottom)
+
+        svg.append('defs').html(`
+            <pattern id="stripe-pattern" patternUnits="userSpaceOnUse" width="11.5" height="11.5" patternTransform="rotate(45)">
+            <line x1="0" y="0" x2="0" y2="11.5" stroke="#194d33" stroke-width="0.5" />
+        </pattern>`)
 
         svg.append('g').attr('class','annotations').attr("clip-path", "url(#clip)")
 
@@ -805,34 +811,41 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if(solarData=== undefined){
                 today = new Date();
-                counter = 0;
-                solarData = await d3.csv('/static/data/solar_generation_patterndata.csv')
+                dayCounter = 0;
+                try{ 
+                   solarData = await d3.csv('/static/data/solar_generation_patterndata.csv')
 
-               let dtmp = new Date(today);
-                solarData.forEach( tt =>{
-                   if(tt['t_time'] == '00:01:00'){
-                        dtmp.setDate(today.getDate() - counter)
-                        // /today.getTime() - counter*24*60*60*1000
-                        counter++;
-                        console.log(dtmp)
-                   }
-                   tt['datetime'] = new Date();
-                   tt['datetime'].setDate(dtmp.getDate())
-                   tt['datetime'].setHours(tt['t_h'])
-                   tt['datetime'].setMinutes(tt['t_m'])
-                })
-                svg.append('path')
-                .attr('id','solarData')
-                .datum(solarData)
-
+                   let dtmp = new Date(today);
+                    solarData.forEach( tt =>{
+                       if(tt['t_time'] == '00:01:00'){
+                            dtmp.setDate(today.getDate() - dayCounter)
+                            // /today.getTime() - counter*24*60*60*1000
+                            dayCounter++;
+                       }
+                       tt['datetime'] = new Date(today);
+                       tt['datetime'].setDate(dtmp.getDate())
+                       tt['datetime'].setMonth(dtmp.getMonth())
+                       tt['datetime'].setHours(tt['t_h'])
+                       tt['datetime'].setMinutes(tt['t_m'])
+                    })
+                    svg.append('path')
+                    .attr('id','solarData')
+                    .datum(solarData)
+                }catch(e){
+                    console.log(e)
+                }
             }
 
             console.log(solarData)
             svg.select('#solarData')
                 .attr('d',solarLine)
-                .style('opacity','0.4')
-                .style('fill','yellow')
+                .style('opacity','0.6')
+                .style('fill',"url('#stripe-pattern')")
+                .style('stroke','#40405063')
                 .attr("clip-path", "url(#clip)");
+
+
+            d3.select('.dataPoints').raise()
         }
 
         updateGraph(data[series.id],true);
@@ -1413,12 +1426,20 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select(parentNode).select('image')
                 .attr("x", (xScale(end)-xScale(tmpDate))/2 - 20)
 
-            d3.select(parentNode).select('path.topAnnotationLine')
+            d3.select(parentNode).selectAll('path.topAnnotationLine')
                 .datum([0,(xScale(end)-xScale(tmpDate))])
                 .attr('d', anntLine) 
 
             d3.select(parentNode).select('path.rightAnnotationLine')  
                 .attr('d', 'M '+(xScale(end)-xScale(tmpDate))+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(end)-xScale(tmpDate))+','+(svgHeight))
+
+            d3.select(parentNode).select('text')
+              .attr('x', (xScale(end)-xScale(tmpDate))/2 - 24)//xScale(event.start))
+
+            // d3.select(parentNode).select('image')
+            //     .attr("xlink:href", '/static/imgs/event_icons/edit.svg')
+            //     .attr("x", linesize/2 - 20)
+
 
         })
 
@@ -1805,7 +1826,7 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.selectAll('.backgroundData').selectAll('text')
               .data(nights)
               .join('text')
-              .text('night')
+              .text('sunset')
               .attr('x', d => { return xScale(d.time)+10})
               .attr('y', 60)
               .style('font-style','italic')

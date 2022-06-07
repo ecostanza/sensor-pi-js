@@ -36,14 +36,23 @@ svg{
 }
 
 .scalingContainer{
-  text-align: right;
-  width: 49%;
+  text-align: center;
+   margin-top: 1em;
+ width: 33%;
   display: inline-block;
 }
 
 .timeContainer{
+  text-align: center;
   margin-top: 1em;
-  width: 49%;
+  width: 33%;
+  display: inline-block;
+}
+
+.getDataContainer{
+  text-align: center;
+  margin-top: 1em;
+  width: 33%;
   display: inline-block;
 }
 

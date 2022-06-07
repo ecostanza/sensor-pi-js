@@ -32,21 +32,27 @@
 
     <!-- <h2>Electricity Consumption</h2> -->
 
-    <div class="timeContainer" style="">
-      <button id="btnEarlier" class="btn">earlier</button>
-      <button id="btnLater" class="btn disabled">later</button>
-      <button id="btnRecent" class="btn disabled">Most recent</button>
-    </div>
+    <nav style='position: fixed;bottom: 0;background: white;width: 100%;padding-bottom: 10px;border-top: 1px solid #a0a0a0;'>
+      <div class="timeContainer" style="">
+        <button id="btnEarlier" class="btn">earlier</button>
+        <button id="btnLater" class="btn disabled">later</button>
+        <button id="btnRecent" class="btn disabled">Most recent</button>
+      </div>
 
-    <div class="scalingContainer">
-      <!-- <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button> -->
-      <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
-      <button id="btnScale8" class="btn scaleBtn selected">Show 12 hours</button><!--8  30min CHECK -->
-   </div>
+      <div class="scalingContainer">
+        <!-- <button id="btnScaleWeek" class="btn scaleBtn">Show Full Week</button> -->
+        <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+        <button id="btnScale8" class="btn scaleBtn selected">Show 12 hours</button><!--8  30min CHECK -->
+     </div>
+     <div class="getDataContainer">
+        <button id="saveCSVElectricity" class="btn">Download Consumption Data</button>
+        <button id="saveCSVAnnotation" class="btn">Download Annotations</button>
+     </div>
+    </nav>
 
     <div id="infoBox"></div>
 
-    <div id="container"></div>
+    <div id="container" ></div>
     <div class="dialog">
       <form id="dialogueBox" action="event" method="post">
         <h4 >Create Event</h4>
@@ -87,8 +93,6 @@
       </form>
     </div>
 
-    <button id="saveCSVElectricity" class="btn">Download Electricity Consumption Data</button>
-    <button id="saveCSVAnnotation" class="btn">Download Annotations</button>
     <!-- <button id="saveCSVAnnotationBoxes" class="btn">Download Annotation Data Boxes</button> -->
 
     <div id="containerBoxes">
