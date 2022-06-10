@@ -273,6 +273,8 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('width',xScale.range()[1]-xScale.range()[0])
               .attr('height',yScale.range()[0]-yScale.range()[1] + svgMarginBottom)
 
+
+        // Pattern from https://svg-stripe-generator.web.app/
         svg.append('defs').html(`
             <pattern id="stripe-pattern" patternUnits="userSpaceOnUse" width="11.5" height="11.5" patternTransform="rotate(45)">
             <line x1="0" y="0" x2="0" y2="11.5" stroke="#194d33" stroke-width="0.5" />
@@ -846,13 +848,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
             d3.select('.dataPoints').raise()
+            d3.select('.brush').raise()
         }
 
         updateGraph(data[series.id],true);
         getSunriseSunset(data[series.id],series.id);
-        addBrushing();
-        drawAnnotations(series.id);
         updateSolarGeneration();
+        drawAnnotations(series.id);
+        addBrushing();
     }
     
     d3.select('#btnEarlier').on('click', getEarlierData);
