@@ -276,9 +276,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Pattern from https://svg-stripe-generator.web.app/
         svg.append('defs').html(`
-            <pattern id="stripe-pattern" patternUnits="userSpaceOnUse" width="11.5" height="11.5" patternTransform="rotate(45)">
-            <line x1="0" y="0" x2="0" y2="11.5" stroke="#194d33" stroke-width="0.5" />
+            <pattern id="stripe-pattern" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+            <line x1="0" y="0" x2="0" y2="7" stroke="#FAEBD7" stroke-width="10" />
         </pattern>`)
+//      <line x1="0" y="0" x2="0" y2="11.5" stroke="#194d33" stroke-width="0.5" />
 
         svg.append('g').attr('class','annotations').attr("clip-path", "url(#clip)")
 
@@ -1294,7 +1295,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // TODO Make more elegant
         event.end = new Date( tmpDate.getTime() + (+event.duration_seconds));
-        
+        linesize = (xScale(event.end)-xScale(tmpDate));
+
         anntContainer
             .append('path')
             .attr('class','topAnnotationLine')
@@ -1310,7 +1312,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         anntContainer.append('path')
                     .attr('class','rightAnnotationLine')
-                    .attr('d', 'M '+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight))
+                    .attr('d', 'M '+(linesize)+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight))
                     .attr('stroke-width','0.5px')
                     .attr('stroke-dasharray','3')
 
@@ -1322,7 +1324,6 @@ document.addEventListener("DOMContentLoaded", function() {
         //     .attr('y',25+svgHeight - svgMarginBottom +30)
         //     .text(event.type)
 
-        linesize = (xScale(event.end)-xScale(tmpDate));
         anntContainer
             .append('image')
             .attr("xlink:href", '/static/imgs/event_icons/' + event.type + '.svg')
@@ -1345,6 +1346,7 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('y',55+svgHeight - svgMarginBottom + 40)
               .style('font-size','14px')
               .style('text-anchor','midle')
+        
         y = -1;j=-1;
 
         blockC.selectAll('rect')
@@ -1354,7 +1356,7 @@ document.addEventListener("DOMContentLoaded", function() {
               .attr('height',10)
               .attr('transform', (d,i) => { 
 
-                if( j*15 > linesize){ y++;j=0;}
+                if( (j)*15+5*(j-1)> linesize){ y++;j=0;}
                 else{ j++; }
                 // x = xScale(new Date(event.start)) + j*20;
                 return 'translate('+(j*15+5)+','+(50+y*15+svgHeight - svgMarginBottom +75)+')';
