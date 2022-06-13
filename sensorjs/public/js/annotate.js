@@ -367,6 +367,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 
                 // svg.selectAll('.dataPoints rect').style("opacity", 0.2)// d => { 
                     // return sx[0] <= d.time && d.time < sx[1] ? "1" : '0.2'; });
+                    // d3.select(this).call(brushHandle, selection);
 
 
             }
@@ -374,17 +375,10 @@ document.addEventListener("DOMContentLoaded", function() {
             function brushEnd(event) {
                 resetTimeOfInactivity();
                 if (!event.sourceEvent) return;
-                // if(WINDOW == 24*7) { 
-                //     d3.select('#infoBox').html('You cannot annotate at this scale.')
-                //     clearBrushSelection();
-                //     return
-                // }
-
                 console.log('brush ended');
 
                 // const d0 = event.selection.map(xScale.invert);
                 // const d1 = d0.map(interval.round);
-
 
                 selection = event.selection;
 
@@ -405,6 +399,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
 
                     d3.select(this).call(brush.move, sx.map(xScale));
+                    // d3.select(this).call(brushHandle, sx.map(xScale));
 
                     // Check if any of the brush is inside an existing annotation. If so 
                     // return.
@@ -449,6 +444,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 }else{
                     clearBrushSelection();
                 }
+                
+
             }
 
             function brushing({selection}) {
@@ -476,10 +473,35 @@ document.addEventListener("DOMContentLoaded", function() {
                   svg.selectAll('.dataPoints rect').style("opacity", d => { 
                     return sx[0] <= d.time && d.time <= sx[1] ? "1" : '0.2'; });
 
+                    // d3.select(this).call(brushHandle, selection );
                 }
-                
+
                 // d3.select(this).call(brush.move, sx.map(xScale));
             }
+
+            // arc = d3.arc()
+            //     .innerRadius(0)
+            //     .outerRadius((svgHeight - svgMarginBottom - svgMarginTop ) / 2)
+            //     .startAngle(0)
+            //     .endAngle((d, i) => i ? Math.PI : -Math.PI)
+
+            // brushHandle = (g, selection) => g
+            //   .selectAll(".handle--custom")
+            //   .data([{type: "w"}, {type: "e"}])
+            //   .join(
+            //     enter => enter.append("path")
+            //         .attr("class", "handle--custom")
+            //         .attr("fill", "#666")
+            //         .attr("fill-opacity", 0.8)
+            //         .attr("stroke", "#000")
+            //         .attr("stroke-width", 1.5)
+            //         .attr("cursor", "ew-resize")
+            //         .attr("d", arc)
+            //   )
+            //     .attr("display", selection === null ? "none" : null)
+            //     .attr("transform", selection === null ? null : (d, i) => `translate(${selection[i]},${(svgHeight - svgMarginBottom - svgMarginTop) / 2})`)
+
+
 
             function createEvent(selection){
                 let evnt = {};
