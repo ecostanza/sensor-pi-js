@@ -37,8 +37,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     'watching_tv', 'special_event', 'other'
                    ];
 
-    let SHIFT_BY =  8 // 4 // ; // 30min CHECK
-    let WINDOW = 12 // 8 //  // 30min CHECK
+    let SHIFT_BY =  8// 4 // // ; // 30min CHECK
+    let WINDOW = 12// 8 //  //  // 30min CHECK
     let FLAG = false;
     let SCALING_FACTOR = 0.23;
 
@@ -263,7 +263,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("y", 6)
                 .attr('x',-svgMarginTop)
                 .style("text-anchor", "end")
-                .text(label.replace('_',' ')+' (KW)');
+                .text('Power'+' (KW)');
+                // .text(label.replace('_',' ')+' (KW)');
         
         svg.append('clipPath')
               .attr("id", "clip")
@@ -304,8 +305,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("width", () => {
                     if( WINDOW == 24){ return 30; }
                     else if (WINDOW == 24*7){ return 1;} 
-                    else{ return (svgWidth- svgMarginLeft )/24}//53; } // 30min CHECK
-                    // else{ return 3; }
+                    else{  return (svgWidth- svgMarginLeft )/24}//53; } // 30min CHECK
+                    // else{ return 6; }
 
                 })
                 .attr("height", d => {
@@ -387,7 +388,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 // check it was not a random click
                 if( selection && selection.length >= 2){
 
-                    interval = d3.timeMinute.every(30) //2 // check for 30min
+                    interval = d3.timeMinute.every(30) // 2// check for 30min
     
                     let sx0 = selection.map(xScale.invert);
                     let sx = sx0.map(interval.round);
@@ -612,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 d3.select('#dialogueBox #evntDurationLabel').html(durationLabel);
                 d3.select('#dialogueBox #evntStartLabel').html(printDate( new Date(evnt.start)));
-                d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(1)+" KW");
+                d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(2)+" KWh");
 
                 d3.select("#iconField").empty();
                 d3.select("#iconField")
@@ -856,19 +857,26 @@ document.addEventListener("DOMContentLoaded", function() {
                     svg.append('path')
                     .attr('id','solarData')
                     .datum(solarData)
+
+                    svg.append('rect').attr('x',40).attr('y',30).attr('width',30).attr('height',30)
+                                    .style('fill',"url('#stripe-pattern')")
+                                    .style('stroke','#40405063')
+
+                    svg.append('text').attr('x',75).attr('y',40).text('Example solar curve ').style('fill','#555').style('font-size','10px')
+                    svg.append('text').attr('x',75).attr('y',50).text(' on a sunny day').style('fill','#555').style('font-size','10px')
+
                 }catch(e){
                     console.log(e)
                 }
             }
 
-            console.log(solarData)
+            // console.log(solarData)
             svg.select('#solarData')
                 .attr('d',solarLine)
                 .style('opacity','0.6')
                 .style('fill',"url('#stripe-pattern')")
                 .style('stroke','#40405063')
                 .attr("clip-path", "url(#clip)");
-
 
             d3.select('.dataPoints').raise()
             d3.select('.brush').raise()
@@ -1214,10 +1222,10 @@ document.addEventListener("DOMContentLoaded", function() {
         maxTime = new Date(minTime);
         maxTime.setHours(maxTime.getHours()+WINDOW);
 
-        // TODO: THIS DOES NOT WORK FOR MULTIPLE SENSORS/MEASUREMENTS
         // Check if almost out of bounds
         allSensorIds = Object.keys(data);  
-        console.log(allSensorIds[0])          
+        console.log(allSensorIds[0])   
+        console.log(data[allSensorIds[0]].length)       
         if( minTime - SHIFT_BY/2 * 60 * 60 *1000 <= d3.min(data[allSensorIds[0]], d =>{ return d.time }) ||
             data[allSensorIds[0]].length == 0
          ){
