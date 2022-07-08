@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr("y", 6)
                 .attr('x',-svgMarginTop)
                 .style("text-anchor", "end")
-                .text('Power'+' (KW)');
+                .text('Power'+' (kW)');
                 // .text(label.replace('_',' ')+' (KW)');
         
         svg.append('clipPath')
@@ -613,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 d3.select('#dialogueBox #evntDurationLabel').html(durationLabel);
                 d3.select('#dialogueBox #evntStartLabel').html(printDate( new Date(evnt.start)));
-                d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(2)+" KWh");
+                d3.select('#dialogueBox #evntConsumptionLabel').html( (+evnt.consumption).toFixed(2)+" kWh");
 
                 d3.select("#iconField").empty();
                 d3.select("#iconField")
@@ -1373,7 +1373,7 @@ document.addEventListener("DOMContentLoaded", function() {
             array.push(1);
         }
 
-        anntContainer.append('text').text( (+event.consumption).toFixed(2)+"KW")
+        anntContainer.append('text').text( (+event.consumption).toFixed(2)+"kW")
               .attr('x', linesize/2 - 24)//xScale(event.start))
               .attr('y',55+svgHeight - svgMarginBottom + 40)
               .style('font-size','14px')
@@ -1579,7 +1579,7 @@ document.addEventListener("DOMContentLoaded", function() {
         csv_content += 'time,value' + "\n";
 
         all_data.forEach(function(row) {
-            csv_content += `${row.time},${row.value}` + "\r\n";
+            csv_content += `${row.time},${row.value*SCALING_FACTOR}` + "\r\n";
         });        
 
         const encoded_uri = encodeURI(csv_content);
@@ -1733,7 +1733,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr('font-size',5)
 
             groups.append('text')
-                .text(d => { return (+d.consumption).toFixed(2)+"KWh"; })
+                .text(d => { return (+d.consumption).toFixed(2)+"kWh"; })
                 .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
                 .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+50; })
                 .attr('text-anchor','middle')
