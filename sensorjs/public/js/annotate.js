@@ -859,6 +859,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     .datum(solarData)
 
                     svg.append('rect').attr('x',40).attr('y',30).attr('width',30).attr('height',30)
+                                    .style('fill',"white")
+                    svg.append('rect').attr('x',40).attr('y',30).attr('width',30).attr('height',30)
                                     .style('fill',"url('#stripe-pattern')")
                                     .style('stroke','#40405063')
 
