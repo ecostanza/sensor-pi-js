@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- local imports -->
+    <link rel="stylesheet" type="text/css" href="/static/css/annotate.css">
+
+    <title>Energy Consumption </title>
+  </head>
+  <body>
+<!-- <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <select class="form-select " id="measurementSelect" aria-label="Select measurement">
+          <option selected>Any Measurement</option>
+      </select>
+
+      <select class="form-select " id="sensorSelect" aria-label="Select sensor">
+          <option selected>Any Sensor</option>
+      </select>
+    </div>
+    </nav> -->
+    <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
+      <span class="visually-hidden">Loading...</span>
+    </div>
+      <nav id="navigation">
+        <div class="timeContainer" style="">
+          <button id="btnEarlier" class="btn">earlier</button>
+          <button id="btnLater" class="btn">later</button>
+          <!-- <button id="btnRecent" class="btn disabled">Most recent</button> -->
+        </div>
+
+        <div class="scalingContainer">
+          <div class="btn-group" role="group" id="intervalRadio" aria-label="Basic radio toggle button group">
+              <input type="radio" class="btn-check" name="btnradio" id="intervalbtnradio1" autocomplete="off" >
+              <label class="btn btn-outline-primary" for="intervalbtnradio1">6h</label>
+
+              <input type="radio" class="btn-check" name="btnradio" id="intervalbtnradio2" autocomplete="off">
+              <label class="btn btn-outline-primary" for="intervalbtnradio2">12h</label>
+
+              <input type="radio" class="btn-check" name="btnradio" id="intervalbtnradio3" autocomplete="off" checked>
+              <label class="btn btn-outline-primary" for="intervalbtnradio3">1d</label>
+
+              <input type="radio" class="btn-check" name="btnradio" id="intervalbtnradio4" autocomplete="off">
+              <label class="btn btn-outline-primary" for="intervalbtnradio4">5d</label>
+          </div>
+  <!--    <button id="btnScale24" class="btn scaleBtn">Show Full Day</button>
+          <button id="btnScale8" class="btn scaleBtn selected">Show 12 hours</button>
+   -->     </div>
+  <!--      <div class="getDataContainer">
+          <button id="saveCSVElectricity" class="btn">Download Consumption Data</button>
+          <button id="saveCSVAnnotation" class="btn">Download Annotations</button>
+       </div> -->
+      <div id="infoBox"></div>
+      </nav>
+
+    <div class="container">
+
+      <div id="container"  class="row" style="text-align: center;"></div>
+      <div class="dialog">
+        <form id="dialogueBox" action="event" method="post">
+          <h4 >Create Event</h4>
+          <input type="button" value="Delete Event" id="deleteEventBtn" class="btn"/>
+          <div id="infoBoxDialogue" style="display: none;"></div>
+          <div> <i>Event Start:</i> <label id="evntStartLabel"></label> </div>
+          <div> <i>Duration:</i> <label id="evntDurationLabel"></label> </div>
+          <!-- <div> <i>Consumption:</i> <label id="evntConsumptionLabel"></label> </div> -->
+          <div> 
+            <i>Select an event type (required)</i><br>
+            <div id="iconField"></div>
+          </div>
+
+          <div> 
+            <i>Describe the event</i> <br>
+            <textarea id="evntDescription" name="notes" rows="2" cols="35" placeholder=""></textarea>
+          </div>
+
+          <div style="margin:0 auto;text-align: center;">
+            <input type="button" value="Cancel" id="closebtnDialogue" class="btn">
+            <input type="button" value="Save" id="submitEventBtn" class="btn"/>
+          </div>
+
+          <input id="evntStart" type="hidden" name="start" />
+          <input id="evntDuration" type="hidden" name="duration" />
+          <input id="evntConsumption" type="hidden" name="consumption" value="" />
+          <input id="evntType" type="hidden" value="1" name ="event_type_id" />
+          <input id="evntCreated" type="hidden" name="created" value="" />
+          <input id="evntUpdated" type="hidden" name="updated" value="" />
+          <input id="evntId" type="hidden" name="id" value="" />
+        </form>
+      </div>
+
+      <div id="containerBoxes">
+        <svg>
+          <defs>
+            <linearGradient id="Gradient1" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#EF9F16" stop-opacity="0.2"/>
+              <stop offset="25%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="50%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="75%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="100%" stop-color="#EF9F16" stop-opacity="0.2" />
+            </linearGradient>
+            <linearGradient id="Gradient2" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="cadetblue" stop-opacity="0.2"/>
+              <stop offset="25%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="50%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="75%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="100%" stop-color="cadetblue" stop-opacity="0.2" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
+
+    <!-- local imports -->
+    <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/luxon.min.js"></script>
+    <script type="text/javascript" src="/static/js/temperature_mixed.js"></script>
+
+  </body>
+  </html>

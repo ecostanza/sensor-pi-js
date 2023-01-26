@@ -2,7 +2,7 @@ body {
     padding-left: 2px;
     padding-right: 2px;
     padding-bottom: 2px;
-    padding-top: 70px;
+    padding-top: 100px;
     font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
   }
   
@@ -33,7 +33,7 @@ body {
 .axis text {
   fill: #2b2929;
   font-family: Georgia;
-  font-size: 120%;
+  font-size: 200%;
 }
 
 /* LINE CHART */

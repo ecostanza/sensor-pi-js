@@ -82,7 +82,31 @@ router.get('/annotate', function(req, res) {
   });
 });
 
+router.get('/temperature', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
+  
+    res.render('temperature_mixed.html', { 
+      title: 'Annotate Measures',
+      free: free
+    });
 
+  });
+});
+
+// router.get('/temperature2', function(req, res) {
+//   checkDiskSpace('/').then((info) => {
+//     const free_ratio = info.free / info.size;
+//     const free = `${(100 - 100 * free_ratio).toFixed()}%`;
+  
+//     res.render('temperature_mixed.html', { 
+//       title: 'Annotate Measures',
+//       free: free
+//     });
+
+//   });
+// });
 router.get('/favicon.ico', function(req, res) {
   res.redirect('/static/favicon.ico');
 })
@@ -168,7 +192,7 @@ function buildQueries(start, end, points, measurement, sensor_id, recentOnly) {
   }
 
   const deltaMinutes = start - end;
-  const interval = 30// 2 // Math.ceil(deltaMinutes / points); 30min CHECK
+  const interval = 10// 60 // Math.ceil(deltaMinutes / points); 30min CHECK
 
   const select = 'SELECT "time", mean("value") as "value"';
   const groupBy = `GROUP BY time(${interval}m)`;
