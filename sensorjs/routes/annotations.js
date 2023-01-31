@@ -116,7 +116,7 @@ router.put('/annotations', async function(req, res) {
     }
 });
 
-// DELETE /annotation/:id
+// DELETE /annotations/:id
 router.delete('/annotations/:id', async function (req, res) {
     // delete 
     const annotation_id = parseInt(req.params['id'], 10);
@@ -133,7 +133,7 @@ router.delete('/annotations/:id', async function (req, res) {
     }
 });
 
-// POST /annotation/:id
+// POST /annotations/:id
 router.post('/annotations/:id', async function (req, res) {
     // updated 
     const annotation_id = parseInt(req.params['id'], 10);
@@ -166,5 +166,140 @@ router.post('/annotations/:id', async function (req, res) {
         res.json ({'error': error});
     }
 });
+
+// ------------------------------
+
+
+const sensor_fields = [
+    {'name': 'id', 'required': false, 'auto': true},
+
+    {'name': 'sensor', 'required': true, 'auto': false},
+
+    {'name': 'label', 'required': false, 'auto': false},
+    {'name': 'sampling_period', 'required': false, 'auto': false},
+    
+    {'name': 'createdAt', 'required': false, 'auto': true},
+    {'name': 'updatedAt', 'required': false, 'auto': true}
+];
+
+router.get('/sensors', async function(req, res) {
+    // TODO: add filters
+    try {
+        const sensor_columns = sensor_fields.map(f => f['name']);
+        const query = `SELECT ${sensor_columns.join()} from sensors;`;
+        // console.log('query:', query);
+        const db = Database('./db.sqlite3');
+        const select = db.prepare(query);
+        // console.log('prepare returned:', select);
+        const sensor = select.all();
+        // console.log('annotations:', annotations);
+        return res.json(sensor);
+    } catch (error) {
+        return res.json({'error': error});
+    }
+});
+
+function populate_sensor_data (req, updating) {
+    let data = {};
+    const relevant_fields = sensor_fields.filter(f => f['auto'] === false);
+    for (const f of relevant_fields) {
+        if (req.body[f['name']] !== undefined) {
+            data[f['name']] = req.body[f['name']];
+        } else if (f['required'] === true) {
+            // raise exception if not present
+            // TODO: test this!
+            throw `${f['name']} expected`;
+        }
+    }
+    if (!updating) {
+        data['createdAt'] = (new Date()).getTime();
+    }
+    data['updatedAt'] = (new Date()).getTime();
+    return data;
+}
+
+router.put('/sensors', async function(req, res) {
+    // get data
+    // req.body
+    // TODO: handle exception? (in case field is missing)
+    try {
+        let data = populate_sensor_data(req);
+        
+        let columns = [];
+        let values = [];
+        for (const key in data) {
+            columns.push(key);
+            values.push("'" + data[key] + "'");
+        }
+
+        const query = `
+        INSERT INTO sensors 
+        (${columns.join(",\n")}) 
+        VALUES (${values.join(",\n")});
+        `;
+        // console.log('query:', query);
+        const db = Database('./db.sqlite3');
+        const insert = db.prepare(query);
+        // console.log('prepare returned:', insert);
+        const info = insert.run();
+        // console.log('info:', info);
+
+        return res.json(info);
+    } catch (error) {
+        return res.json({'error': error});
+    }
+});
+
+// DELETE /sensors/:id
+router.delete('/sensors/:id', async function (req, res) {
+    // delete 
+    const sensor_id = parseInt(req.params['id'], 10);
+    try {
+        const query = `DELETE from sensors where id = ${sensor_id}`;
+        const db = Database('./db.sqlite3');
+        const statment = db.prepare(query);
+        const result = statment.run();
+        // console.log('delete result:', result);
+        res.json(result);
+    } catch (error) {
+        console.log('delete error:', error);
+        res.json ({'error': error});
+    }
+});
+
+// POST /sensors/:id
+router.post('/sensors/:id', async function (req, res) {
+    // updated 
+    const sensor_id = parseInt(req.params['id'], 10);
+    console.log('req.body', JSON.stringify(req.body));
+    //let data = populate_sensor_data(req);
+    let data = [];
+    const relevant_fields = sensor_fields
+        .filter(f => f['auto'] === false)
+        .map(f => f['name']);
+    for (const k in req.body) {
+        if (relevant_fields.includes(k)) {
+            data.push(`${k} = '${req.body[k]}'`);
+        }
+    }
+    try {
+        const query = `
+        UPDATE sensors
+        SET ${data.join()}
+        WHERE id = ${sensor_id};
+        `;
+        console.log('query', query);
+        const db = Database('./db.sqlite3');
+        const statement = db.prepare(query);
+        const result = statement.run();
+        // console.log('update result:', result);
+        
+        res.json(result);
+    } catch (error) {
+        console.log('update error:', error);
+        res.json ({'error': error});
+    }
+});
+
 
 module.exports = router;
