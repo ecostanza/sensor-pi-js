@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         'sensor': '100', 
         'measurement': 'electricity_consumption'
     };
+
     let result  = await d3.json('/annotations', {
         method: 'PUT', 
         headers: { "Content-Type": "application/json; charset=UTF-8" },
@@ -70,5 +71,65 @@ document.addEventListener("DOMContentLoaded", async function() {
     // get all annotations
     result = await d3.json('/annotations');
     console.log('get result', result);
+
+    // -----------------------------------------------
+
+    // test creating an annotation
+    const sensor_data = {
+        sensor: '100', 
+        label: 'first sensor',      
+        // consumption: Float?
+        sampling_period: '30'
+    };
+
+    let sensor_result  = await d3.json('/sensors', {
+        method: 'PUT', 
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        'body': JSON.stringify(sensor_data)
+    });
     
+    console.log('sensor_result', sensor_result);
+
+    // get all sensors
+    result = await d3.json('/sensors');
+    console.log('get sensors result', result);
+
+    let dupe_sensor_result  = await d3.json('/sensors', {
+        method: 'PUT', 
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        'body': JSON.stringify(sensor_data)
+    });
+    
+    console.log('dupe_sensor_result', dupe_sensor_result);
+
+    // get all sensors
+    result = await d3.json('/sensors');
+    console.log('get sensors result', result);
+
+
+    let sensor_id = result[0]['id'];
+
+    // test editing a sensor
+    const edit_sensor_data = {label: 'something else'};
+    result  = await d3.json(`/sensors/${sensor_id}`, {
+        method: 'POST', 
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        'body': JSON.stringify(edit_sensor_data)
+    });
+    console.log('post sensors result', result);
+
+    // get all sensors
+    result = await d3.json('/sensors');
+    console.log('get sensors result', result);
+
+    // test deleting an annotation
+    result  = await d3.json(`/sensors/${sensor_id}`, {
+        method: 'DELETE'
+    });
+    console.log('delete result', result);
+
+    // get all sensors
+    result = await d3.json('/sensors');
+    console.log('get result', result);
+
 });

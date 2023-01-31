@@ -5,7 +5,7 @@ const db = new Database('./db.sqlite3', { verbose: console.log });
 // const db = new Database('./sqlite3.db', { verbose: console.log });
 
 try {
-    const q = `
+    const annotations_q = `
     CREATE TABLE annotations ( 
     id  INTEGER PRIMARY KEY AUTOINCREMENT,
     start INTEGER   NOT NULL,
@@ -24,24 +24,37 @@ try {
     createdAt INTEGER   NOT NULL,
     updatedAt INTEGER   NOT NULL
     )`;
-    console.log('query:', q);
+    console.log('query:', annotations_q);
     // console.log('query:', q.replaceAll(/\n/g, ''));
-    console.log('query:', q);
+    // console.log('query:', q);
 
-    const create = db.prepare(q);
+    const create_annotations = db.prepare(annotations_q);
     
-    const result = create.run();
-    console.log('result:', result)
+    const annotations_result = create_annotations.run();
+    console.log('result:', annotations_result);
 
-    // const stmt = db.prepare("INSERT INTO lorem VALUES (?)");
-    // for (let i = 0; i < 10; i++) {
-    //     stmt.run("Ipsum " + i);
-    // }
-    // stmt.finalize();
+    // create sensors table
+    const sensors_q = `
+    CREATE TABLE sensors ( 
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    // db.each("SELECT rowid AS id, info FROM lorem", (err, row) => {
-    //     console.log(row.id + ": " + row.info);
-    // });
+    sensor TEXT   NOT NULL UNIQUE,
+
+    label TEXT   NOT NULL,
+    sampling_period INTEGER DEFAULT 1 NOT NULL,
+    
+    createdAt INTEGER   NOT NULL,
+    updatedAt INTEGER   NOT NULL
+    )`;
+    console.log('query:', sensors_q);
+    // console.log('query:', q.replaceAll(/\n/g, ''));
+    // console.log('query:', q);
+
+    const create_sensors = db.prepare(sensors_q);
+    
+    const sensors_result = create_sensors.run();
+    console.log('result:', sensors_result);
+
 } catch (error) {
     console.log('error:', error);
 }
