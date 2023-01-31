@@ -31,6 +31,8 @@ from RFM69 import Radio, FREQ_433MHZ
 from utils import datatype_LUT, decode_float, decode_ushort
 from struct import pack
 
+import requests
+
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
 
@@ -38,6 +40,13 @@ node_id = 1
 network_id = 100
 #network_id = 210
 #recipient_id = 2
+
+
+def get_sampling_periods():
+    sensors_response = requests.get('http://127.0.0.1/sensors')
+    sensors_data = sensors_response.json()
+    sensor_periods = dict([(int(s['sensor']), s['sampling_period']) for s in sensors_data])
+    return sensor_periods
 
 print('setting radio up')
 # for radio modules directly connected to the RPi the parameters should be:
@@ -66,6 +75,7 @@ with Radio(
         # periodically get packets (there is a delay at the end of the loop)
         
         # TODO: check if any of the frequencies changed in the DB
+        sensor_sampling_periods = get_sampling_periods()
         
         data_points = []
         # Process packets
@@ -131,14 +141,30 @@ with Radio(
             }
             data_points.append(current)
 
+            # check if this sensor is already in the db
+            # if not packet.sender in existing_sensors:
+            if not packet.sender in sensor_sampling_periods.keys():
+                # if not, store it
+                sensor_info = {
+                    'sensor': packet.sender,
+                    'label': f'sensor {packet.sender}'
+                }
+                r = requests.put(
+                    'http://127.0.0.1/sensors', 
+                    # data=json_string
+                    json=sensor_info
+                )
+                print(r.text)
+                print(get_sampling_periods())
+
         if len(data_points) > 0:
             written = client.write_points(data_points)
             # print(f'written: {written}')
 
         #print("Listening...", len(radio.packets), radio.mode_name)
-        # delay = 0.5
+        delay = 0.5
         # delay = 0.2
-        delay = 0.02
+        # delay = 0.02
         time.sleep(delay)
 
         # 
