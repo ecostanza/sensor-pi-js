@@ -29,6 +29,7 @@ from influxdb import InfluxDBClient
 from RFM69 import Radio, FREQ_433MHZ
 
 from utils import datatype_LUT, decode_float, decode_ushort
+from struct import pack
 
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
@@ -48,7 +49,10 @@ with Radio(
         node_id, 
         network_id, 
         isHighPower=True, 
-        #verbose=True,
+        #autoAcknowledge=True,
+        autoAcknowledge=False,
+        promiscuousMode=False,
+        # verbose=True,
         interruptPin=22, # was 15
         resetPin=25, # was 22
         spiDevice=1
@@ -59,73 +63,82 @@ with Radio(
     tx_counter = 0
 
     while True:
-        # Every 1 seconds get packets
-        if rx_counter > 1:
-            rx_counter = 0
-            
-            data_points = []
-            # Process packets
-            for packet in radio.get_packets():
-                print ('packet', packet)
-                time_received = packet.received
-                print(time_received)
-                # print(dir(packet))
-                #print ('data', packet.data_string)
-                # decode data buffer
-                # types 1, 2 and 3 are floats, 4-15 are uint16 (aka unsigned short)
-                itr = iter(packet.data)
-                for item in itr:
-                    #print(item)
-                    if item == 0:
-                        # TODO: break instead?
-                        continue
-                    try:
-                        t = datatype_LUT[item]
-                        if t[1] == 'float':
-                            value = decode_float(itr)
-                            print(f'{t[0]}: {value:.2f}')
-                        elif t[1] == 'ushort':
-                            value = decode_ushort(itr)
-                            print(f'{t[0]}: {value}')
-                        else:
-                            value = next(itr)
-                            # raise NotImplementedError
-                        # TODO: check/amend to work well with multiple nodes
-                        current = {
-                            'time': time_received,
-                            'measurement': t[0],
-                            'tags': {
-                                'sensor_id': packet.sender
-                            },
-                            'fields': {
-                                'value': value
-                            }
-                        }
-                        data_points.append(current)
-                    except KeyError:
-                        print('error! Data type not recognized')
-                        continue
-                        # raise NotImplementedError(f'item:{item}')
-                # store RSSI
-                current = {
-                    'time': time_received,
-                    'measurement': 'rssi',
-                    'tags': {
-                        'sensor_id': packet.sender
-                    },
-                    'fields': {
-                        'value': packet.RSSI
-                    }
-                }
-                data_points.append(current)
+        # periodically get packets (there is a delay at the end of the loop)
+        
+        # TODO: check if any of the frequencies changed in the DB
+        
+        data_points = []
+        # Process packets
+        curr_packets = radio.get_packets()
 
-            if len(data_points) > 0:
-                written = client.write_points(data_points)
-                print(f'written: {written}')
+        # first send acknowledgements
+        for packet in curr_packets:
+            radio.send_ack(packet.sender, pack('<H', 10).decode("utf-8"))
+            # print(f'sent ack to {packet.sender}')
+
+        # then process the data and store it
+        for packet in curr_packets:
+            print ('packet', packet)
+            time_received = packet.received
+            # print(time_received)
+            # print(dir(packet))
+            #print ('data', packet.data_string)
+            # decode data buffer
+            # types 1, 2 and 3 are floats, 4-15 are uint16 (aka unsigned short)
+            itr = iter(packet.data)
+            for item in itr:
+                #print(item)
+                if item == 0:
+                    # TODO: break instead?
+                    continue
+                try:
+                    t = datatype_LUT[item]
+                    if t[1] == 'float':
+                        value = decode_float(itr)
+                        # print(f'{t[0]}: {value:.2f}')
+                    elif t[1] == 'ushort':
+                        value = decode_ushort(itr)
+                        # print(f'{t[0]}: {value}')
+                    else:
+                        value = next(itr)
+                        # raise NotImplementedError
+                    # TODO: check/amend to work well with multiple nodes
+                    current = {
+                        'time': time_received,
+                        'measurement': t[0],
+                        'tags': {
+                            'sensor_id': packet.sender
+                        },
+                        'fields': {
+                            'value': value
+                        }
+                    }
+                    data_points.append(current)
+                except KeyError:
+                    print('error! Data type not recognized')
+                    continue
+                    # raise NotImplementedError(f'item:{item}')
+            # store RSSI
+            current = {
+                'time': time_received,
+                'measurement': 'rssi',
+                'tags': {
+                    'sensor_id': packet.sender
+                },
+                'fields': {
+                    'value': packet.RSSI
+                }
+            }
+            data_points.append(current)
+
+        if len(data_points) > 0:
+            written = client.write_points(data_points)
+            # print(f'written: {written}')
 
         #print("Listening...", len(radio.packets), radio.mode_name)
-        delay = 0.5
-        rx_counter += delay
+        # delay = 0.5
+        # delay = 0.2
+        delay = 0.02
         time.sleep(delay)
 
         # 
