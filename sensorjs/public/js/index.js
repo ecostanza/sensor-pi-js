@@ -505,7 +505,7 @@ document.addEventListener("DOMContentLoaded", function() {
             // if there is only one sensor 
             // remove the sensor id from the name
             // TODO: consider the case of one sensor per measurement type
-            allSeries = allSeries.map(function (item) {
+            allSeries = allSeries.map( (item) => {
                 const id = `${item.measurement}_${item.sensor_id}`;
                 let name = item.measurement;
                 if (name in nameLUT) {
@@ -534,8 +534,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             loadData = function () {
                 d3.select("div#container").selectAll('div.graphContainer').remove();
+                
                 _series.forEach(m => appendSvg(m));
+
                 d3.select('div.main-loading').style('display', 'block');
+
                 const promises = _series.map(m => loadMeasurementData(m));
                 Promise.all(promises).then(function () {
                     console.log('all loaded');
@@ -543,8 +546,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             };
 
-            _series = allSeries.map(function (d) {return d;});
-
+            _series = allSeries.map( (d) => {return d;});
+            console.log(_series)
             loadData();
 
             d3.select('select#measurementSelect')
