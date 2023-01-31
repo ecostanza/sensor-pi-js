@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const margin = 5;
     const padding = 5;
     const adj = 25;
-    const svgMarginTop = 30;
+    const svgMarginTop = 0;
     const svgMarginBottom = 80//window.innerHeight > 530 ? 300:200;
     const svgMarginLeft = 10;
 
@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     'question_mark','air_cooling','heating_on','heating_off','showering_and_hair-drying',
                     'hob','ironing', 'other'
                    ];
-
 
     let FLAG = false;
 
@@ -93,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer
             .append("svg")
             .attr('id', "_"+measurement.sensor_id + 'Chart')
-            .attr("preserveAspectRatio", "xMinYMin meet")
+            .attr("preserveAspectRatio", "meet")
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
                 + 2.5*adj + " "

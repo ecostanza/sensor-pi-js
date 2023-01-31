@@ -95,18 +95,19 @@ router.get('/temperature', function(req, res) {
   });
 });
 
-// router.get('/temperature2', function(req, res) {
-//   checkDiskSpace('/').then((info) => {
-//     const free_ratio = info.free / info.size;
-//     const free = `${(100 - 100 * free_ratio).toFixed()}%`;
+router.get('/config', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
-//     res.render('temperature_mixed.html', { 
-//       title: 'Annotate Measures',
-//       free: free
-//     });
+    res.render('config.html', { 
+      title: 'Configure Measures',
+      free: free
+    });
 
-//   });
-// });
+  });
+});
+
 router.get('/favicon.ico', function(req, res) {
   res.redirect('/static/favicon.ico');
 })

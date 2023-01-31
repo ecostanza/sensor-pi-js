@@ -93,8 +93,6 @@ div.main-loading div {
 }
 
 
-
-
 .btn.selected{
   border: 3px solid black;
 }
@@ -103,3 +101,7 @@ div.main-loading div {
   color:grey ;
 }
 
+
+.row{
+      margin-top: 1em;
+}
