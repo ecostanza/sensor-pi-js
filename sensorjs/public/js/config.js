@@ -183,7 +183,9 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('type','text')
             .attr('class','form-control')
             .style('display','inline-block')
-            .style('width','70%')
+            .style('max-width', () =>{
+                return (window.innerWidth < 1024) ? '100%':'70%'
+            })
             .style('vertical-align','middle')
             .style('margin-right','1em')
             .attr('id', d => { return "sensor"+d[0]; })
@@ -338,7 +340,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 }else {
                     return 'green'
                 }
-            }).append('label')    
+            }).style('text-align','center')
+            .style('vertical-align','middle')
+            .append('label')    
             .style('background', d =>{
                 val = -1;
                 d[1].forEach( p=>{
@@ -371,6 +375,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
                 return ret;
              })
+            .style('text-align','center')
+            .style('vertical-align','middle')
             .style('color', d =>{
                 val = -100;
                 d[1].forEach( p=>{
@@ -415,7 +421,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 }else{
                     return '('+humanizeDuration(d[1][0].age.length('milliseconds'))+")" ;
                 }
-            })  
+            }).style('text-align','center')
+            .style('vertical-align','middle')
 
         trsMeasurements.append('td') // empty
         trsMeasurements.append('td').html(d => { return d.measurement; })
