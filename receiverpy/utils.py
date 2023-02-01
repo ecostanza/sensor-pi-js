@@ -29,6 +29,8 @@ datatype_LUT = {
     22: ('eCO2_base', 'ushort'),
     23: ('TVOC_base', 'ushort'),
 
+    24: ('sampling_period', 'ushort'),
+
 }
 
 # the Arduino is little-endian

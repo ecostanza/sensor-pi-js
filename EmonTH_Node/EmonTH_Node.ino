@@ -98,7 +98,8 @@ const byte DHT22_DATA=      16;                                     // Not used 
 const byte DS18B20_PWR=    5;
 
 
-unsigned int sampling_period = 30;
+//unsigned int sampling_period = 30;
+volatile uint16_t sampling_period = 1;
 //unsigned int sampling_period = 10;
 //unsigned int sampling_period = 3;
 
@@ -269,14 +270,15 @@ void loop() {
   // we safely still have some room!
   // TODO: consider sending less frequently and packing more data into packet?
 
-//  radio.receiveDone();
   if (radio.receiveDone()) {
     DEBUG_PRINT("received from:"); DEBUG_PRINT(radio.SENDERID);
     DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);
+
     for (int i=0; i<radio.DATALEN;i++) {
       DEBUG_PRINT(radio.DATA[i]);DEBUG_PRINT(":");
     }
     DEBUG_PRINTLN();
+    //if (radio.DATA[0] == 
   } else {
     //DEBUG_PRINTLN("[0]");
   }
@@ -295,6 +297,10 @@ void loop() {
     DEBUG_PRINTLN();
     // TODO: get the sampling frequency from the ack data 
     // if it is different from the current one, store it in eeprom
+    if(radio.DATA[0] == 24) {
+      memcpy((byte *) &sampling_period, radio.DATA + 1, 2);
+      DEBUG_PRINT("s.p.: "); DEBUG_PRINTLN(sampling_period);
+    }    
   } else {
     DEBUG_PRINTLN("No ACK");
   }
