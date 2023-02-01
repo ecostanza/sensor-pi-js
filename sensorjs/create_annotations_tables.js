@@ -5,6 +5,11 @@ const db = new Database('./db.sqlite3', { verbose: console.log });
 // const db = new Database('./sqlite3.db', { verbose: console.log });
 
 try {
+    const wal_q = `PRAGMA journal_mode = WAL`;
+    const wal_p = db.prepare(wal_q);
+    const wal_result = wal_p.run();
+    console.log('wal_result:', wal_result);
+
     const annotations_q = `
     CREATE TABLE annotations ( 
     id  INTEGER PRIMARY KEY AUTOINCREMENT,
