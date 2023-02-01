@@ -1,3 +1,10 @@
+avrpi-apt
+broken_apt
+apt-conf*
+*.hex
+*.img*
+
+
 # Logs
 logs
 *.log
