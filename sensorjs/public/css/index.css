@@ -101,7 +101,10 @@ div.main-loading div {
   color:grey ;
 }
 
-
 .row{
       margin-top: 1em;
+}
+
+.table-bordered>:not(caption)>*{
+  border-width: 2px 2px;
 }
