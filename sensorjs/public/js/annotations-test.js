@@ -74,9 +74,9 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // -----------------------------------------------
 
-    // test creating an annotation
+    // test creating an sensor name
     const sensor_data = {
-        sensor: '100', 
+        sensor: '107', 
         label: 'first sensor',      
         // consumption: Float?
         sampling_period: '30'
@@ -122,14 +122,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     result = await d3.json('/sensors');
     console.log('get sensors result', result);
 
-    // test deleting an annotation
-    result  = await d3.json(`/sensors/${sensor_id}`, {
-        method: 'DELETE'
-    });
-    console.log('delete result', result);
+    // // test deleting a sensor
+    // result  = await d3.json(`/sensors/${sensor_id}`, {
+    //     method: 'DELETE'
+    // });
+    // console.log('delete result', result);
 
-    // get all sensors
-    result = await d3.json('/sensors');
-    console.log('get result', result);
+    // // get all sensors
+    // result = await d3.json('/sensors');
+    // console.log('get result', result);
 
 });

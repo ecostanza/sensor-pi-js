@@ -73,11 +73,6 @@ document.addEventListener("DOMContentLoaded", function() {
             url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
            
             let all_data = [];
-            // for (let d=0; d<total_days; d+=1) {
-            //     const curr = start.plus({'days': d});
-            //     const next = curr.plus({'days': 1});
-            //     console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
-            //     const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}`;
             const query = `?start=${start.toFormat('yyyy-LL-dd')}&end=${now.toFormat('yyyy-LL-dd')}`;
 
             return d3.json(url+query).then( data =>{
@@ -87,7 +82,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     csv_content += `${row.time},${row.value},${h.sensor_id},${h.measurement}` + "\r\n";
                 });    
             });
-            // }
             console.log('all_data:', all_data);
         }
       
@@ -98,15 +92,15 @@ document.addEventListener("DOMContentLoaded", function() {
     // TODO: check this if statement, it looks incorrect
     let seriesUrl = '/series/?showAll=true';
 
-    d3.json(seriesUrl).then( (allSeries) => {
+    d3.json(seriesUrl).then( async function (allSeries) {
         console.log(allSeries);
         
         data = [];
         dataMeasurements = [];
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];
-        console.log(allMeasurements);
 
+        // Remove the operational measurements from the array
         allMeasurements.splice(allMeasurements.indexOf('battery'), 1);
         allMeasurements.splice(allMeasurements.indexOf('rssi'), 1);
         console.log(allMeasurements);
@@ -127,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             name = capitalize(name);
             
-            // const latest = luxon.DateTime.fromISO(item.latest).setZone("Europe/London");
             const latest = luxon.DateTime.fromISO(item.latest);
             const now = luxon.DateTime.now();
             const age = luxon.Interval.fromDateTimes(latest, now);
@@ -146,25 +139,15 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log('allSeries', allSeries);
         allSeries.sort(function (a, b) {return b['latest'] - a['latest'];});
 
-        // allSeries.filter(p => {
-        //     if(p.measurement !== 'battery' && p.measurement !== 'rssi' ){
-        //         sensingMeasure.push(p);
-        //     }else if(p.measurement === 'battery'){
-        //         battery.push(p);
-        //     }else if( p.measurement === 'rssi'){
-        //         rssi.push(p);                
-        //     }
-        // })
-
         data = d3.rollup(allSeries, v => v, d=> d.sensor_id)
         allSeries.filter(p => {
             if(p.measurement !== 'battery' && p.measurement !== 'rssi' ){
                 dataMeasurements.push(p);
             }
         });
-        
-        console.log(data)
-        console.log(dataMeasurements)
+
+        sensorLabels = await d3.json('/sensors')
+        console.log(sensorLabels)
 
         const headSensors = d3.select('#sensor-alias')
             .append('thead')
@@ -172,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         headSensors.append('th').attr('scope',"col").html('Sensor ID');
         headSensors.append('th').attr('scope',"col").html('Alias');
-        headSensors.append('th').attr('scope',"col").html('Frequency Setting');
+        headSensors.append('th').attr('scope',"col").html('Sampling Period Setting');
         headSensors.append('th').attr('scope',"col").html('Battery');
         headSensors.append('th').attr('scope',"col").html('Signal Quality');
         headSensors.append('th').attr('scope',"col").html('TimeStamp');
@@ -205,6 +188,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .style('margin-right','1em')
             .attr('id', d => { return "sensor"+d[0]; })
             .attr('placeholder','Add name here e.g. Kitchen')
+            .attr('value', d =>{
+                ret = ''
+                sensorLabels.forEach( l=> {
+                    if( l.sensor == d[0]){ ret = (l.label); }
+                })
+                return ret;
+            })
+
         
         aliasGrp.append('button')
             .html('Save')
@@ -213,14 +204,30 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('class','btn btn-primary')
             .on('click', d =>{
                 console.log(d);
+
+
             })
 
         divBtnGroup = trsSensors.append('td').style('text-align','center')
             .append('div').attr('class','btn-group')
 
-        divBtnGroup.append('label').attr('class','btn btn-secondary active').html('Every second ').style('margin-right','0')
+        divBtnGroup.append('label').attr('class','btn btn-secondary').html('Every second ').style('margin-right','0')
+                    .classed('active', d =>{
+                        ret = false;
+                        sensorLabels.forEach( l=> {
+                            if( l.sensor == d[0]){ ret = (l.sampling_period === 1); }
+                        })
+                        return ret;
+                    })
                    
         divBtnGroup.append('label').attr('class','btn btn-secondary').html('Every 30 seconds ').style('margin-right','0')
+                    .classed('active', d =>{
+                        ret = false;
+                        sensorLabels.forEach( l=> {
+                            if( l.sensor == d[0]){ ret = (l.sampling_period === 30); }
+                        })
+                        return ret;
+                    })
 
         trsSensors.append('td')
             .html(function (d) { 
@@ -267,7 +274,6 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("width", '5px')
             .style("height", '5px')
             .style("padding",'6px')
-
             .style('text-align','center')
             .style('vertical-align','middle')
 
@@ -332,9 +338,9 @@ document.addEventListener("DOMContentLoaded", function() {
         trsMeasurements.append('td').html(d => { return d.value.toFixed(2); })
 
         trsMeasurements.selectAll('td').style('border',0)
-        // Place the measurements in the correct place
+        
+        // Place the measurements under the correct row
         d3.selectAll("tr.series").nodes().forEach( (d) => {
-            console.log(d.__data__[0])
             ent = trsMeasurements.filter( f => {
                 return (f.sensor_id == d.__data__[0])
             })
@@ -343,157 +349,10 @@ document.addEventListener("DOMContentLoaded", function() {
             } )
         });
 
-
         //https://www.w3docs.com/snippets/javascript/how-to-insert-an-element-after-another-element-in-javascript.html
         function insertAfter(referenceNode, newNode) {
             referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
         }
-        // const headtr = d3.select('#series-info')
-        //     .append('thead')
-        //     .append('tr');
-        // headtr.append('th').attr('scope',"col").html('Sensor ID');
-        // headtr.append('th').attr('scope',"col").html('Age');
-        // headtr.append('th').attr('scope',"col").html('Latest');
-        // headtr.append('th').attr('scope',"col").html('Value');
-        // headtr.append('th').attr('scope',"col").html('Measurement');
-
-        // const trs = d3.select('#series-info').append('tbody')
-        //     .selectAll(null)
-        //     .data(sensingMeasure)
-        //     .enter()
-        //     .append('tr')
-        //         .attr('class', "series");
-        
-        // trs.append('td')
-        //     .html(function (d) { return d.sensor_id; });
-
-        // trs.append('td')
-        //     .html(function (d) { 
-        //         return humanizeDuration(d.age.length('milliseconds'));
-        //     });
-
-        // trs.append('td')
-        //     .html(function (d) { return d.latest.toLocaleString(luxon.DateTime.DATETIME_FULL); });
-
-        // trs.append('td')
-        //     .html(function (d) { return d.value.toFixed(2); });
-        
-        // trs.append('td')
-        //     .html(function (d) { return d.measurement; });
-       
-
-        // const headBatt = d3.select('#battery-status')
-        //     .append('thead')
-        //     .append('tr');
-        // headBatt.append('th').attr('scope',"col").html('Sensor ID');
-        // headBatt.append('th').attr('scope',"col").html('Value');
-        // headBatt.append('th').attr('scope',"col").html('Age');
-
-        // trsBatt = d3.select('#battery-status').append('tbody')
-        //     .selectAll(null)
-        //     .data(battery)
-        //     .join('tr')
-        //     .attr('class', "series");
-
-        // trsBatt.style('opacity', d=> {
-        //     if( d.age.length('milliseconds') > 60*60*1000  ){
-        //         return '0.5';
-        //     }else{
-        //         return '1'
-        //     }
-        // });
-
-        // trsBatt.append('td')
-        //     .html(function (d) { return d.sensor_id; });
-        // trsBatt.append('td')
-        //     .html(function (d) { return d.value + " "; })
-        //     .style('color', d =>{
-        //         if( (d.value) === 1) { return 'green' }
-        //         if( (d.value) < 500  ){
-        //             return 'darkred'
-        //         }else if( (d.value) < 600){
-        //             return 'orange'
-        //         }else {
-        //             return 'green'
-        //         }
-        //     }).append('label')    
-        //     .style('background', d =>{
-        //         if( (d.value) === 1) { return 'green' }
-        //         if( (d.value) < 500  ){
-        //             return 'darkred'
-        //         }else if( (d.value) < 600){
-        //             return 'orange'
-        //         }else {
-        //             return 'green'
-        //         }
-        //     }).style("border-radius","100% 100%")
-        //     .style("width", '5px')
-        //     .style("height", '5px')
-        //     .style("padding",'6px')
-        // trsBatt.append('td')
-        //     .html(function (d) { 
-        //         console.log(d.age )
-        //         if( d.age.length('milliseconds') > 60*60*1000  ){
-        //             return "(more than an hour ago)";
-        //         }else{
-        //             return '('+humanizeDuration(d.age.length('milliseconds'))+")" ;
-        //         }
-        //     })  
-
-        // const headSig = d3.select('#signal-quality')
-        //     .append('thead')
-        //     .append('tr');
-        // headSig.append('th').attr('scope',"col").html('Sensor ID');
-        // headSig.append('th').attr('scope',"col").html('Strength');
-        // headSig.append('th').attr('scope',"col").html('Age');
-
-        // trsSign = d3.select('#signal-quality').append('tbody')
-        //     .selectAll(null)
-        //     .data(rssi)
-        //     .join('tr')
-        //     .attr('class', "series");
-        
-        // trsSign.style('opacity', d=> {
-        //     if( d.age.length('milliseconds') > 60*60*1000  ){
-        //         return '0.5';
-        //     }else{
-        //         return '1'
-        //     }
-        // });
-
-        // trsSign.append('td')
-        //     .html(function (d) { return d.sensor_id; });
-        // trsSign.append('td')
-        //     .html(function (d) { return d.value + OFFSETDB + " "; })
-        //     .style('color', d =>{
-        //         if( (d.value + OFFSETDB) < 10 ){
-        //             return 'darkred'
-        //         }else if( (d.value + OFFSETDB) < 30){
-        //             return 'orange'
-        //         }else {
-        //             return 'green'
-        //         }
-        //     }).append('label')    
-        //     .style('background', d =>{
-        //         if( (d.value + OFFSETDB) < 10 ){
-        //             return 'darkred'
-        //         }else if( (d.value + OFFSETDB) < 30){
-        //             return 'orange'
-        //         }else {
-        //             return 'green'
-        //         }
-        //     }).style("border-radius","100% 100%")
-        //     .style("width", '5px')
-        //     .style("height", '5px')
-        //     .style("padding",'6px')
-        // trsSign.append('td')
-        //     .html(function (d) { 
-        //         if( d.age.length('milliseconds') > 60*60*1000  ){
-        //             return "(more than an hour ago)";
-        //         }else{
-        //             return '('+humanizeDuration(d.age.length('milliseconds'))+")" ;
-        //         }
-        //     })
 
         d3.select('div.main-loading').style('display', 'none');
     });
