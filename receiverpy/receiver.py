@@ -19,10 +19,10 @@
 # this program. If not, see <http://www.gnu.org/licenses/>.
 
 
+# import sys
+# import cProfile
+
 import time
-# import datetime
-# import os
-# import socket
 
 from influxdb import InfluxDBClient
 
@@ -33,6 +33,8 @@ from struct import pack
 
 import requests
 
+# pr = cProfile.Profile()
+
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
 
@@ -41,12 +43,38 @@ network_id = 100
 #network_id = 210
 #recipient_id = 2
 
+import time
+import sqlite3
+con = sqlite3.connect("/home/pi/sensorjs/db.sqlite3")
+
+# pr.enable()
 
 def get_sampling_periods():
-    sensors_response = requests.get('http://127.0.0.1/sensors')
-    sensors_data = sensors_response.json()
-    sensor_periods = dict([(int(s['sensor']), s['sampling_period']) for s in sensors_data])
+    cur = con.cursor()
+    q = 'SELECT sensor, sampling_period FROM sensors'
+    res = cur.execute(q)
+    data = res.fetchall()
+    # print('select res.fetchall:', data)
+
+    sensor_periods = dict((int(d[0]), d[1]) for d in data)
     return sensor_periods
+
+def store_sensor(sensor_id):
+    now = int(time.time())
+    q = f"""
+        INSERT INTO sensors 
+        (sensor, label, createdAt, updatedAt) 
+        VALUES ({sensor_id}, "sensor {sensor_id}", {now}, {now});"""
+    # con = sqlite3.connect("../sensorjs/db.sqlite3")
+    cur = con.cursor()
+
+    res = cur.execute(q)
+    res = con.commit()
+
+    # data = res.fetchall()
+    # print('insert fetchall:', data)
+    return get_sampling_periods()
+         
 
 print('setting radio up')
 # for radio modules directly connected to the RPi the parameters should be:
@@ -71,11 +99,12 @@ with Radio(
     rx_counter = 0
     tx_counter = 0
 
+    sensor_sampling_periods = get_sampling_periods()
+    print('initial:', sensor_sampling_periods)
+
     while True:
+    # for _ in range(10):
         # periodically get packets (there is a delay at the end of the loop)
-        
-        # TODO: check if any of the frequencies changed in the DB
-        sensor_sampling_periods = get_sampling_periods()
         
         data_points = []
         # Process packets
@@ -86,6 +115,12 @@ with Radio(
             radio.send_ack(packet.sender, pack('<H', 10).decode("utf-8"))
             # print(f'sent ack to {packet.sender}')
 
+        # TODO: check if any of the frequencies changed in the DB
+        new_sensor_sampling_periods = get_sampling_periods()
+        if new_sensor_sampling_periods != sensor_sampling_periods:
+            print(new_sensor_sampling_periods)
+            sensor_sampling_periods = new_sensor_sampling_periods
+        
         # then process the data and store it
         for packet in curr_packets:
             print ('packet', packet)
@@ -128,6 +163,12 @@ with Radio(
                     print('error! Data type not recognized')
                     continue
                     # raise NotImplementedError(f'item:{item}')
+                except StopIteration as sie:
+                    print('StopIteration error!', sie)
+                    continue
+                except Exception as e:
+                    print('error!', e)
+                    continue
             # store RSSI
             current = {
                 'time': time_received,
@@ -145,29 +186,34 @@ with Radio(
             # if not packet.sender in existing_sensors:
             if not packet.sender in sensor_sampling_periods.keys():
                 # if not, store it
-                sensor_info = {
-                    'sensor': packet.sender,
-                    'label': f'sensor {packet.sender}'
-                }
-                r = requests.put(
-                    'http://127.0.0.1/sensors', 
-                    # data=json_string
-                    json=sensor_info
-                )
-                print(r.text)
-                print(get_sampling_periods())
+                try:
+                    store_sensor(packet.sender)
+                    new_sensor_sampling_periods = get_sampling_periods()
+                    if new_sensor_sampling_periods != sensor_sampling_periods:
+                        print(new_sensor_sampling_periods)
+                        sensor_sampling_periods = new_sensor_sampling_periods
+                except Exception as e:
+                    print('exception from insert!', e)
+
 
         if len(data_points) > 0:
             written = client.write_points(data_points)
             # print(f'written: {written}')
 
         #print("Listening...", len(radio.packets), radio.mode_name)
+        # print('sleep..', end='')      
+        # sys.stdout.flush()
+
         delay = 0.5
         # delay = 0.2
         # delay = 0.02
         time.sleep(delay)
 
-        # 
+        # print("awake\r", end='')
+        # sys.stdout.flush()
+
+# pr.disable()
+# pr.dump_stats('data.prof')
 
 print('out of with')
 
