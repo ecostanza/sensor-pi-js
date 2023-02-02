@@ -183,7 +183,9 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('type','text')
             .attr('class','form-control')
             .style('display','inline-block')
-            .style('width','70%')
+            .style('max-width', () =>{
+                return (window.innerWidth < 1024) ? '100%':'70%'
+            })
             .style('vertical-align','middle')
             .style('margin-right','1em')
             .attr('id', d => { return "sensor"+d[0]; })
@@ -194,39 +196,123 @@ document.addEventListener("DOMContentLoaded", function() {
                     if( l.sensor == d[0]){ ret = (l.label); }
                 })
                 return ret;
+            }).on('input change', (e,d) =>{
+                d3.select("#submit"+d[0]).html('Save')
+                d3.select("#submit"+d[0]).classed('disabled',false)
+                d3.select("#submit"+d[0]).classed('active',true)            
             })
 
-        
         aliasGrp.append('button')
             .html('Save')
             .attr('id', d =>{ return 'submit'+d[0] } )
             .attr('type','submit')
-            .attr('class','btn btn-primary')
-            .on('click', d =>{
-                console.log(d);
+            .attr('class','btn btn-secondary btn-sm disabled')
+            .on('click', async function(e,d) {
+                ret = '';
+                sensorLabels.forEach( l => {
+                    if( l.sensor == d[0]){ ret = (l.id); }
+                })
+   
+                label = d3.select("#sensor"+d[0]).node().value
+                editValues = {'label': label };
 
+                result = await d3.json(`/sensors/${ret}`, {
+                    method: 'POST', 
+                    headers: { "Content-Type": "application/json; charset=UTF-8" },
+                    'body': JSON.stringify(editValues)
+                });
 
+                if( result.changes > 0 ){
+                    d3.select("#submit"+d[0]).html('Saved ✔')
+                    // d3.select("#submit"+d[0]).classed('disabled',true)
+                }else{
+                    d3.select("#submit"+d[0]).html('Not Saved!')
+                    // d3.select("#submit"+d[0]).classed('disabled',true)                    
+                }
+                console.log(result);
             })
 
         divBtnGroup = trsSensors.append('td').style('text-align','center')
-            .append('div').attr('class','btn-group')
+            .append('div').attr('class','btn-group btn-group-sm btn-group-toggle')
+            .attr('id', d =>{
+                return "btnGroup"+d[0];
+            })
 
-        divBtnGroup.append('label').attr('class','btn btn-secondary').html('Every second ').style('margin-right','0')
+        divBtnGroup.append('label').attr('class','btn btn-secondary')
+                    .attr('value',1)
+                    .html('Every second ').style('margin-right','0')
                     .classed('active', d =>{
                         ret = false;
-                        sensorLabels.forEach( l=> {
+                        sensorLabels.forEach( l => {
                             if( l.sensor == d[0]){ ret = (l.sampling_period === 1); }
                         })
                         return ret;
                     })
-                   
-        divBtnGroup.append('label').attr('class','btn btn-secondary').html('Every 30 seconds ').style('margin-right','0')
+                    .on('click', async function (e,d) {
+                        console.log(d)                    
+                        // try sending it to DB first
+                        ret = '';
+                        sensorLabels.forEach( l => {
+                            if( l.sensor == d[0]){ ret = (l.id); }
+                        })
+
+                        editValues = {'sampling_period': 1 };
+
+                        result = await d3.json(`/sensors/${ret}`, {
+                            method: 'POST', 
+                            headers: { "Content-Type": "application/json; charset=UTF-8" },
+                            'body': JSON.stringify(editValues)
+                        });
+
+                        if( result.changes > 0 ){
+                            d3.selectAll('#btnGroup'+d[0]+' .btn').classed('active',false)
+                            sel = d3.selectAll('#btnGroup'+d[0]+' .btn').nodes().filter( g => { 
+                                return (d3.select(g).attr('value') == 1 )
+                            })
+                            d3.select(sel[0]).classed('active',true)
+                        }else{
+                            console.log(result);
+                        }
+                        console.log(result);
+                    })
+
+        divBtnGroup.append('label').attr('class','btn btn-secondary ')
+                    .html('Every 30 seconds ')
+                    .style('margin-right','0')
+                    .attr('value',30)
                     .classed('active', d =>{
                         ret = false;
                         sensorLabels.forEach( l=> {
                             if( l.sensor == d[0]){ ret = (l.sampling_period === 30); }
                         })
                         return ret;
+                    })
+                    .on('click', async function (e,d) {
+                        console.log(d)                    
+                        // try sending it to DB first
+                        ret = '';
+                        sensorLabels.forEach( l => {
+                            if( l.sensor == d[0]){ ret = (l.id); }
+                        })
+
+                        editValues = {'sampling_period': 30 };
+
+                        result = await d3.json(`/sensors/${ret}`, {
+                            method: 'POST', 
+                            headers: { "Content-Type": "application/json; charset=UTF-8" },
+                            'body': JSON.stringify(editValues)
+                        });
+
+                        if( result.changes > 0 ){
+                            d3.selectAll('#btnGroup'+d[0]+' .btn').classed('active',false)
+                            sel = d3.selectAll('#btnGroup'+d[0]+' .btn').nodes().filter( g => { 
+                                return (d3.select(g).attr('value') == 30 )
+                            })
+                            d3.select(sel[0]).classed('active',true)
+                        }else{
+                            console.log(result);
+                        }
+                        console.log(result);
                     })
 
         trsSensors.append('td')
@@ -254,7 +340,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 }else {
                     return 'green'
                 }
-            }).append('label')    
+            }).style('text-align','center')
+            .style('vertical-align','middle')
+            .append('label')    
             .style('background', d =>{
                 val = -1;
                 d[1].forEach( p=>{
@@ -287,6 +375,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
                 return ret;
              })
+            .style('text-align','center')
+            .style('vertical-align','middle')
             .style('color', d =>{
                 val = -100;
                 d[1].forEach( p=>{
@@ -331,7 +421,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 }else{
                     return '('+humanizeDuration(d[1][0].age.length('milliseconds'))+")" ;
                 }
-            })  
+            }).style('text-align','center')
+            .style('vertical-align','middle')
 
         trsMeasurements.append('td') // empty
         trsMeasurements.append('td').html(d => { return d.measurement; })

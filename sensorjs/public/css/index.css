@@ -108,3 +108,7 @@ div.main-loading div {
 .table-bordered>:not(caption)>*{
   border-width: 2px 2px;
 }
+/*
+tr.series{
+  font-weight: 800;
+}*/
