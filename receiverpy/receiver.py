@@ -28,7 +28,7 @@ from influxdb import InfluxDBClient
 
 from RFM69 import Radio, FREQ_433MHZ
 
-from utils import datatype_LUT, decode_float, decode_ushort
+from utils import decode_float, decode_ushort, get_sampling_periods, store_sensor, datatype_LUT
 from struct import pack
 
 import requests
@@ -43,37 +43,6 @@ network_id = 100
 #network_id = 210
 #recipient_id = 2
 
-import time
-import sqlite3
-con = sqlite3.connect("/home/pi/sensorjs/db.sqlite3")
-
-# pr.enable()
-
-def get_sampling_periods():
-    cur = con.cursor()
-    q = 'SELECT sensor, sampling_period FROM sensors'
-    res = cur.execute(q)
-    data = res.fetchall()
-    # print('select res.fetchall:', data)
-
-    sensor_periods = dict((int(d[0]), d[1]) for d in data)
-    return sensor_periods
-
-def store_sensor(sensor_id):
-    now = int(time.time())
-    q = f"""
-        INSERT INTO sensors 
-        (sensor, label, createdAt, updatedAt) 
-        VALUES ({sensor_id}, "sensor {sensor_id}", {now}, {now});"""
-    # con = sqlite3.connect("../sensorjs/db.sqlite3")
-    cur = con.cursor()
-
-    res = cur.execute(q)
-    res = con.commit()
-
-    # data = res.fetchall()
-    # print('insert fetchall:', data)
-    return get_sampling_periods()
          
 
 print('setting radio up')
@@ -117,7 +86,7 @@ with Radio(
             radio.send_ack(packet.sender, pack('<bH', 24, sampling_period).decode("utf-8"))
             # print(f'sent ack to {packet.sender}')
 
-        # TODO: check if any of the frequencies changed in the DB
+        # check if any of the frequencies changed in the DB
         new_sensor_sampling_periods = get_sampling_periods()
         if new_sensor_sampling_periods != sensor_sampling_periods:
             print(new_sensor_sampling_periods)

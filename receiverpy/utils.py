@@ -45,3 +45,34 @@ def decode_ushort(itr):
     buf = bytes((next(itr) for _ in range(2)))
     return unpack(ushort_fmt, buf)[0]
 
+import time
+import sqlite3
+con = sqlite3.connect("/home/pi/sensorjs/db.sqlite3")
+
+# pr.enable()
+
+def get_sampling_periods():
+    cur = con.cursor()
+    q = 'SELECT sensor, sampling_period FROM sensors'
+    res = cur.execute(q)
+    data = res.fetchall()
+    # print('select res.fetchall:', data)
+
+    sensor_periods = dict((int(d[0]), d[1]) for d in data)
+    return sensor_periods
+
+def store_sensor(sensor_id):
+    now = int(time.time())
+    q = f"""
+        INSERT INTO sensors 
+        (sensor, label, createdAt, updatedAt) 
+        VALUES ({sensor_id}, "sensor {sensor_id}", {now}, {now});"""
+    # con = sqlite3.connect("../sensorjs/db.sqlite3")
+    cur = con.cursor()
+
+    res = cur.execute(q)
+    res = con.commit()
+
+    # data = res.fetchall()
+    # print('insert fetchall:', data)
+    return get_sampling_periods()
