@@ -268,6 +268,9 @@ void loop() {
   payload[10] = 21; // battery (uint16_t, so it will go into [11-12]
   memcpy(payload+11,(byte *)&battery, sizeof(battery));
   
+  payload[13] = 24; // battery (uint16_t, so it will go into [11-12]
+  memcpy(payload+14,(byte *)&sampling_period, sizeof(battery));
+  
   // we safely still have some room!
   // TODO: consider sending less frequently and packing more data into packet?
 
@@ -288,7 +291,7 @@ void loop() {
   
   DEBUG_PRINT("Sending. ");
 //  if (radio.sendWithRetry(1, payload, 60, 3, 200)) {
-  if (radio.sendWithRetry(1, payload, 13, 3, 200)) {
+  if (radio.sendWithRetry(1, payload, 16, 3, 200)) {
 //    DEBUG_PRINTLN("ACK received");
     DEBUG_PRINT("ACK received from:"); DEBUG_PRINT(radio.SENDERID);
     DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);

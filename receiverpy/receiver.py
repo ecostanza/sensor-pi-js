@@ -81,7 +81,10 @@ with Radio(
 
         # first send acknowledgements
         for packet in curr_packets:
-            sampling_period = sensor_sampling_periods[packet.sender]
+            try:
+                sampling_period = sensor_sampling_periods[packet.sender]
+            except KeyError:
+                sampling_period = 0
             # radio.send_ack(packet.sender, pack('<H', sampling_period).decode("utf-8"))
             radio.send_ack(packet.sender, pack('<bH', 24, sampling_period).decode("utf-8"))
             # print(f'sent ack to {packet.sender}')
