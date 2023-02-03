@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // Remove the operational measurements from the array
         allMeasurements.splice(allMeasurements.indexOf('battery'), 1);
         allMeasurements.splice(allMeasurements.indexOf('rssi'), 1);
+        allMeasurements.splice(allMeasurements.indexOf('sampling_period'), 1);
         console.log(allMeasurements);
 
         let allSensors = [...new Set(allSeries.map(d => d.sensor_id))];
@@ -141,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         data = d3.rollup(allSeries, v => v, d=> d.sensor_id)
         allSeries.filter(p => {
-            if(p.measurement !== 'battery' && p.measurement !== 'rssi' ){
+            if(p.measurement !== 'battery' && p.measurement !== 'rssi' && p.measurement !== 'sampling_period'){
                 dataMeasurements.push(p);
             }
         });

@@ -73,9 +73,19 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     /*Creates SVG & its title*/
-    const appendSvg = function (measurement) {
+    const appendSvg = async function (measurement) {
         let name = measurement.name;
-    
+
+        ret = ""
+        result = await d3.json('/sensors');
+        result.forEach( p => {
+            if(p.sensor === measurement.sensor_id)
+                { ret = p.label; }
+        })
+        
+        d3.select("h4#_"+ measurement.sensor_id)
+            .text("Sensor: "+ret)
+
         svgContainer = d3.select("div#container")
             .select('#_'+measurement.sensor_id + 'Node')
             .append("div")
@@ -109,11 +119,11 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer = d3.select("div#container")
             .append("div")
             .attr('class','nodeContainer col-md-11 col-xl-6')
-
+        
         svgContainer
-            .append("h4")
-            .attr('id', "_"+ measurement.sensor_id)
-            .text("Sensor: #"+measurement.sensor_id.replace('_',' '));
+        .append("h4")
+        .attr('id', "_"+ measurement.sensor_id)
+        .text("Sensor: #"+measurement.sensor_id.replace('_',' '));
 
        // Check to see if it exists
         if(svgContainer.select('#_'+measurement.sensor_id + 'Node').node() !== null ){
@@ -1270,7 +1280,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
 
-            addWeatherData()
+            // addWeatherData()
 
             d3.select('div.main-loading').style('display', 'block');
             const promises = _series.map(m => loadMeasurementData(m));
