@@ -98,6 +98,8 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                         print('error! Data type not recognized')
                         continue
 
+                sender = int(sender)
+
                 # check if this sensor is already in the db
                 if not sender in sensor_sampling_periods.keys():
                     # if not, store it
