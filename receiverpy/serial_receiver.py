@@ -26,6 +26,8 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
         # check if any of the frequencies changed in the DB
         new_sensor_sampling_periods = get_sampling_periods()
         if new_sensor_sampling_periods != sensor_sampling_periods:
+            # TODO: this can be made more efficient by
+            # sending only the differences
             print(new_sensor_sampling_periods)
             sensor_sampling_periods = new_sensor_sampling_periods
 
@@ -97,13 +99,14 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                         continue
 
                 # check if this sensor is already in the db
-                # if not packet.sender in existing_sensors:
                 if not sender in sensor_sampling_periods.keys():
                     # if not, store it
                     try:
                         store_sensor(sender)
                         new_sensor_sampling_periods = get_sampling_periods()
                         if new_sensor_sampling_periods != sensor_sampling_periods:
+                            # TODO: this can be made more efficient by
+                            # sending only the differences
                             print(new_sensor_sampling_periods)
                             sensor_sampling_periods = new_sensor_sampling_periods
                             for sensor_id, sp in sensor_sampling_periods.items():
@@ -126,9 +129,6 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                 if len(data_points) > 0:
                     written = client.write_points(data_points)
                     print(f'written: {written}')
-
-                    # for dp in data_points:
-                    #     print(dp)
 
             # print()
 
