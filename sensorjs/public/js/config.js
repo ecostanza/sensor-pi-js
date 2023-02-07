@@ -33,6 +33,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const padding = 5;
     const adj = 30;
 
+    let timeOfInactivity = 5*60*1000;
+
     const OFFSETDB = 100;
 
     let timeConv = d3.timeParse("%Y-%m-%dT%H:%M:%S.%LZ");
@@ -94,6 +96,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     d3.json(seriesUrl).then( async function (allSeries) {
         console.log(allSeries);
+        
+        allSeries = allSeries.filter( f=>{
+            return (f.sensor_id > 9 && f.sensor_id < 50)
+        })
         
         data = [];
         dataMeasurements = [];
@@ -449,5 +455,24 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('div.main-loading').style('display', 'none');
     });
 
+        // Periodical refresh if FLAG is down
+        function refreshData() {
+            window.location.reload();
+        }
+
+        startTimer();
+
+        function startTimer() { 
+            // window.setTimeout returns an Id that can be used to start and stop a timer
+            timeoutId = window.setTimeout(refreshData, timeOfInactivity)
+        }
+
+        resetTimeOfInactivity = function (){
+     
+            window.clearTimeout(timeoutId)
+            startTimer();
+
+            timeOfInactivity = 5*60*1000;
+        }
 
 });

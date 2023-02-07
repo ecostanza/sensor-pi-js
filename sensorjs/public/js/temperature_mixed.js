@@ -968,7 +968,6 @@ document.addEventListener("DOMContentLoaded", function() {
             drawAnnotations(series);
             addBrushing();
             addTooltip(svg,data,series.sensor_id);
-            svg.select('.overlay').raise()
        }
     }
     
@@ -1017,9 +1016,9 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('y', 23)
 
         svg.select('.overlay').on('mousemove', mousemove)
-        // svg.select('.overlay').on('mouseout', () => {
-        //     d3.select("#tooltip_"+sensor_id).style('display','none')
-        // })
+        svg.select('.overlay').on('mouseout', () => {
+            d3.select("#tooltip_"+sensor_id).style('display','none')
+        })
 
         bisectDate = d3.bisector((d) => { return d.time; }).left;
 
@@ -1062,8 +1061,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("transform", `translate(${offset},${d3.pointer(event,this)[1]})`)
            tooltip
                 .style('display', 'block')
-                // .attr("transform", `translate(${d3.pointer(event,this)[0]},10)`)
-                .attr("transform", `translate(${d3.pointer(event,this)[0]},1)`)
+                .attr("transform", `translate(${d3.pointer(event,this)[0]},0)`)
                 .raise();
         }
     } 
