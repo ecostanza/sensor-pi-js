@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let csv_content = "data:text/csv;charset=utf-8,";
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
+        tomorrow = today.plus({days:1})
         const start = today.minus({weeks: 8});
         const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
 
@@ -75,7 +76,7 @@ document.addEventListener("DOMContentLoaded", function() {
             url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
            
             let all_data = [];
-            const query = `?start=${start.toFormat('yyyy-LL-dd')}&end=${now.toFormat('yyyy-LL-dd')}`;
+            const query = `?start=${start.toFormat('yyyy-LL-dd')}&end=${tomorrow.toFormat('yyyy-LL-dd')}`;
 
             return d3.json(url+query).then( data =>{
                 console.log('data:', data);
@@ -88,6 +89,51 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       
     });
+
+    d3.select('button#download-annotations-button').on('click', exportCSVAnnotation);
+
+    async function exportCSVAnnotation(){
+        resetTimeOfInactivity();
+
+        d3.select('#spinner').style('display','block')
+
+        let csvContent = "data:text/csv;charset=utf-8," 
+        
+        result = await d3.json('/annotations');
+
+        // save label names
+        pp = '';
+        for (const key in result[0]) {
+            pp += key + ',';
+        }
+        pp = pp.slice(0, -1); 
+        csvContent += pp + "\n";
+
+        // save data 
+        result.forEach( (e,i) => {
+            pp = '';
+            for (const key in e) {
+                    sanitised = (e[key]+'').replace(/,/g,' ')
+                    pp += sanitised + ',';
+            }
+            pp = pp.slice(0, -1);
+            csvContent += pp + "\n";
+        });
+        
+        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+
+        dateToday = new Date().getDate() +"-" + new Date().getMonth()+ "-"+new Date().getFullYear();
+        link.setAttribute("download", "annotations-"+dateToday+".csv");
+        document.body.appendChild(link); // Required for FF
+
+        d3.select('#spinner').style('display','none')
+
+        link.click(); // This will download the data file named "my_data.csv".
+    }  
+
 
     let loadData = undefined;
 
