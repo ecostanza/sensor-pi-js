@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let FLAG = false;
 
-    let timeOfInactivity = 5*60*1000;
+    let timeOfInactivity = 60*1000;
 
     // TODO make global
     const unitLUT = {
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
         interval = getIntervalRadio();
 
         const intervalLUT = {
-            '6h': 1,
+            // '6h': 1,
             '12h': 1,
             '1d': 1,
             '5d': 5
@@ -74,17 +74,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     /*Creates SVG & its title*/
     const appendSvg = async function (measurement) {
+        console.log("Appended SVG "+ measurement.sensor_id)
         let name = measurement.name;
-
-        ret = ""
-        result = await d3.json('/sensors');
-        result.forEach( p => {
-            if(p.sensor === measurement.sensor_id)
-                { ret = p.label; }
-        })
-        
-        d3.select("h4#_"+ measurement.sensor_id)
-            .text("Sensor: "+ret)
 
         svgContainer = d3.select("div#container")
             .select('#_'+measurement.sensor_id + 'Node')
@@ -102,7 +93,6 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer
             .append("svg")
             .attr('id', "_"+measurement.sensor_id + 'Chart')
-            .attr("preserveAspectRatio", "meet")
             .attr("viewBox", "-"
                 + 1.5 * adj + " -"
                 + 2.5*adj + " "
@@ -116,6 +106,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const appendDIV = function (measurement){
+        console.log("Appended DIV "+ measurement.sensor_id)
         svgContainer = d3.select("div#container")
             .append("div")
             .attr('class','nodeContainer col-md-11 col-xl-6')
@@ -147,19 +138,15 @@ document.addEventListener("DOMContentLoaded", function() {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
         }
 
-        return d3.json(dataUrl).then(function (response) {
+        return d3.json(dataUrl).then(  (response) => {
             drawGraphs(response,sensor_id,series);
-        });
-    }
+            });
+        }
 
     function formatData(data){
         let offset = 0;
 
         data = data.map(function (d) {
-            // let v = +d.value*SCALING_FACTOR + offset;
-            // if (d.value === null) {
-            //     v = null;
-            // }
             return {
                 time: luxon.DateTime.fromISO(d.time).toJSDate(),//timeConv(d.time),
                 value: d.value
@@ -168,50 +155,25 @@ document.addEventListener("DOMContentLoaded", function() {
         return data;
     }
 
-    function drawGraphs (response, sensor_id, series){
-
-        // console.log(response.readings)
+    async function drawGraphs (response, sensor_id, series){
         let newdata = formatData(response.readings);
 
-        let freshData = false;
+        ret = ""
+        result = await d3.json('/sensors');
+        result.forEach( p => {
+            if(p.sensor === sensor_id)
+                { ret = p.label; }
+        })
+        
+        d3.select("h4#_"+ sensor_id)
+            .text("Sensor: "+ret)
 
-        if(!data[series.id]){
-            console.log('Fresh data. Creating data['+series.id+']');
-            freshData = true; 
-            data[series.id] = [];
-        }
-
+        data[series.id] = []
         data[series.id] = newdata
-        // data[series.id] = data[series.id].concat(newdata);
 
-        // data.sort( (a,b) => { return a.time - b.time})
-
-        // Get initial min-max values for the x axis
-        // If it is the first time the page is loaded show all
-        // Else show an offest to avoid jumps in the scrollling
-
-        // Check if data is empty, eg becase there are no values for today
-        // force the max value as today and move backwards in time
-        // if(newdata.length == 0){
-        //     max = luxon.DateTime.now();
-        //     min = max.minus({hours: WINDOW});
-        // }else{
-        //     max = d3.max(newdata, d => new Date(d.time.getTime()));
-        //     max = new Date(max.getTime() + 30*60*1000); // add 30min so as to see the laterst 
-
-        //     if(freshData === false) { 
-        //        max = new Date(max.getTime() + WINDOW*60*60*1000); 
-        //     };
-        //     min = new Date(max);
-        //     min.setHours(max.getHours() - WINDOW)
-        // }
-
-        xrange = d3.extent(data[series.id], l => { return new Date(l.time).getTime() }),
-        // console.log(xrange)
-        // xrange[1] = DateTime.fromMillis(+xrange[1]).plus({hours:2}).toMillis()
+        xrange = d3.extent(data[series.id], l => { return new Date(l.time).getTime() })
 
         xScale = d3.scaleTime(
-            // [min, max],
             xrange,
             [svgMarginLeft, svgWidth]
         );
@@ -286,7 +248,8 @@ document.addEventListener("DOMContentLoaded", function() {
         let label = capitalize(series.measurement);
 
         if( series.measurement == 'temperature'){
-             svg.append("g")
+            
+            svg.append("g")
                 .attr("class", "axis")
                 .call(yAxisTemperature)
                 .attr('transform','translate('+svgMarginLeft+',0)')
@@ -299,7 +262,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('fill','#EF9F16')
                     .style('font-weight', 800)
                     .style('font-size',16);
-
             
             svg.append("g")
                 .attr("class", "axis x-axis top")
@@ -310,8 +272,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr("dx", "0em")
                     .attr("dy", "-.25em")
                     .attr('y',0)
-                    // .attr("transform", "rotate(-20)");
-           
+
             svg.append("g")
                 .attr("class", "axis x-axis axisDays")
                 .attr("transform", "translate(0," + (-30) + ")")
@@ -351,7 +312,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 .style('fill','cadetblue')
                 .style('font-weight', 800)
                 .style('font-size',16);
-
         }
         svg.append('clipPath')
               .attr("id", "clip")
@@ -363,7 +323,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Add clipping path for making the animation look better
         // But make sure it doesnt exist first.
-
         if(svg.select('.annotations').node() === null ){
            svg.append('g').attr('class','annotations').attr("clip-path", "url(#clip)")
         }
@@ -403,8 +362,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     .datum(dataF)
                     .attr("d", lineT)
                     .style('stroke', '#EF9F16')
+                    .attr('pointer-events', 'visibleStroke')
 
-               svg.select('.dataPoints')
+                svg.select('.dataPoints')
                     .append("path")
                     .attr('class','gapline')
                     .attr('d', lineT(filteredDataT))
@@ -413,8 +373,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 svg.append("rect")
                    .attr('width',svgWidth - svgMarginLeft)
                    .attr('x',svgMarginLeft)
-                   .attr('y', yScaleTemperature(25))
-                   .attr('height', yScaleTemperature(18) - yScaleTemperature(25) )
+                   .attr('y', yScaleTemperature(22))
+                   .attr('height', yScaleTemperature(17) - yScaleTemperature(22) )
                    // .attr('fill','#EF9F16')
                    .attr('fill','url(#Gradient1)')
                    .style('opacity', 0.2)
@@ -448,11 +408,15 @@ document.addEventListener("DOMContentLoaded", function() {
                             .attr('cy', yScaleTemperature(dataF[circleLocStart].value))
                            .style('fill', '#EF9F16')
 
-                    svg.append('text').text(Math.round((dataF[circleLocEnd].value))+ "\xB0C")
-                            .attr('x', xScale(dataF[circleLocEnd].time)  )
-                            .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 10)
-                           .style('fill', '#EF9F16')
-                           .style('font-size','12px')
+
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+
+                        svg.append('text').text(Math.round((dataF[circleLocEnd].value))+ "\xB0C")
+                                .attr('x', xScale(dataF[circleLocEnd].time)  )
+                                .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 10)
+                               .style('fill', '#EF9F16')
+                               .style('font-size','12px')
+                    }
 
                     svg.append('circle').attr('r',6)
                             .attr('cx', xScale(dataF[circleLocEnd].time) )
@@ -483,13 +447,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 context.append("rect")
                    .attr('width',svgWidth - svgMarginLeft)
-                   .attr('y', yScaleHumidity(60))
+                   .attr('y', yScaleHumidity(65))
                    .attr('x',svgMarginLeft)
-                   .attr('height', yScaleHumidity(30) - yScaleHumidity(60) )
-                   // .attr('fill','cadetblue')
+                   .attr('height', yScaleHumidity(35) - yScaleHumidity(65) )
                   .attr('fill','url(#Gradient2)')
                    .style('opacity',0.2)
-
 
                 if(dataF.length > 0){
                     circleLocStart = 0
@@ -520,11 +482,14 @@ document.addEventListener("DOMContentLoaded", function() {
                             .style('font-size','12px')
                             .style('fill', 'cadetblue')
 
-                    context.append('text').text(Math.round(dataF[circleLocEnd].value)+"%")
-                            .attr('x', xScale(dataF[circleLocEnd].time))
-                            .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 10)
-                           .style('fill', 'cadetblue')
-                           .style('font-size','12px')
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+
+                        context.append('text').text(Math.round(dataF[circleLocEnd].value)+"%")
+                                .attr('x', xScale(dataF[circleLocEnd].time))
+                                .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 10)
+                               .style('fill', 'cadetblue')
+                               .style('font-size','12px')
+                    }
 
                     context.append('circle').attr('r',6)
                             .attr('cx', xScale(dataF[circleLocEnd].time))
@@ -1008,8 +973,50 @@ document.addEventListener("DOMContentLoaded", function() {
         if( series.measurement == 'temperature'){
             drawAnnotations(series);
             addBrushing();
+
+            // addTooltip(svg);
         }
     }
+    
+   /* function addTooltip(svg){
+        const tooltip = svg.append('g')
+            // .style('display', 'none');
+
+        tooltip
+            .append('rect')
+            .style('display', 'block')
+            .attr('x', 0)
+            .attr('y', -20)
+            .attr('width', 140)
+            .attr('height', 20)
+            .attr('fill', 'rgba(240, 240, 240, .7)');
+
+        tooltip
+            .append('text')
+            .style('display', 'block')
+            .attr('x', 5)
+            .attr('y', -5)
+            .text('hello');
+    
+        // tmp = svg.select('.overlay').node().getBoundingClientRect().left;
+        // svg.select('.overlay').on('mousemove', (e,t)=>{ 
+        //     console.log(e)
+        //     console.log(tmp)
+
+        //     xOver = e.layerX - tmp;
+        //     date = xScale.invert(xOver);
+
+        //     console.log(date)
+        //     tooltip.select('text').text(date)
+
+        //     tooltip
+        //         .style('display', 'block')
+        //         .attr("transform", `translate(${xOver},0)`)
+        //         .raise();
+        // })
+
+    } */
+
     
     d3.select('#btnEarlier').on('click', getEarlierData_new);
     d3.select('#btnLater').on('click', getLaterData_new);
@@ -1029,7 +1036,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#btnLater').node().disabled = true;
         
         const intervalLUT = {
-            '6h': 6 * 60,
+            // '6h': 6 * 60,
             '12h': 12 * 60,
             '1d': 24 * 60,
             '5d': 5 * 24 * 60
@@ -1314,7 +1321,7 @@ document.addEventListener("DOMContentLoaded", function() {
             window.clearTimeout(timeoutId)
             startTimer();
 
-            timeOfInactivity = 10*60*1000;
+            timeOfInactivity = 60*1000;
         }
 
  /*       d3.select('select#measurementSelect')
