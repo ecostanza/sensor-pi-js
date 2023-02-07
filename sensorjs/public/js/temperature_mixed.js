@@ -138,8 +138,8 @@ document.addEventListener("DOMContentLoaded", function() {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
         }
 
-        return d3.json(dataUrl).then(  (response) => {
-            drawGraphs(response,sensor_id,series);
+        return d3.json(dataUrl).then( async function(response) {
+                await drawGraphs(response,sensor_id,series);
             });
         }
 
@@ -238,11 +238,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         let svg = d3.select('svg#_' + series.sensor_id + 'Chart');
 
-        // svg.selectAll("*").remove();
-        // svg.selectAll('.axis').remove();
-        // svg.selectAll('.backgroundData').remove();
-        // svg.selectAll('.annotations').remove();
-        // svg.selectAll('.brush').remove();
         svg.selectAll('#clip').remove();
 
         let label = capitalize(series.measurement);
@@ -497,7 +492,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             .style("fill",'cadetblue')
                 }
             }
-
         }
 
         addBrushing = function (){
@@ -513,6 +507,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
             function brushStart({selection}) {
                 resetTimeOfInactivity();
+                
+                // tooltip.style('display','none')
 
                 console.log('brush started');
                 svg.select('.saveBtnContainer').remove();
@@ -969,18 +965,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         updateGraph(data[series.id],true);
-        // getSunriseSunset(data[series.id],series.id);
+
+        // TODO make more elegant. This should be called after all measures are drawn
         if( series.measurement == 'temperature'){
             drawAnnotations(series);
             addBrushing();
-
-            // addTooltip(svg);
-        }
+            // addTooltip(svg,data,series.sensor_id);
+       }
     }
     
-   /* function addTooltip(svg){
+   /* function addTooltip(svg, dataL,sensor_id){
         const tooltip = svg.append('g')
-            // .style('display', 'none');
+            .style('display', 'none')
+            .attr('id',"tooltip_"+sensor_id)
+            .style('font-size','11px')
 
         tooltip
             .append('rect')
@@ -988,35 +986,79 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('x', 0)
             .attr('y', -20)
             .attr('width', 140)
-            .attr('height', 20)
+            .attr('height', 50)
             .attr('fill', 'rgba(240, 240, 240, .7)');
 
         tooltip
             .append('text')
+            .attr('class','top')
             .style('display', 'block')
+            .style('font-weight','800')
             .attr('x', 5)
             .attr('y', -5)
-            .text('hello');
-    
-        // tmp = svg.select('.overlay').node().getBoundingClientRect().left;
-        // svg.select('.overlay').on('mousemove', (e,t)=>{ 
-        //     console.log(e)
-        //     console.log(tmp)
+        
+        tooltip
+            .append('text')
+            .attr('class','bottom temp')
+            .style('display', 'block')
+            .attr('x', 5)
+            .attr('y', 10)
 
-        //     xOver = e.layerX - tmp;
-        //     date = xScale.invert(xOver);
+        tooltip
+            .append('text')
+            .attr('class','bottom hum')
+            .style('display', 'block')
+            .attr('x', 5)
+            .attr('y', 23)
 
-        //     console.log(date)
-        //     tooltip.select('text').text(date)
-
-        //     tooltip
-        //         .style('display', 'block')
-        //         .attr("transform", `translate(${xOver},0)`)
-        //         .raise();
+        svg.select('.overlay').on('mousemove', mousemove)
+        // svg.select('.overlay').on('mouseout', (){
+        //     tooltip.style('display','none')
         // })
+        bisectDate = d3.bisector((d) => { return d.time; }).left;
 
+        function mousemove(){ 
+
+            x0 = xScale.invert(d3.pointer(event,this)[0])
+            ff = DateTime.fromJSDate(x0);
+
+            s_idA = "temperature_"+sensor_id
+            s_idB = "humidity_"+sensor_id
+
+            i = bisectDate(dataL[s_idA], x0, 1),
+                      d0 = dataL[s_idA][i - 1],
+                      d1 = dataL[s_idA][i],
+                      dA = x0 - d0.time > d1.time - x0 ? d1 : d0;
+            i = bisectDate(dataL[s_idB], x0, 1),
+                      d0 = dataL[s_idB][i - 1],
+                      d1 = dataL[s_idB][i],
+                      dB = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+            tooltip.select('text.top').text( ff.toFormat('LLL dd, h:mm a') )
+
+            if(dA.value === null){ 
+                tooltip.select('text.bottom.temp').text("temperature: -" )
+            }else{
+                tooltip.select('text.bottom.temp').text("temperature: " + dA.value.toFixed(1)+"\xB0C" )
+            }
+            if(dB.value === null){ 
+               tooltip.select('text.bottom.hum').text("humidity: -" )
+            }else{
+               tooltip.select('text.bottom.hum').text("humidity: " + dB.value.toFixed(1)+"%" )
+           }
+
+           offset = -180
+           if( d3.pointer(event,this)[0] + offset < 0 ){
+            offset = 50
+           }
+
+           tooltip
+                .style('display', 'block')
+                .attr("transform", `translate(${d3.pointer(event,this)[0]+offset},${d3.pointer(event,this)[1]})`)
+                .raise();
+        }
     } */
-
+    
     
     d3.select('#btnEarlier').on('click', getEarlierData_new);
     d3.select('#btnLater').on('click', getLaterData_new);
