@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let FLAG = false;
 
-    let timeOfInactivity = 60*1000;
+    let timeOfInactivity = 5*60*1000;
 
     // TODO make global
     const unitLUT = {
@@ -508,7 +508,7 @@ document.addEventListener("DOMContentLoaded", function() {
             function brushStart({selection}) {
                 resetTimeOfInactivity();
                 
-                // tooltip.style('display','none')
+                // d3.selectAll('.tooltip').style('display','none')
 
                 console.log('brush started');
                 svg.select('.saveBtnContainer').remove();
@@ -732,8 +732,6 @@ document.addEventListener("DOMContentLoaded", function() {
             };
 
             function populateDialogBox(evnt){
-                // event = sanitize(evnt);
-                event = evnt;
 
                 printDate = d3.timeFormat('%b %d %H:%M');
 
@@ -952,11 +950,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 clearBrushSelection();
                 brushContainer.call(brush.move,null);
-                FLAG = false;
+                // FLAG = false;
             }
 
             d3.select('#closebtnDialogue').on('click', closeDialogue);
-
 
             function clearBrushSelection(){
                 svg.select('.saveBtnContainer').remove();
@@ -970,18 +967,26 @@ document.addEventListener("DOMContentLoaded", function() {
         if( series.measurement == 'temperature'){
             drawAnnotations(series);
             addBrushing();
-            // addTooltip(svg,data,series.sensor_id);
+            addTooltip(svg,data,series.sensor_id);
+            svg.select('.overlay').raise()
        }
     }
     
-   /* function addTooltip(svg, dataL,sensor_id){
+    function addTooltip(svg, dataL,sensor_id){
         const tooltip = svg.append('g')
             .style('display', 'none')
+            .attr('class','tooltip')
             .attr('id',"tooltip_"+sensor_id)
             .style('font-size','11px')
+            .style('opacity',1)
 
-        tooltip
-            .append('rect')
+        tooltip.append('path')
+            .attr('d', 'M 0,'+(-20) +' L 0,'+0)
+            .style('display', 'block')
+
+        const tooltipTExt = tooltip.append('g')
+
+        tooltipTExt.append('rect')
             .style('display', 'block')
             .attr('x', 0)
             .attr('y', -20)
@@ -989,7 +994,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('height', 50)
             .attr('fill', 'rgba(240, 240, 240, .7)');
 
-        tooltip
+        tooltipTExt
             .append('text')
             .attr('class','top')
             .style('display', 'block')
@@ -997,14 +1002,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('x', 5)
             .attr('y', -5)
         
-        tooltip
+        tooltipTExt
             .append('text')
             .attr('class','bottom temp')
             .style('display', 'block')
             .attr('x', 5)
             .attr('y', 10)
 
-        tooltip
+        tooltipTExt
             .append('text')
             .attr('class','bottom hum')
             .style('display', 'block')
@@ -1012,9 +1017,10 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('y', 23)
 
         svg.select('.overlay').on('mousemove', mousemove)
-        // svg.select('.overlay').on('mouseout', (){
-        //     tooltip.style('display','none')
+        // svg.select('.overlay').on('mouseout', () => {
+        //     d3.select("#tooltip_"+sensor_id).style('display','none')
         // })
+
         bisectDate = d3.bisector((d) => { return d.time; }).left;
 
         function mousemove(){ 
@@ -1037,14 +1043,14 @@ document.addEventListener("DOMContentLoaded", function() {
             tooltip.select('text.top').text( ff.toFormat('LLL dd, h:mm a') )
 
             if(dA.value === null){ 
-                tooltip.select('text.bottom.temp').text("temperature: -" )
+                tooltipTExt.select('text.bottom.temp').text("temperature: -" )
             }else{
-                tooltip.select('text.bottom.temp').text("temperature: " + dA.value.toFixed(1)+"\xB0C" )
+                tooltipTExt.select('text.bottom.temp').text("temperature: " + dA.value.toFixed(1)+"\xB0C" )
             }
             if(dB.value === null){ 
-               tooltip.select('text.bottom.hum').text("humidity: -" )
+               tooltipTExt.select('text.bottom.hum').text("humidity: -" )
             }else{
-               tooltip.select('text.bottom.hum').text("humidity: " + dB.value.toFixed(1)+"%" )
+               tooltipTExt.select('text.bottom.hum').text("humidity: " + dB.value.toFixed(1)+"%" )
            }
 
            offset = -180
@@ -1052,13 +1058,15 @@ document.addEventListener("DOMContentLoaded", function() {
             offset = 50
            }
 
+            tooltipTExt.style('display', 'block')
+                    .attr("transform", `translate(${offset},${d3.pointer(event,this)[1]})`)
            tooltip
                 .style('display', 'block')
-                .attr("transform", `translate(${d3.pointer(event,this)[0]+offset},${d3.pointer(event,this)[1]})`)
+                // .attr("transform", `translate(${d3.pointer(event,this)[0]},10)`)
+                .attr("transform", `translate(${d3.pointer(event,this)[0]},1)`)
                 .raise();
         }
-    } */
-    
+    } 
     
     d3.select('#btnEarlier').on('click', getEarlierData_new);
     d3.select('#btnLater').on('click', getLaterData_new);
@@ -1285,7 +1293,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         allSeries = allSeries.filter(function (d) {
-            return toKeep.includes(d.measurement) 
+            return (toKeep.includes(d.measurement) && d.sensor_id<50 && d.sensor_id>9)
         });
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];
@@ -1363,7 +1371,7 @@ document.addEventListener("DOMContentLoaded", function() {
             window.clearTimeout(timeoutId)
             startTimer();
 
-            timeOfInactivity = 60*1000;
+            timeOfInactivity = 5*60*1000;
         }
 
  /*       d3.select('select#measurementSelect')
