@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let FLAG = false;
 
-    let timeOfInactivity = 5*60*1000;
+    let timeOfInactivity = 10*60*1000;
 
     // TODO make global
     const unitLUT = {

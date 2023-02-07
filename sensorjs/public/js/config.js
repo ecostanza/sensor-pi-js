@@ -334,11 +334,11 @@ document.addEventListener("DOMContentLoaded", function() {
              })
             .style('color', d =>{
                 val = -1 ;
-                d[1].forEach( p=>{
+                d[1].forEach( p =>{
                     if(p.measurement === 'battery'){
                         val =  p.value;
                     }
-                }); 
+                });
                  if( (val) === 1) { return 'green' }
                 if( (val) < 500  ){
                     return 'darkred'
@@ -375,23 +375,48 @@ document.addEventListener("DOMContentLoaded", function() {
         trsSensors.append('td')
             .html(function (d) { 
                 let ret = -100 +" ";
+                let latest = 0;
                 d[1].forEach( p=>{
                     if(p.measurement === 'rssi'){
                         ret =  p.value + OFFSETDB + " ";
+                        latest = p.latest
                     }
                 });
-                return ret;
+                smp = 0;
+                d[1].forEach( p =>{
+                    if(p.measurement === 'sampling_period'){
+                        smp =  +p.value;
+                    }
+                }); 
+
+                console.log( (latest).diff(luxon.DateTime.now(),"seconds").as('seconds'))
+
+                if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
+                    return 'offline '
+                }else {
+                    return ret;
+                }
              })
             .style('text-align','center')
             .style('vertical-align','middle')
             .style('color', d =>{
                 val = -100;
-                d[1].forEach( p=>{
+                latest = 0
+                d[1].forEach( p =>{
                     if(p.measurement === 'rssi'){
                         val =  p.value;
+                        latest = p.latest;
                     }
                 }); 
-                if( (val + OFFSETDB) < 10 ){
+                smp = 0;
+                d[1].forEach( p =>{
+                    if(p.measurement === 'sampling_period'){
+                        smp =  +p.value;
+                    }
+                }); 
+                if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
+                    return 'darkred'
+                }else if( (val + OFFSETDB) < 10 ){
                     return 'darkred'
                 }else if( (val + OFFSETDB) < 30){
                     return 'orange'
@@ -401,12 +426,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }).append('label')    
             .style('background', d =>{
                 val = -100;
+                latest = 0
                 d[1].forEach( p=>{
                     if(p.measurement === 'rssi'){
                         val =  p.value;
+                        latest = p.latest;
                     }
                 }); 
-                if( (val + OFFSETDB) < 10 ){
+                
+                smp = 0;
+                d[1].forEach( p =>{
+                    if(p.measurement === 'sampling_period'){
+                        smp =  +p.value;
+                    }
+                }); 
+                if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
+                    return 'darkred'
+                }else if( (val + OFFSETDB) < 10 ){
                     return 'darkred'
                 }else if( (val + OFFSETDB) < 30){
                     return 'orange'
