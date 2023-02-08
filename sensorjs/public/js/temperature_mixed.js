@@ -72,6 +72,9 @@ document.addEventListener("DOMContentLoaded", function() {
         return intervalLUT[interval];
     }
 
+    /*Refresh Page on Reload*/
+    window.onresize = function(){ location.reload(); }
+
     /*Creates SVG & its title*/
     const appendSvg = async function (measurement) {
         console.log("Appended SVG "+ measurement.sensor_id)
@@ -772,7 +775,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 resetTimeOfInactivity();
 
                 d3.select("#dialogueBox")
-                  .style('left', () => { return (window.innerWidth/2 - 580/2 )+ "px";})
+                  .style('left', () => { 
+                    if(window.innerWidth < 580){
+                        return 0;
+                    }else{
+                        return (window.innerWidth/2 - 580/2 )+ "px";
+                    }
+                  })
                   .style('display','block');
 
                 populateDialogBox(event);

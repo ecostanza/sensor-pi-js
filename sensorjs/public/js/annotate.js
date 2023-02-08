@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", function() {
         svgHeight = svgWidth;
     }
 
-
     const margin = 5;
     const padding = 5;
     const adj = 30;
