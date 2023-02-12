@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const padding = 5;
     const adj = 25;
     const svgMarginTop = 0;
-    const svgMarginBottom = 80//window.innerHeight > 530 ? 300:200;
+    const svgMarginBottom = 180//window.innerHeight > 530 ? 300:200;
     const svgMarginLeft = 10;
 
     let sensorId = 96;
@@ -1352,7 +1352,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const promises = _series.map(m => loadMeasurementData(m));
             Promise.all(promises).then( () => {
                 console.log('all loaded');
-                d3.select('#spinner').style('display','block')
+                d3.selectAll('#spinner').style('display','none')
             });
         };
 
@@ -1382,48 +1382,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             timeOfInactivity = 5*60*1000;
         }
-
- /*       d3.select('select#measurementSelect')
-            .selectAll(null)
-            .data(allMeasurements)
-            .enter()
-            .append('option')
-                .attr('value', function (d) {return d; } )
-                .html(function (d) { return d; });
-
-        d3.select('select#sensorSelect')
-            .selectAll(null)
-            .data(allSensors)
-            .enter()
-            .append('option')
-                .attr('value', function (d) {return d; } )
-                .html(function (d) { return d; });
-
-
-        let handle_select = function () {
-            const measurement = d3.select('select#measurementSelect').node().value;
-            const sensor_id = d3.select('select#sensorSelect').node().value;
-            _series = allSeries.map(function (serie) {return serie;});
-            if (measurement !== 'Any Measurement') {
-                _series = _series.filter(function (serie) {return serie.measurement === measurement;});
-            }
-            if (sensor_id !== 'Any Sensor') {
-                _series = _series.filter(function (serie) {return serie.sensor_id === sensor_id;});
-            }
-
-            d3.selectAll('#container svg').remove();
-            d3.selectAll('#container h4').remove();
-
-            // Go back to the begining
-            startMinutes = 24*60;
-            endMinutes = 0;
-
-            loadData();
-        };
-        
-        d3.select('select#measurementSelect').on('change', handle_select);
-        d3.select('select#sensorSelect').on('change', handle_select);
-*/
 
     });
 
@@ -1513,7 +1471,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tmpDate = new Date(event.start);
 
-        anntContainer = d3.select('#_'+seriesID+'Chart .annotations')
+        anntContainer = d3.select('#_'+seriesID+'Chart .annotations')//d3.selectAll('.annotations')
           .append('g').attr('class','annotationBar')
           .datum(event)
           .attr('transform','translate('+xScale(tmpDate)+',0)')
@@ -1529,37 +1487,11 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('d', anntLine) 
             .attr('stroke-width','3px')
 
-        // anntContainer.append('path')
-        //             .attr('class','middleAnnotationLine')
-        //             .attr('d', 'M '+(linesize/2)+','+(svgHeight - svgMarginBottom + 10)+' L '+(linesize/2)+','+(svgHeight))
-        //             .attr('stroke-width','1px')
-        //             // .attr('stroke-dasharray','3')
-
-        // anntContainer.append('path')
-        //             .attr('class','leftAnnotationLine')
-        //             .attr('d', 'M 0,'+(svgHeight - svgMarginBottom + 10)+' L 0,'+(svgHeight))
-        //             .attr('stroke-width','0.5px')
-        //             .attr('stroke-dasharray','3')
-
-        // anntContainer.append('path')
-        //             .attr('class','rightAnnotationLine')
-        //             .attr('d', 'M '+(linesize)+','+(svgHeight- svgMarginBottom + 10)+' L'+(xScale(event.end)-xScale(tmpDate))+','+(svgHeight))
-        //             .attr('stroke-width','0.5px')
-        //             .attr('stroke-dasharray','3')
-
         anntContainer.append('rect').attr('class','highlighted')
                 .attr('x', 0 )
                 .attr('y', 0)
                 .attr('width', xScale(event.end)-xScale(tmpDate) )
                 .attr('height', yScaleHumidity(0))
-
-        // anntContainer
-        //     .append('text')
-        //     .attr('font-size','15px')
-        //     .attr('x', 45)
-        //     // .attr('y',svgMarginTop-35)
-        //     .attr('y',25+svgHeight - svgMarginBottom +30)
-        //     .text(event.type)
 
         anntContainer
             .append('image')
@@ -1585,6 +1517,7 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .on('click', (e,d) => {
                 editEvent(e,d)})
+
 
         setAnnotationBarVisibility();
     }
