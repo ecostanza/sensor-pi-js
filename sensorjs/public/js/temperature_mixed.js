@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     /*Refresh Page on Reload*/
-    window.onresize = function(){ location.reload(); }
+    // window.onresize = function(){ location.reload(); }
 
     /*Creates SVG & its title*/
     const appendSvg = async function (measurement) {
@@ -1068,7 +1068,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             tooltipTExt.style('display', 'block')
                     .attr("transform", `translate(${offset},${d3.pointer(event,this)[1]})`)
-           tooltip
+            tooltip
                 .style('display', 'block')
                 .attr("transform", `translate(${d3.pointer(event,this)[0]},0)`)
                 .raise();
@@ -1086,6 +1086,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     d3.select('#intervalRadio').on('change', function () {
+
+        d3.select('#spinner').style('display','block')
 
         let interval = getIntervalRadio();
 
@@ -1346,11 +1348,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // addWeatherData()
 
-            d3.select('div.main-loading').style('display', 'block');
+            d3.select('#spinner').style('display','block')
             const promises = _series.map(m => loadMeasurementData(m));
             Promise.all(promises).then( () => {
                 console.log('all loaded');
-                d3.select('div.main-loading').style('display', 'none');
+                d3.select('#spinner').style('display','block')
             });
         };
 
