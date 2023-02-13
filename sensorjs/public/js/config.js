@@ -54,9 +54,12 @@ document.addEventListener("DOMContentLoaded", function() {
         const start = today.minus({weeks: 8});
         const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
 
-        let allSeries = await d3.json(seriesUrl) 
+        let allSeries = await d3.json(seriesUrl);
+        allSeries = allSeries.filter(function (s) {
+            return ['temperature','humidity','battery','rssi','sampling_period'].includes(s.measurement);
+        });
 
-        console.log(allSeries)
+        console.log('allSeries', allSeries);
 
         const promises = allSeries.map(m => getData(m));
         Promise.all(promises).then( () => {
@@ -74,6 +77,7 @@ document.addEventListener("DOMContentLoaded", function() {
             measurement = h.measurement;
 
             url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
+            console.log('url', url);
            
             let all_data = [];
             const query = `?start=${start.toFormat('yyyy-LL-dd')}&end=${tomorrow.toFormat('yyyy-LL-dd')}`;
