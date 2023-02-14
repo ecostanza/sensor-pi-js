@@ -46,7 +46,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     d3.select('button#download-button').on('click', async function () {
         console.log('button#download-button');
-     
+        
+        d3.select('#spinner').style('display', 'block');
+
         let csv_content = "data:text/csv;charset=utf-8,";
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
@@ -70,6 +72,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.body.appendChild(link); // Required for FF
             
             link.click(); // This will download the data file named "my_data.csv".  
+             d3.select('#spinner').style('display', 'none');
         });
 
         function getData(h) {
@@ -99,7 +102,7 @@ document.addEventListener("DOMContentLoaded", function() {
     async function exportCSVAnnotation(){
         resetTimeOfInactivity();
 
-        d3.select('#spinner').style('display','block')
+        d3.select('#spinner').style('display', 'block');
 
         let csvContent = "data:text/csv;charset=utf-8," 
         
@@ -136,6 +139,9 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#spinner').style('display','none')
 
         link.click(); // This will download the data file named "my_data.csv".
+    
+        d3.select('#spinner').style('display', 'none');
+
     }  
 
 
@@ -538,7 +544,7 @@ document.addEventListener("DOMContentLoaded", function() {
             referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
         }
 
-        d3.select('div.main-loading').style('display', 'none');
+        d3.select('#spinner').style('display', 'none');
     });
 
         // Periodical refresh if FLAG is down

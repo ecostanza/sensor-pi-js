@@ -31,13 +31,16 @@ this program. If not, see <http://www.gnu.org/licenses/>.
     <!-- local imports -->
     <link rel="stylesheet" type="text/css" href="/static/css/index.css">
 
-    <title>Sensor Data Home</title>
+    <title>Sensor Data Config</title>
   </head>
   <body style="padding-top:0px">
 
     <div class="container">
+    <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
+      <span class="visually-hidden">Loading...</span>
+    </div>
 
-      <div class="main-loading" style="display: block;">
+<!--       <div class="main-loading" style="display: block;">
           <div>
           Loading. Please wait.<br>
           <div class="spinner-border align-middle" role="status">        
@@ -45,7 +48,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
           </div>
           </div>
       </div>
- 
+ --> 
       <div class="row">
         <div id="download-test" class="col-12">
         <button id="download-button" class="btn btn-primary btn-sm" type="button">Download Data </button>
