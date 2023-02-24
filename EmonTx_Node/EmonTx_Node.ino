@@ -11,6 +11,7 @@
 #include <Adafruit_SleepyDog.h> // https://github.com/adafruit/Adafruit_SleepyDog
 
 //#define DEBUG 1
+//#define NO_SLEEP 1
 // based on https://forum.arduino.cc/t/serial-debug-macro/64259/3
 #ifdef DEBUG
   #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
@@ -23,34 +24,44 @@
 
 // Radio node and network config
 //#define NODEID        101    // The ID of this node (must be different for every node on network)
-#define NODEID        100    // The ID of this node (must be different for every node on network)
+#define NODEID        99    // The ID of this node (must be different for every node on network)
 #define NETWORKID     100  // The network ID
-//#define NETWORKID     212  // The network ID
+
+#define EMON_TX 1
+
+#ifdef EMON_TX
+  // Emon_Tx
+  #define ADC_PIN 1
+  #define VBATPIN 7
+  #define LED 6
+#else
+  // feather
+  #define LED LED_BUILTIN
+  // this board is the RFM69HW/HCW not the RFM69W/CW
+  #define IS_RFM69HW_HCW
+
+  #define ADC_PIN 0
+
+  // on the M0 feather the battery pin is different
+  #ifdef __arm__
+    #define VBATPIN A7
+  #else
+    #define VBATPIN A9
+  #endif
+  
+#endif
 
 // The transmision frequency of the baord. Change as needed.
 #define FREQUENCY      RF69_433MHZ //RF69_868MHZ // RF69_915MHZ
 
-// Uncomment if this board is the RFM69HW/HCW not the RFM69W/CW
-//#define IS_RFM69HW_HCW
-
 // TODO: the RF69_IRQ_NUM seems unnecessary
 // Board and radio specific config - You should not need to edit
-#if defined (__AVR_ATmega32U4__) && defined (USING_RFM69_WING)
-    #define RF69_SPI_CS  10   
-    #define RF69_RESET   11   
-    #define RF69_IRQ_PIN 2 
-    #define RF69_IRQ_NUM digitalPinToInterrupt(RF69_IRQ_PIN) 
-#elif defined (__AVR_ATmega32U4__)
+#if defined (__AVR_ATmega32U4__)
     #define RF69_RESET    4
     #define RF69_SPI_CS   8
     #define RF69_IRQ_PIN  7
     #define RF69_IRQ_NUM  4
-#elif defined(ARDUINO_SAMD_FEATHER_M0) && defined (USING_RFM69_WING)
-    #define RF69_RESET    11
-    #define RF69_SPI_CS   10
-    #define RF69_IRQ_PIN  6
-    #define RF69_IRQ_NUM  digitalPinToInterrupt(RF69_IRQ_PIN)
-#elif defined(ARDUINO_SAMD_FEATHER_M0)
+#elif defined(__arm__)
     #define RF69_RESET    4
     #define RF69_SPI_CS   8
     #define RF69_IRQ_PIN  3
@@ -67,16 +78,11 @@
 RFM69 radio(RF69_SPI_CS, RF69_IRQ_PIN, false, RF69_IRQ_NUM);
 
 
-#define LED 6
-#define ADC_PIN 1
-
-const byte VBATPIN = 7;
-
 // from open energy monitor
 #if defined(__arm__)
-#define ADC_BITS    12
+  #define ADC_BITS    12
 #else
-#define ADC_BITS    10
+  #define ADC_BITS    10
 #endif
 
 #define ADC_COUNTS  (1<<ADC_BITS)
@@ -94,17 +100,36 @@ double sq_value;
 double sum;
 double readings_sum;
 unsigned int curr_readings = 0;
-#define N_READINGS 10
+unsigned int n_readings = 1;
 #define READING_PERIOD 3000
 // frequency = N_READINGS * READING_PERIOD 
 //#define READING_PERIOD 60000
 
+uint16_t sampling_period = 3;
+
 unsigned long start;
+
+void blink() {
+  pinMode(LED, OUTPUT);
+  // blink once
+  digitalWrite(LED, HIGH);
+  delay(500);
+  digitalWrite(LED, LOW);
+  pinMode(LED, INPUT);
+}
 
 // the setup function runs once when you press reset or power the board
 void setup() {
+  // On-board emonTx LED
+  pinMode(LED, OUTPUT);
+  // blink once
+  digitalWrite(LED, HIGH);
+  delay(500);
+  digitalWrite(LED, LOW);
+  pinMode(LED, INPUT);
+
   // initialize digital pin LED_BUILTIN as an output.
-  //DDRD |= 0x01 << LED;
+  
   #ifdef DEBUG  
   Serial.begin(115200);
   while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
@@ -116,11 +141,18 @@ void setup() {
 
   // Initialize the radio
   bool radio_ok = radio.initialize(FREQUENCY, NODEID, NETWORKID);
+  // Initialize the radio
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
+#endif
+
   if (radio_ok) {
     DEBUG_PRINTLN("radio.initialize success");
   } else {
     DEBUG_PRINTLN("radio.initialize failed");
   }
+  //radio.spyMode(true);
+  
 }
 
 /* ****
@@ -159,13 +191,17 @@ void loop() {
     sum += sq_value;
   }
   double Irms = I_ratio * sqrt(sum / N_SAMPLES);
-  //Serial.println(Irms);
+  #ifdef DEBUG
+  double power = Irms * 230;
+  #endif
   readings_sum += Irms;
+  //readings_sum += power;
   curr_readings++;
 
-  if (curr_readings == N_READINGS) {
-    double avg = readings_sum / N_READINGS;
+  if (curr_readings == n_readings) {
+    double avg = readings_sum / n_readings;
     DEBUG_PRINT(avg); DEBUG_PRINT("\t");
+    DEBUG_PRINTLN();
     readings_sum = 0;
     curr_readings = 0;
 
@@ -179,41 +215,91 @@ void loop() {
     
     payload[5] = 21; // battery (uint16_t, so it will go into [6-7]
     memcpy(payload+6,(byte *)&battery, sizeof(battery)); 
-        
+    
+    payload[8] = 24; // sampling_period (uint16_t, so it will go into [9-10]
+    memcpy(payload + 9, (byte *)&sampling_period, sizeof(sampling_period));
     // we safely still have some room!
+
+    if (radio.receiveDone()) {
+      DEBUG_PRINT("received from:"); DEBUG_PRINT(radio.SENDERID);
+      DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);
+  
+      for (int i=0; i<radio.DATALEN;i++) {
+        DEBUG_PRINT(radio.DATA[i]);DEBUG_PRINT(":");
+      }
+      DEBUG_PRINTLN();
+      //if (radio.DATA[0] == 
+    } else {
+      //DEBUG_PRINTLN("[0]");
+    }
+    
     // TODO: consider sending less frequently and packing more data into packet?
     
     DEBUG_PRINTLN("Sending");
-//    if (radio.sendWithRetry(1, payload, 60, 3, 20)) {
-    if (radio.sendWithRetry(1, payload, 8, 3, 20)) {
-      DEBUG_PRINTLN("ACK received");
+    if (radio.sendWithRetry(1, payload, 11, 3, 200)) {
+      DEBUG_PRINT("ACK received from:"); DEBUG_PRINT(radio.SENDERID);
+      DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);
+      for (int i=0; i<radio.DATALEN;i++) {
+        DEBUG_PRINT(radio.DATA[i]);DEBUG_PRINT(":");
+      }
+      //DEBUG_PRINTLN();
+      DEBUG_PRINT("datalen: "); DEBUG_PRINTLN(radio.DATALEN);
+      //DEBUG_PRINTLN();
+      // TODO: get the sampling frequency from the ack data 
+      // if it is different from the current one, store it in eeprom
+      if(radio.DATA[0] == 24) {
+        memcpy((byte *) &sampling_period, radio.DATA + 1, 2);
+        DEBUG_PRINT("s.p.: "); DEBUG_PRINTLN(sampling_period);
+        n_readings = (int) (sampling_period * 1000 / READING_PERIOD);
+        if (n_readings < 1) {
+          n_readings = 1;
+        }
+        DEBUG_PRINT("n_readings: "); DEBUG_PRINTLN(n_readings);
+      } else {
+        DEBUG_PRINT("data[0]: "); DEBUG_PRINTLN(radio.DATA[0]);
+      }
     } else {
       DEBUG_PRINTLN("No ACK");
     }
+
+    radio.setMode(RF69_MODE_SLEEP);
   }
+
   
   DEBUG_PRINT(Irms); DEBUG_PRINT("\t");
+  DEBUG_PRINT(power); DEBUG_PRINT("\t");
 
   unsigned long delta = millis() - start;
   DEBUG_PRINTLN(delta);
 
-  #ifdef DEBUG
-  Serial.end();
+  #if defined(DEBUG) && !defined(NO_SLEEP)
+  //Serial.end();
+  //USBDevice.detach();   
   #endif
   
   // sleep with Watchdog to save battery
-  //delay(30000);
-  //Watchdog.sleep(30000);
   int toSleep = READING_PERIOD - delta;
+  int slept = 0;
   while (toSleep > 0) {
     //delay(READING_PERIOD - delta);
-    int slept = Watchdog.sleep(toSleep);
+    #ifdef NO_SLEEP 
+    delay(toSleep);
+    toSleep = 0;
+    #else
+    slept = Watchdog.sleep(toSleep);
     toSleep -= slept;
+    #endif
   }
   
-  #ifdef DEBUG
+  #if defined(DEBUG) && !defined(NO_SLEEP)
+  blink();
   // need to reset serial after watchdog sleep
-  Serial.begin(115200);
+  //USBDevice.init();
+  #if defined(USBCON) && !defined(USE_TINYUSB)
+  USBDevice.attach();
+  #endif
+  //Serial.begin(115200);
+  //if (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
   #endif
 
 }
