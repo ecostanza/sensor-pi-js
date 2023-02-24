@@ -44,7 +44,8 @@ router.get('/', function(req, res) {
     const free_ratio = info.free / info.size;
     const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
-    res.render('index.html', { 
+    res.render('temperature_mixed.html', { 
+//    res.render('index.html', { 
       title: 'Express',
       free: free
     });
@@ -82,12 +83,13 @@ router.get('/annotate', function(req, res) {
   });
 });
 
-router.get('/temperature', function(req, res) {
+router.get('/default', function(req, res) {
   checkDiskSpace('/').then((info) => {
     const free_ratio = info.free / info.size;
     const free = `${(100 - 100 * free_ratio).toFixed()}%`;
   
-    res.render('temperature_mixed.html', { 
+    res.render('index.html', { 
+  // res.render('temperature_mixed.html', { 
       title: 'Annotate Measures',
       free: free
     });
@@ -107,6 +109,21 @@ router.get('/config', function(req, res) {
 
   });
 });
+
+
+router.get('/printout_data', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
+  
+    res.render('printout_data.html', { 
+      title: 'Print Data',
+      free: free
+    });
+
+  });
+});
+
 
 router.get('/favicon.ico', function(req, res) {
   res.redirect('/static/favicon.ico');
