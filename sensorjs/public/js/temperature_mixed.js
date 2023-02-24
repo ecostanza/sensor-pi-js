@@ -1302,7 +1302,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         allSeries = allSeries.filter(function (d) {
-            return (toKeep.includes(d.measurement) && d.sensor_id<50 && d.sensor_id>9)
+            return (toKeep.includes(d.measurement) && d.sensor_id<56 && d.sensor_id>9)
         });
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];

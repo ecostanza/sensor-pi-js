@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function() {
         d3.select('#spinner').style('display', 'block');
 
         let csv_content = "data:text/csv;charset=utf-8,";
+
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
         tomorrow = today.plus({days:1})
@@ -99,6 +100,47 @@ document.addEventListener("DOMContentLoaded", function() {
 
     d3.select('button#download-annotations-button').on('click', exportCSVAnnotation);
 
+    d3.select('button#download-config-button').on('click', async function(){
+        d3.select('#spinner').style('display', 'block');
+
+        let csvContent = "data:text/csv;charset=utf-8," 
+
+        sensorLabels = await d3.json('/sensors')
+        console.log(sensorLabels)
+        pp = '';
+        for (const key in sensorLabels[0]) {
+            pp += key + ',';
+        }
+        pp = pp.slice(0, -1); 
+        csvContent += pp + "\n";
+
+        sensorLabels.forEach( (e,i) => {
+            pp = '';
+            for (const key in e) {
+                    sanitised = (e[key]+'').replace(/,/g,' ')
+                    pp += sanitised + ',';
+            }
+            pp = pp.slice(0, -1);
+            csvContent += pp + "\n";
+        });
+
+        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+
+        dateToday = new Date().getDate() +"-" + new Date().getMonth()+ "-"+new Date().getFullYear();
+        link.setAttribute("download", "config-"+dateToday+".csv");
+        document.body.appendChild(link); // Required for FF
+
+        d3.select('#spinner').style('display','none')
+
+        link.click(); // This will download the data file named "my_data.csv".
+    
+        d3.select('#spinner').style('display', 'none');
+
+    })
+
     async function exportCSVAnnotation(){
         resetTimeOfInactivity();
 
@@ -144,7 +186,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     }  
 
-
     let loadData = undefined;
 
     // TODO: check this if statement, it looks incorrect
@@ -154,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log(allSeries);
         
         allSeries = allSeries.filter( f=>{
-            return (f.sensor_id > 9 && f.sensor_id < 50)
+            return (f.sensor_id > 9 && f.sensor_id < 56)
         })
         
         data = [];
@@ -545,6 +586,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         d3.select('#spinner').style('display', 'none');
+
     });
 
         // Periodical refresh if FLAG is down
