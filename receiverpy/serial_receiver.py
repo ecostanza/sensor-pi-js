@@ -32,8 +32,13 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
             sensor_sampling_periods = new_sensor_sampling_periods
 
             for sensor_id, sp in sensor_sampling_periods.items():
-                curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)
-                ser.write(curr)
+                try:
+                    # noise/ghost nodes can have IDs beyond 255, which make pack
+                    # raise an exception, which needs to be caught and ignored
+                    curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)
+                    ser.write(curr)
+                except Exception as e:
+                    print(f'exception from {repr(sensor_id)}, {repr(sp)}')
         
         line = ser.readline()   # read a '\n' terminated line
         if len(line) > 0:
@@ -97,7 +102,10 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                     except KeyError:
                         print('error! Data type not recognized')
                         continue
-
+                    except:
+                        print('decoding error!')
+                        continue
+                
                 sender = int(sender)
 
                 # check if this sensor is already in the db
@@ -112,8 +120,13 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                             print(new_sensor_sampling_periods)
                             sensor_sampling_periods = new_sensor_sampling_periods
                             for sensor_id, sp in sensor_sampling_periods.items():
-                                curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)
-                                ser.write(curr)
+                                # noise/ghost nodes can have IDs beyond 255, which make pack
+                                # raise an exception, which needs to be caught and ignored
+                                try:
+                                    curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)                                
+                                    ser.write(curr)
+                                except Exception as e:
+                                    print(f'exception from {repr(sensor_id)}, {repr(sp)}')
                     except Exception as e:
                         print('exception from insert!', e)
 

@@ -121,7 +121,7 @@ void setup(void) {
 
   DEBUG_PRINTLN("Air Quality Sensor Node.");
 
-  int node_id = 2;
+  int node_id = 1;
   //// SGP setup
   if (! sgp.begin()) {
     DEBUG_PRINTLN("SGP30 not found - stuck :(");
@@ -133,16 +133,21 @@ void setup(void) {
     DEBUG_PRINTLN(sgp.serialnumber[0], HEX);
     DEBUG_PRINTLN(sgp.serialnumber[1], HEX);
     DEBUG_PRINTLN(sgp.serialnumber[2], HEX);
-    if ( sgp.serialnumber[0] == 0 && sgp.serialnumber[1] == 0x154 && sgp.serialnumber[2] == 0x5013 ) {
-      DEBUG_PRINTLN("node id: 3");
-      // node 3
-      node_id = 3;
-      sgp.setIAQBaseline(34517, 37845);
-    } else if ( sgp.serialnumber[0] == 0 && sgp.serialnumber[1] == 0x18C && sgp.serialnumber[2] == 0xCB3B ) {
+    if ( sgp.serialnumber[0] == 0 && sgp.serialnumber[1] == 0x18C && sgp.serialnumber[2] == 0xCB3B ) {
       DEBUG_PRINTLN("node id: 2");
       // node 2
       node_id = 2;
       sgp.setIAQBaseline(34516, 36413);
+    } else if ( sgp.serialnumber[0] == 0 && sgp.serialnumber[1] == 0x154 && sgp.serialnumber[2] == 0x5013 ) {
+      DEBUG_PRINTLN("node id: 3");
+      // node 3
+      node_id = 3;
+      sgp.setIAQBaseline(34517, 37845);
+    } else if ( sgp.serialnumber[0] == 0 && sgp.serialnumber[1] == 0x18C && sgp.serialnumber[2] == 0xDE86 ) {
+      DEBUG_PRINTLN("node id: 4");
+      // node 4
+      node_id = 4;
+      sgp.setIAQBaseline(34568, 36485);
     } else {
       DEBUG_PRINTLN("Unrecognized SGP30 device - stuck :(");
       while (1) {
@@ -229,6 +234,7 @@ void setup(void) {
 
 #define VBATPIN A9
 
+uint16_t sampling_period = 1;
 
 void loop() {
   static uint8_t counter = 0;
@@ -310,7 +316,7 @@ void loop() {
   }
 
   // Send
-  DEBUG_PRINTLN("Sending");
+  DEBUG_PRINTLN("Preparing packet");
   char payload[60] = {0};
 
   payload[0] = 1; // temperature (float, so it will go into [1-4])
@@ -378,6 +384,9 @@ void loop() {
   payload[45] = 21; // battery (uint16_t, so it will go into [46-47]
   memcpy(payload + 46, (byte *)&battery, sizeof(battery));
 
+  payload[48] = 24; // sampling_period (uint16_t, so it will go into [49-50]
+  memcpy(payload + 49, (byte *)&sampling_period, sizeof(sampling_period));
+
   //
   if (counter >= 10) {
     counter = 0;
@@ -386,33 +395,57 @@ void loop() {
     DEBUG_PRINT("baseline TVOC "); DEBUG_PRINT(TVOC_base); DEBUG_PRINT(" ppb\t");
     DEBUG_PRINT("baseline eCO2 "); DEBUG_PRINT(eCO2_base); DEBUG_PRINTLN(" ppm");
 
-    payload[48] = 22; // eCO2_base (uint16_t, so it will go into [49-50]
-    memcpy(payload + 49, (byte *)&eCO2_base, sizeof(eCO2_base));
+    payload[51] = 22; // eCO2_base (uint16_t, so it will go into [52-53]
+    memcpy(payload + 52, (byte *)&eCO2_base, sizeof(eCO2_base));
 
-    payload[51] = 23; // TVOC_base (uint16_t, so it will go into [52-53]
-    memcpy(payload + 52, (byte *)&TVOC_base, sizeof(TVOC_base));
+    payload[54] = 23; // TVOC_base (uint16_t, so it will go into [55-56]
+    memcpy(payload + 55, (byte *)&TVOC_base, sizeof(TVOC_base));
   }
   counter++;
-
-
   // we safely still have some room!
 
-  if (radio.sendWithRetry(1, payload, 60, 3, 200)) {
-    DEBUG_PRINTLN("ACK received\n\n");
+  if (radio.receiveDone()) {
+    DEBUG_PRINT("received from:"); DEBUG_PRINT(radio.SENDERID);
+    DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);
+
+    for (int i=0; i<radio.DATALEN;i++) {
+      DEBUG_PRINT(radio.DATA[i]);DEBUG_PRINT(":");
+    }
+    DEBUG_PRINTLN();
+    //if (radio.DATA[0] == 
   } else {
-    DEBUG_PRINTLN("No ACK\n\n");
+    //DEBUG_PRINTLN("[0]");
+  }
+  
+  DEBUG_PRINT("Sending. ");
+  if (radio.sendWithRetry(1, payload, 60, 3, 200)) {
+    DEBUG_PRINT("ACK received from:"); DEBUG_PRINT(radio.SENDERID);
+    DEBUG_PRINT(" to:"); DEBUG_PRINTLN(radio.TARGETID);
+    for (int i=0; i<radio.DATALEN;i++) {
+      DEBUG_PRINT(radio.DATA[i]);DEBUG_PRINT(":");
+    }
+    DEBUG_PRINTLN();
+    // TODO: get the sampling frequency from the ack data 
+    // if it is different from the current one, store it in eeprom
+    if(radio.DATA[0] == 24) {
+      memcpy((byte *) &sampling_period, radio.DATA + 1, 2);
+      DEBUG_PRINT("s.p.: "); DEBUG_PRINTLN(sampling_period);
+    }    
+  } else {
+    DEBUG_PRINTLN("No ACK");
   }
 
+  radio.setMode(RF69_MODE_SLEEP);
+  
   // TODO: sleep instead, possibly Watchdog.sleep()
 #ifdef DEBUG
-  delay(30000);
+  delay(sampling_period * 1000);
 #else
-  // battery lasts about 9h with delay
-  //delay(30000);
-  // TODO: Measure battery duration with sleep
-  int sleepMS = 0;
-  while (sleepMS < 30000) {
-    sleepMS += Watchdog.sleep(30000 - sleepMS);
+  // sleep with Watchdog to save battery
+  int toSleep = sampling_period * 1000;
+  while (toSleep > 0) {
+    int slept = Watchdog.sleep(toSleep);
+    toSleep -= slept;
   }
 #endif
 }

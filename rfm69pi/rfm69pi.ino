@@ -98,7 +98,7 @@ void resetRadio() {
   }
 }
 
-#define MAX_NODES 50
+#define MAX_NODES 120
 uint16_t sampling_periods[MAX_NODES] = {0};
 
 void setup(void) {

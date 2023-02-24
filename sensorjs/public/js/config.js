@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log(allSeries);
         
         allSeries = allSeries.filter( f=>{
-            return (f.sensor_id > 9 && f.sensor_id < 56)
+            return (f.sensor_id > 1 && f.sensor_id < 120);
         })
         
         data = [];
