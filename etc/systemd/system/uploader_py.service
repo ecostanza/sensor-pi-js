@@ -1,0 +1,17 @@
+[Unit]
+Description=Data uploader
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/pi/pve/receiver/bin/python -u /home/pi/receiver/uploader.py
+WorkingDirectory=/home/pi/receiver
+User=pi
+Restart=on-failure
+StandardOutput=file:/home/pi/receiver/uploader_service.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
+
+
