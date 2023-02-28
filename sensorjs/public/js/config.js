@@ -607,7 +607,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Periodical refresh if FLAG is down
         function refreshData() {
-            window.location.reload();
+            // window.location.reload();
         }
 
         startTimer();
