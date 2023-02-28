@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const today = new luxon.DateTime(now.year, now.month, now.day);
         tomorrow = today.plus({days:1})
         const start = today.minus({weeks: 5});
-        const total_days = luxon.Interval.fromDateTimes(start, tomorrow).length('days');
+        const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
         let all_data = [];
 
         let allSeries = await d3.json(seriesUrl);
