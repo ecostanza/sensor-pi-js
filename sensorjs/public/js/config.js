@@ -54,28 +54,44 @@ document.addEventListener("DOMContentLoaded", function() {
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
         tomorrow = today.plus({days:1})
-        const start = today.minus({weeks: 8});
-        const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
+        const start = today.minus({weeks: 5});
+        const total_days = luxon.Interval.fromDateTimes(start, tomorrow).length('days');
+        let all_data = [];
 
         let allSeries = await d3.json(seriesUrl);
         allSeries = allSeries.filter(function (s) {
             return ['temperature','humidity','battery','rssi','sampling_period'].includes(s.measurement);
         });
-
         console.log('allSeries', allSeries);
 
-        const promises = allSeries.map(m => getData(m));
-        Promise.all(promises).then( () => {
-            const encoded_uri = encodeURI(csv_content);
-            var link = document.createElement("a");
-            link.setAttribute("href", encoded_uri);
-            link.setAttribute("download", `all_data.csv`);
-            document.body.appendChild(link); // Required for FF
-            
-            link.click(); // This will download the data file named "my_data.csv".  
-             d3.select('#spinner').style('display', 'none');
-        });
+        for( j in allSeries){
+            url = `/measurement/${allSeries[j].measurement}/sensor/${allSeries[j].sensor_id}/rawdata/`;
 
+            for (let d=0; d<=total_days; d+=1) {
+                const curr = start.plus({'days': d});
+                const next = curr.plus({'days': 1});
+
+                const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}&showAll=true&points=80`;
+                const response = await d3.json(url+query);
+                console.log('response:', response);
+                all_data = all_data.concat(response.readings);
+
+                response.readings.forEach(function(row) {
+                    csv_content += `${row.time},${row.value},${allSeries[j].sensor_id},${allSeries[j].measurement}` + "\r\n";
+                });    
+
+            }
+        }
+      
+        const encoded_uri = encodeURI(csv_content);
+        var link = document.createElement("a");
+        link.setAttribute("href", encoded_uri);
+        link.setAttribute("download", `all_data.csv`);
+        document.body.appendChild(link); // Required for FF
+        
+        link.click(); // This will download the data file named "my_data.csv".  
+         d3.select('#spinner').style('display', 'none');
+  /*
         function getData(h) {
             sensor_id = h.sensor_id;
             measurement = h.measurement;
@@ -95,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             console.log('all_data:', all_data);
         }
-      
+      */
     });
 
     d3.select('button#download-annotations-button').on('click', exportCSVAnnotation);
