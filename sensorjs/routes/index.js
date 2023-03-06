@@ -54,6 +54,22 @@ router.get('/', function(req, res) {
 
 });
 
+router.get('/old', function(req, res) {
+  checkDiskSpace('/').then((info) => {
+    const free_ratio = info.free / info.size;
+    const free = `${(100 - 100 * free_ratio).toFixed()}%`;
+  
+    //res.render('temperature_mixed.html', { 
+    res.render('index.html', { 
+      title: 'Express',
+      free: free
+    });
+
+  });
+
+});
+
+
 /* GET home page. */
 router.get('/check', function(req, res) {
   checkDiskSpace('/').then((info) => {
