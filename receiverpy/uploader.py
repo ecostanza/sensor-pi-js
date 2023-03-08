@@ -33,6 +33,11 @@ import requests
 
 # pr = cProfile.Profile()
 
+# delay = 0.5
+delay = 1.0
+# delay = 0.2
+# delay = 0.02
+
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
 
@@ -78,29 +83,28 @@ while True:
 
         # TODO: login on the server?
 
-        # TODO: put the data to the server
-        response = requests.put(
-            url,
-            data=json.dumps(to_upload),
-            headers=headers
-        )
-        # TODO: save the timestamp of the last data point uploaded
-        # print('response.text', response.text[:200])
-        # open('err.html', 'w').write(response.text)
-        res = response.json()
-        # print("res['written']", res['written'])
+        try:
+            # put the data to the server
+            response = requests.put(
+                url,
+                data=json.dumps(to_upload),
+                headers=headers
+            )
+            # TODO: save the timestamp of the last data point uploaded
+            # print('response.text', response.text[:200])
+            # open('err.html', 'w').write(response.text)
+            res = response.json()
+            # print("res['written']", res['written'])
 
-        # if response.status_code == 200:
-        if res['written'] == True:
-            latest = to_upload[-1]['time']
-            latest = open(fname,'w').write(latest)
-        to_upload = list(islice(iterator, 10))
+            # if response.status_code == 200:
+            if res['written'] == True:
+                latest = to_upload[-1]['time']
+                latest = open(fname,'w').write(latest)
+            to_upload = list(islice(iterator, 10))
+        except Exception as e:
+            print('exception:', e)
+            time.sleep(delay*10)        
 
-
-    # delay = 0.5
-    delay = 1.0
-    # delay = 0.2
-    # delay = 0.02
     time.sleep(delay)
 
     # print("awake\r", end='')
