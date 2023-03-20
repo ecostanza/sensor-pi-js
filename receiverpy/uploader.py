@@ -26,6 +26,7 @@ import time
 import json
 from pathlib import Path
 from itertools import islice
+import re
 
 from influxdb import InfluxDBClient
 
@@ -45,6 +46,7 @@ url = 'https://iot.cs.ucl.ac.uk/energycoordination/data/'
 headers = {"Content-Type": "application/json"}
 fname = 'uploader_latest.txt'
 f = Path(fname)
+patt = re.compile('[\d]{4}-[\d]{2}-[\d]{2}T[\d]{2}:[\d]{2}:[\d]{2}\.[\d]+Z')
 
 while True:
 # if True:
@@ -56,8 +58,12 @@ while True:
         # latest_ms = int(f.read_text())
         # latest = f.read_text()
         latest = open(fname,'r').read()
-        # time_filter = f'WHERE time > {latest_ms}ms'
-        time_filter = f"WHERE time > '{latest}'"
+        m = patt.match(latest)
+        if m.end() == len(latest):
+            # time_filter = f'WHERE time > {latest_ms}ms'
+            time_filter = f"WHERE time > '{latest}'"
+        else:
+            time_filter = ''
 
     query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
     
