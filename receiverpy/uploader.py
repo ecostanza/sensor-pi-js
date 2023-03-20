@@ -59,7 +59,7 @@ while True:
         # latest = f.read_text()
         latest = open(fname,'r').read()
         m = patt.match(latest)
-        if m.end() == len(latest):
+        if m:
             # time_filter = f'WHERE time > {latest_ms}ms'
             time_filter = f"WHERE time > '{latest}'"
         else:
