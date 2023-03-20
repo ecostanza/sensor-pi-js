@@ -105,7 +105,9 @@ while True:
             # if response.status_code == 200:
             if res['written'] == True:
                 latest = to_upload[-1]['time']
-                latest = open(fname,'w').write(latest)
+                m = patt.match(latest)
+                if m:
+                    latest = open(fname,'w').write(latest)
             to_upload = list(islice(iterator, 10))
         except Exception as e:
             print('exception:', e)
