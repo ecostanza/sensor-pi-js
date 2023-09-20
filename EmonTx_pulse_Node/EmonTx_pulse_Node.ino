@@ -7,11 +7,13 @@
 // libraries needed for the radio
 #include <RFM69.h>              // https://www.github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>          // https://www.github.com/lowpowerlab/rfm69
+#include <avr/sleep.h>
+#include <avr/power.h>
 
 #include <Adafruit_SleepyDog.h> // https://github.com/adafruit/Adafruit_SleepyDog
 
 #define DEBUG 1
-#define NO_SLEEP 1
+//#define NO_SLEEP 1
 // based on https://forum.arduino.cc/t/serial-debug-macro/64259/3
 #ifdef DEBUG
   #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
@@ -27,7 +29,7 @@
 #define NODEID        118    // The ID of this node (must be different for every node on network)
 #define NETWORKID     100  // The network ID
 
-#define EMON_TX 1
+//#define EMON_TX 1
 
 #ifdef EMON_TX
   // Emon_Tx
@@ -139,20 +141,27 @@ void onPulse()
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-  // On-board emonTx LED
-  pinMode(LED, OUTPUT);
-  // blink once
-  digitalWrite(LED, HIGH);
-  delay(500);
-  digitalWrite(LED, LOW);
-  pinMode(LED, INPUT);
+//  // On-board emonTx LED
+//  pinMode(LED, OUTPUT);
+//  // blink once
+//  digitalWrite(LED, HIGH);
+//  delay(500);
+//  digitalWrite(LED, LOW);
+//  pinMode(LED, INPUT);
+
+  blink();
+
+  power_twi_disable();
+  power_timer1_disable();
+  power_timer2_disable();
 
   // initialize digital pin LED_BUILTIN as an output.
   
-  #ifdef DEBUG  
+  #ifdef DEBUG
   Serial.begin(115200);
   while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
   #endif
+
   DEBUG_PRINTLN("hello EmonTx!");
 
   //pinMode(ADC_PIN, INPUT);
@@ -175,7 +184,8 @@ void setup() {
     DEBUG_PRINTLN("radio.initialize failed");
   }
   //radio.spyMode(true);
-  
+
+  blink();
 }
 
 /* ****
@@ -282,31 +292,40 @@ void loop() {
   unsigned long delta = millis() - start;
   DEBUG_PRINTLN(delta);
 
-
+  #ifdef DEBUG
+  Serial.flush();
+  Serial.end();
+  #endif
   // TODO: change to idle sleep, so timer is available
-  // sleep with Watchdog to save battery
-  int toSleep = READING_PERIOD - delta;
-  int slept = 0;
-  while (toSleep > 0) {
+  // 
+  power_adc_disable();
+
+  //int toSleep = READING_PERIOD - delta;
+  //int slept = 0;
+  while ((millis() - start) < READING_PERIOD) {
     //delay(READING_PERIOD - delta);
     #ifdef NO_SLEEP 
-    delay(toSleep);
-    toSleep = 0;
+    delay(200);
+    //toSleep -= 200;
     #else
-    slept = Watchdog.sleep(toSleep);
-    toSleep -= slept;
+    //slept = Watchdog.sleep(toSleep);
+    //toSleep -= slept;
+    set_sleep_mode(SLEEP_MODE_IDLE);
+    sleep_enable();
+    sleep_mode();
+
+    sleep_disable();
+  
     #endif
   }
+  power_adc_enable();
   
   #if defined(DEBUG) && !defined(NO_SLEEP)
   blink();
   // need to reset serial after watchdog sleep
   //USBDevice.init();
-  #if defined(USBCON) && !defined(USE_TINYUSB)
-  USBDevice.attach();
-  #endif
-  //Serial.begin(115200);
-  //if (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
+  Serial.begin(115200);
+  if (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
   #endif
 
 }
