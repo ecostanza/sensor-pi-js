@@ -279,6 +279,7 @@ document.addEventListener("DOMContentLoaded", function() {
         headSensors.append('th').attr('scope',"col").html('Battery');
         headSensors.append('th').attr('scope',"col").html('Signal Quality');
         headSensors.append('th').attr('scope',"col").html('TimeStamp');
+        headSensors.append('th').attr('scope',"col").html('Is Expected?');
 
         const trsSensors = d3.select('#sensor-alias').append('tbody')
             .selectAll(null)
@@ -582,6 +583,26 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }).style('text-align','center')
             .style('vertical-align','middle')
+
+        trsSensors.append('td')
+            .style('text-align','center')
+            .style('vertical-align','middle')
+                .append('div').attr('class','form-switch')
+                .append('input')
+                .attr('class','form-check-input isexpected')
+                .attr('type','checkbox')
+                .attr('checked','true')
+
+        d3.selectAll('.isexpected').on('change', (p,l) =>{
+            console.log(l) // l is data
+
+            // Send to DB
+            // result = await d3.json(`/sensors/${ret}`, {
+            //     method: 'POST', 
+            //     headers: { "Content-Type": "application/json; charset=UTF-8" },
+            //     'body': JSON.stringify(editValues)
+            // });
+        })
 
         trsMeasurements.append('td') // empty
         trsMeasurements.append('td').html(d => { return d.measurement; })
