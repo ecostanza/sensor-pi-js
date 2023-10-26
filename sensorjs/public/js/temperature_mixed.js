@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("Appended DIV "+ measurement.sensor_id)
         svgContainer = d3.select("div#container")
             .append("div")
-            .attr('class','nodeContainer col-md-11 col-xl-6')
+            .attr('class','nodeContainer col-md-11 col-xl-8')
         
         svgContainer
         .append("h4")
@@ -480,7 +480,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     context.append('text').text(Math.round(dataF[circleLocStart].value) + "%")
                             .attr('x', xScale(dataF[circleLocStart].time) +5)
-                            .attr('y', yScaleHumidity(dataF[circleLocStart].value) - 20)
+                            .attr('y', yScaleHumidity(dataF[circleLocStart].value) - 10)
                             .style('font-size','12px')
                             .style('fill', 'cadetblue')
 
@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                         context.append('text').text(Math.round(dataF[circleLocEnd].value)+"%")
                                 .attr('x', xScale(dataF[circleLocEnd].time)-15)
-                                .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 20)
+                                .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 10)
                                .style('fill', 'cadetblue')
                                .style('font-size','12px')
                     }
@@ -1112,7 +1112,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function addWeatherData(){
 
-       now = DateTime.now();
+        now = DateTime.now();
         startDate = now.minus({minutes: startMinutes})//.toISODate();
         
         if(endMinutes){
@@ -1124,25 +1124,42 @@ document.addEventListener("DOMContentLoaded", function() {
         weatherData = [];
 
         try{
-            apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt='+startDate.toISODate()+'&end_dt='+endDate.toISODate();
+            apiCall = 'https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&hourly=temperature_2m&start_date='+startDate.toISODate()+'&end_date='+endDate.toISODate();
             response = d3.json(apiCall)
 
             response.then(rr =>{
-                rr['forecast'].forecastday.forEach( j => { 
-                    j.hour.forEach(p => { weatherData.push(p);})
-                 })
-                 drawWeatherGraph();
+                console.log(rr['hourly'])
+                rr['hourly'].time.forEach( (j,i) => { 
+                    weatherData.push({ 'time':j, temp_c:rr['hourly']['temperature_2m'][i] });
+                })
+
+                drawWeatherGraph();
              })
         }catch(e){
             console.log(e)
         }
+
+        // PREVIOUS API
+        // try{
+        //     apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt='+startDate.toISODate()+'&end_dt='+endDate.toISODate();
+        //     response = d3.json(apiCall)
+
+        //     response.then(rr =>{
+        //         rr['forecast'].forecastday.forEach( j => { 
+        //             j.hour.forEach(p => { weatherData.push(p);})
+        //          })
+        //          drawWeatherGraph();
+        //      })
+        // }catch(e){
+        //     console.log(e)
+        // }
 
         drawWeatherGraph = function(){
 
             d3.select('.weatherContainer').remove();
             svgContainer = d3.select("div#container")
                 .append("div")
-                .attr('class','nodeContainer weatherContainer col-md-11 col-xl-6')
+                .attr('class','nodeContainer weatherContainer col-md-11 col-xl-8')
 
             svgContainer
                 .append("h4")
@@ -1181,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             lineW = d3.line()
             .defined(d => d.temp_c)
-            .x(d => xScaleW(DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm')) )
+            .x(d => xScaleW(DateTime.fromISO(d.time)) )
             .y(d => yScaleOutdoorTemp(d.temp_c))
 
             let xAxis = d3.axisTop()
@@ -1265,14 +1282,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('font-size',16);
 
             weatherData.sort( (a,b) => {
-                return a.time_epoch < b.time_epoch
+                return DateTime.fromISO(a.time) < DateTime.fromISO(b.time)
             })
-
-            weatherData = weatherData.filter( d =>{
-                return (DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm') > min && DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm') < max)
-            })
-
-            console.log(weatherData)
 
             svgGroup.append("path")
                 .attr('class','weatherline')
