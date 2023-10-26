@@ -38,6 +38,8 @@ const influx = new Influx.InfluxDB({
   database: 'sdstore'
 });
 
+const Database = require('better-sqlite3');
+
 /* GET home page. */
 router.get('/', function(req, res) {
   checkDiskSpace('/').then((info) => {
@@ -150,10 +152,40 @@ router.get('/favicon.ico', function(req, res) {
 //     .then( result => res.json(result) )
 //     .catch( error => res.status(500).json(error) );
 // });
+// TODO: move to a better location!
+const sensor_fields = [
+  {'name': 'id', 'required': false, 'auto': true},
+
+  {'name': 'sensor', 'required': true, 'auto': false},
+
+  {'name': 'label', 'required': false, 'auto': false},
+  {'name': 'sampling_period', 'required': false, 'auto': false},
+  {'name': 'expected', 'required': false, 'auto': false},
+  
+  {'name': 'createdAt', 'required': false, 'auto': true},
+  {'name': 'updatedAt', 'required': false, 'auto': true}
+];
+
 
 router.get('/series/', function(req, res) {
   const recentOnly = !(req.query.showAll === 'true');
   const recentDays = req.query.days;
+  const showUnexpected = (req.query.showUnexpected === 'true');
+
+  let expected_query = 'WHERE expected';
+  if (showUnexpected === true) {
+    expected_query = '';
+  }
+  
+  const sensor_columns = sensor_fields.map(f => f['name']);
+  const sql_query = `SELECT ${sensor_columns.join()} FROM sensors ${expected_query};`;
+  // console.log('query:', query);
+  const db = Database('./db.sqlite3');
+  const select = db.prepare(sql_query);
+  // console.log('prepare returned:', select);
+  const sensors = select.all().map(s => +s['sensor']);
+  console.log('sensors:', sensors);
+  // return res.json(sensor);
 
   let uptime = os.uptime();
   if (recentDays !== undefined) {
@@ -174,13 +206,18 @@ router.get('/series/', function(req, res) {
                   'latest': item.rows[0].time
               };
           });
-          // console.log(rearranged);
-          if (recentOnly === true) {
-            const filtered = rearranged.filter(function (item) { return item.latest > recentTs; })
-            res.json(filtered);  
-          } else {
-            res.json(rearranged);
+          console.log('rearranged', rearranged.map(i => i['sensor_id']));
+          let filtered = rearranged.map(i => i);
+          console.log('filtered', filtered.map(i => i['sensor_id']));
+          if (showUnexpected !== true) {
+            filtered = filtered.filter(function (item) { return sensors.indexOf(+item['sensor_id']) > -1; })
           }
+          console.log('filtered', filtered.map(i => i['sensor_id']));
+          if (recentOnly === true) {
+            filtered = filtered.filter(function (item) { return item.latest > recentTs; })
+          } 
+          console.log('filtered', filtered.map(i => i['sensor_id']));
+          res.json(filtered);  
       })
       .catch( error => res.status(500).json(error) );
 

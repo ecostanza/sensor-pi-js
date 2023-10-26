@@ -177,6 +177,7 @@ const sensor_fields = [
 
     {'name': 'label', 'required': false, 'auto': false},
     {'name': 'sampling_period', 'required': false, 'auto': false},
+    {'name': 'expected', 'required': false, 'auto': false},
     
     {'name': 'createdAt', 'required': false, 'auto': true},
     {'name': 'updatedAt', 'required': false, 'auto': true}

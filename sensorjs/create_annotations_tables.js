@@ -47,6 +47,7 @@ try {
 
     label TEXT   NOT NULL,
     sampling_period INTEGER DEFAULT 1 NOT NULL,
+    expected BOOLEAN DEFAULT FALSE NOT NULL,
     
     createdAt INTEGER   NOT NULL,
     updatedAt INTEGER   NOT NULL

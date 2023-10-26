@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
     // TODO: check this if statement, it looks incorrect
-    let seriesUrl = '/series/?showAll=true';
+    let seriesUrl = '/series/?showAll=true&showUnexpected=true';
 
     d3.json(seriesUrl).then(function (allSeries) {
         console.log(allSeries);
