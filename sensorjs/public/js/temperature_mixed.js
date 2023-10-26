@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const paramMeasurement = urlParams.get('measurement') ;
     const paramSensorid = urlParams.get('sensor');
 
-    let startMinutes = 24*60;
+    let startMinutes = 5*24*60;
     let endMinutes = 0;
 
     let data = {};
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let allEvents = [];
 
     let svgWidth = window.innerWidth; // This value gets overridden once the DIV gets created
-    let svgHeight = 350 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
+    let svgHeight = 300 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
 
     const padding = 10;
     const adj = 25;
@@ -1112,7 +1112,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function addWeatherData(){
 
-
        now = DateTime.now();
         startDate = now.minus({minutes: startMinutes})//.toISODate();
         
@@ -1345,13 +1344,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
 
-            addWeatherData()
-
             d3.select('#spinner').style('display','block')
             const promises = _series.map(m => loadMeasurementData(m));
             Promise.all(promises).then( () => {
                 console.log('all loaded');
                 d3.selectAll('#spinner').style('display','none')
+                addWeatherData()
             });
         };
 
@@ -1517,29 +1515,6 @@ document.addEventListener("DOMContentLoaded", function() {
             .on('click', (e,d) => {
                 editEvent(e,d)})
 
-
-        setAnnotationBarVisibility();
-    }
-
-    function setAnnotationBarVisibility(){
-        // // Hide text in day view, hide everything in week view
-        // if( WINDOW == 24){
-        //     d3.selectAll('.annotationBar text').style('opacity',0)
-        //     d3.selectAll('.annotationBar image').style('opacity',1)
-        //     d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
-        //     d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
-
-        // }else if(WINDOW == 24*7){
-        //     d3.selectAll('.annotationBar text').style('opacity',0)
-        //     d3.selectAll('.annotationBar image').style('opacity',0)
-        //     d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
-        //     d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
-        // }else{
-        //    d3.selectAll('.annotationBar text').style('opacity',1)
-        //    d3.selectAll('.annotationBar image').style('opacity',1)
-        //    d3.selectAll('.annotationBar .blocksContainer').style('opacity',1)
-        //    d3.selectAll('.annotationBar .editBtn').style('visibility','visible')
-        // }
     }
 
     function updateAnnotationBar(){
@@ -1586,375 +1561,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         })
 
-        setAnnotationBarVisibility();
-    }
-    
-    d3.select('#saveCSVElectricity').on('click', exportCSVElectricity);
-    d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
-    // d3.select('#saveCSVAnnotationBoxes').on('click', exportAnnotationsAsBoxes);
-
-    async function exportCSVAnnotation(){
-        resetTimeOfInactivity();
-
-        d3.select('#spinner').style('display','block')
-
-        let csvContent = "data:text/csv;charset=utf-8," 
-        
-        result = await d3.json('/annotations');
-
-        // save label names
-        pp = '';
-        for (const key in result[0]) {
-            pp += key + ',';
-        }
-        pp = pp.slice(0, -1); 
-        csvContent += pp + "\n";
-
-        // save data 
-        result.forEach( (e,i) => {
-            pp = '';
-            for (const key in e) {
-                    sanitised = (e[key]+'').replace(/,/g,' ')
-                    pp += sanitised + ',';
-            }
-            pp = pp.slice(0, -1);
-            csvContent += pp + "\n";
-        });
-        
-        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
-        var encodedUri = encodeURI(csvContent);
-        var link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-
-        dateToday = new Date().getDate() +"-" + new Date().getMonth()+ "-"+new Date().getFullYear();
-        link.setAttribute("download", "annotations-"+dateToday+".csv");
-        document.body.appendChild(link); // Required for FF
-
-        d3.select('#spinner').style('display','none')
-
-        link.click(); // This will download the data file named "my_data.csv".
-    }  
-
-    async function exportCSVElectricity(){
-        resetTimeOfInactivity();
-
-        d3.select('#spinner').style('display','block')
-   
-        console.log('button#download-button');
-        const sensor_id = sensorId;
-        const measurement = 'electricity_consumption';
-        // const measurement = 'TVOC'
-        const url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
-        const now = luxon.DateTime.now();
-        const today = new luxon.DateTime(now.year, now.month, now.day);
-        const start = today.minus({weeks: 5});
-        const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
-        let all_data = [];
-        for (let d=0; d<=total_days; d+=1) {
-            const curr = start.plus({'days': d});
-            const next = curr.plus({'days': 1});
-            console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
-            const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}&showAll=true&points=80`;
-            const response = await d3.json(url+query);
-            console.log('response:', response);
-            all_data = all_data.concat(response.readings);
-        }
-        console.log('all_data:', all_data);
-
-        let csv_content = "data:text/csv;charset=utf-8,";
-
-        // save label names
-        csv_content += 'time,value' + "\n";
-
-        all_data.forEach(function(row) {
-            csv_content += `${row.time},${row.value*SCALING_FACTOR}` + "\r\n";
-        });        
-
-        const encoded_uri = encodeURI(csv_content);
-        var link = document.createElement("a");
-        link.setAttribute("href", encoded_uri);
-        link.setAttribute("download", `${measurement}_${sensor_id}.csv`);
-        document.body.appendChild(link); // Required for FF
-            
-        d3.select('#spinner').style('display','none')
-
-        link.click(); // This will download the data file named "my_data.csv".        
-    };
-
-/*
-        const A4_WIDTH = 1240
-        const A4_HEIGHT = 1754
-
-        const MAX_CURVE_KW = 12
-        const MAX_CURVE_PIXELS = 658
-
-        const MAX_HOUR_PIXELS = 99
-
-        d3.select('#spinner').style('display','block')
-
-        // Draw all the boxes. Only then try to save them
-        try{
-            result = await d3.json('/annotations');
-    
-            let svgBoxes = d3.select('#containerBoxes').append('svg')
-                .attr('width', A4_WIDTH )///window.innerWidth)
-                .attr('height',2*A4_HEIGHT)//*window.innerHeight)
-                .append('g')
-                // .attr('transform','translate('+margin.top+','+margin.left+')')
-
-            let heightScale = d3.scaleLinear([0,MAX_CURVE_KW],[0,MAX_CURVE_PIXELS])
-            let widthScale = d3.scaleLinear([0,60*60*1000],[0,MAX_HOUR_PIXELS])
-     
-            // sort by size
-            result.sort((a,b)=>{
-                return (+a.duration_seconds) - (+b.duration_seconds)
-            })
-
-            groups = svgBoxes.selectAll('g')
-                .data(result, d => {return d})
-                .join('g')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', 0)
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face1')
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face3')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return 2*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face5')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face6')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds)/4; })
-                .attr('x', d => { return 4*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','fold')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return widthScale(+d.duration_seconds)/4; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face2')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 1.25*widthScale(+d.duration_seconds); })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face3')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 2.25*widthScale(+d.duration_seconds); })
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-            .attr('class','fold')
-
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  0)
-                .attr('class','fold')
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-
-            groups.append('image')
-                .attr('xlink:href', d => {return 'static/imgs/event_icons/' + d.type + '.svg'})
-                // .text(d => { return d.type; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2-10 })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3-25; })
-                .attr('width',20)
-                .attr('height',20)
-
-            groups.append('text')
-                .text(d => { return d.type; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+5; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-                .style('font-weight','bold')
-
-            groups.append('text')
-                .text(d => { return d.description; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+20; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-
-            groups.append('text')
-                .text(d => { return (+d.consumption).toFixed(2)+"kWh"; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+50; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-            groups.append('text')
-                .text(d => { return Math.round(+d.duration_seconds/60000)+"minutes"; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+40; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-
-            let runningX = 0;
-            let runningY = 0;
-            let currentMaxY = 0;
-            // let currentMaxX = 0;
-            groups.each( (gg, i) => {
-                // console.log(gg);
-
-                if( runningX + 4.25*widthScale(gg.duration_seconds) + 4 > A4_WIDTH){
-                    runningX = 0;
-                    runningY += currentMaxY + 4;
-                }
-                d3.select(groups.nodes()[i]).attr('transform','translate('+runningX+','+runningY+')')
-                runningX += 4*widthScale(gg.duration_seconds) + 40;
-                if(  (heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)) > currentMaxY) {
-                    currentMaxY = heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)
-                }
-            })
-        }catch(e){
-            console.log(e)
-        }
-
-        var html = d3.select("#containerBoxes svg")
-        .attr("version", 1.1)
-        .attr("xmlns", "http://www.w3.org/2000/svg")
-        .attr('xmlns:xlink',"http://www.w3.org/1999/xlink")
-        .node().parentNode.innerHTML;
-
-        var link = document.createElement("a");
-        link.setAttribute("href", "data:image/svg+xml;base64,\n" + btoa(html))
-        link.setAttribute("download", 'annotation-boxes.svg');
-        link.setAttribute("href-lang", "image/svg+xml")
-
-        document.body.appendChild(link); // Required for FF
-        link.click();
-
-        d3.select('#spinner').style('display','none')
-
-
-    };
-
-    function updateSolarGeneration(){
-        d3.select('#solarData')
-          .transition()
-          .attr('d',solarLine)
-    }*/
-
- /*   function getSunriseSunset(data, id){
-        d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
-          .then(function (sun) {
-            // console.log(data);
-
-            d3.selectAll('div#container svg#'+id+'Chart')
-              .append('g').lower()
-              .attr('class','backgroundData')
-              .attr("clip-path", "url(#clip)");
-
-            sunset = new Date(sun.results.sunset);
-            sunrise = new Date(sun.results.sunrise);
-
-            drawSunriseSunset(data);
-        });
     }
 
-
-    function updateSunriseSunset(){
-        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
-
-        d3.selectAll('.backgroundData').selectAll('rect')
-            .transition()
-            .attr('x', d => { return xScale(d.time)})
-            .attr('width', d => { 
-                tmp = new Date(xScale.domain()[0]);
-                tmp2 = new Date(tmp);
-                tmp2.setHours(tmp2.getHours() + lengthOfNight);
-                return (xScale(tmp2)- xScale(tmp)); 
-            })
-
-        d3.selectAll('.backgroundData').selectAll('text')
-            .transition()
-            .attr('x', d => { return xScale(d.time) +20})
-    }
-
-    function drawSunriseSunset(data){
-
-        d3.selectAll('.backgroundData rect').remove()
-        d3.selectAll('.backgroundData text').remove()
-        let nights = [];
-
-        if(data.length > 0 ){
-            counter = data[0].time.getDate();
-            nights = data.filter(d => {
-                if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
-                    counter++;
-                    return true ;
-                }
-            })
-        }
-
-        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
-
-        d3.selectAll('.backgroundData').selectAll('rect')
-            .data(nights)
-            .join('rect')
-            .attr('x', d => { return xScale(d.time)})
-            .attr('y',0)
-            .attr('width', d => { 
-                tmp = new Date(xScale.domain()[0]);
-                tmp2 = new Date(tmp);
-                tmp2.setHours(tmp2.getHours() + lengthOfNight);
-                return (xScale(tmp2)- xScale(tmp)); 
-            })
-            .attr('height', svgHeight- svgMarginBottom )
-            .style('opacity',0.1)
-             .style('fill','gray')
-
-            d3.selectAll('.backgroundData').selectAll('text')
-              .data(nights)
-              .join('text')
-              .text('sunset')
-              .attr('x', d => { return xScale(d.time)+10})
-              .attr('y', 60)
-              .style('font-style','italic')
-              .style('font-size','14px')
-              .attr('fill','gray')
-   }
-*/
 });
