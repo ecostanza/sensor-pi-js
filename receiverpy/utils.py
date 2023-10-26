@@ -76,3 +76,13 @@ def store_sensor(sensor_id):
     # data = res.fetchall()
     # print('insert fetchall:', data)
     return get_sampling_periods()
+
+def get_expected_sensors():
+    cur = con.cursor()
+    q = 'SELECT sensor FROM sensors WHERE expected;'
+    res = cur.execute(q)
+    data = res.fetchall()
+    # print('select res.fetchall:', data)
+
+    sensor_ids = [int(d[0]) for d in data]
+    return sensor_ids

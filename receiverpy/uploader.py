@@ -32,6 +32,8 @@ from influxdb import InfluxDBClient
 
 import requests
 
+from utils import get_expected_sensors
+
 # pr = cProfile.Profile()
 
 # delay = 0.5
@@ -61,21 +63,25 @@ while True:
         m = patt.match(latest)
         if m:
             # time_filter = f'WHERE time > {latest_ms}ms'
-            time_filter = f"WHERE time > '{latest}'"
+            time_filter = f"AND time > '{latest}'"
         else:
             time_filter = ''
 
-    query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
+    # query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
+    sensor_ids = get_expected_sensors()
+    sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
+    query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter}'
     
     print(query)
     rs = client.query(query)
     iterator = rs.get_points()
     to_upload = list(islice(iterator, 10))
+    print('to_upload', to_upload)
     while len(to_upload) > 0:
         to_upload = [
             {
                 'time': i['time'],
-                'measurement': 'electricity_consumption',
+                'measurement': i['measurement'],
                 'tags': {
                     'sensor_id': i['sensor_id']
                 },
@@ -85,7 +91,7 @@ while True:
             }
             for i in to_upload
         ]
-        # print('data_points', to_upload)
+        print('data_points', to_upload)
 
         # TODO: login on the server?
 
@@ -107,7 +113,8 @@ while True:
                 latest = to_upload[-1]['time']
                 m = patt.match(latest)
                 if m:
-                    latest = open(fname,'w').write(latest)
+                    # latest = open(fname,'w').write(latest)
+                    open(fname,'w').write(latest)
             to_upload = list(islice(iterator, 10))
         except Exception as e:
             print('exception:', e)
