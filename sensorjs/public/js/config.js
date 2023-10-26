@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        sensorLabels = await d3.json('/sensors')
+        sensorLabels = await d3.json('/sensors/')
         console.log(sensorLabels)
 
         const headSensors = d3.select('#sensor-alias')
@@ -364,7 +364,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .classed('active', d =>{
                         ret = false;
                         sensorLabels.forEach( l => {
-                            if( l.sensor == d[0]){ ret = (l.sampling_period === 1); }
+                            if( l.sensor == d[0]){ ret = (l.sampling_period === 1 || l.sampling_period === 3); }
                         })
                         return ret;
                     })
@@ -375,6 +375,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         sensorLabels.forEach( l => {
                             if( l.sensor == d[0]){ ret = (l.id); }
                         })
+                        console.log(sensorLabels)                    
 
                         editValues = {'sampling_period': 1 };
 
@@ -412,7 +413,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         // try sending it to DB first
                         ret = '';
                         sensorLabels.forEach( l => {
-                            if( l.sensor == d[0]){ ret = (l.id); }
+                            if( l.sensor == d[0]){ 
+                                ret = (l.id); 
+                            }
                         })
 
                         editValues = {'sampling_period': 30 };

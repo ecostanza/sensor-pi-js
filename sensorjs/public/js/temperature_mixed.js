@@ -13,19 +13,19 @@ document.addEventListener("DOMContentLoaded", function() {
     let allEvents = [];
 
     let svgWidth = window.innerWidth; // This value gets overridden once the DIV gets created
-    let svgHeight = 400 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
+    let svgHeight = 350 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
 
-    const margin = 5;
-    const padding = 5;
+    const padding = 10;
     const adj = 25;
-    const svgMarginTop = 0;
-    const svgMarginBottom = 180//window.innerHeight > 530 ? 300:200;
-    const svgMarginLeft = 10;
+    const svgMarginTop = 75;
+    const svgMarginBottom = 80//window.innerHeight > 530 ? 300:200;
+    const svgMarginLeft = 30;
 
     let sensorId = 96;
     let xScale, yScale, brush;
     let drawSolarGeneration = undefined;
     let loadData = undefined;
+
 
     event_types = ['window_open','window_closed','washing_and_drying','dishwasher','oven', 'occupancy',
                     'question_mark','air_cooling','heating_on','heating_off','showering_and_hair-drying',
@@ -83,10 +83,10 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer = d3.select("div#container")
             .select('#_'+measurement.sensor_id + 'Node')
             .append("div")
-            .attr('class','graphContainer col-12')
+            .attr('class','graphContainer col-11')
 
         // Making the svg responsive
-        svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width;
+        svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width - padding;
 
         // Check to see if it exists
         if(svgContainer.select('#_'+measurement.sensor_id + 'Chart').node() !== null ){
@@ -95,17 +95,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
         svgContainer
             .append("svg")
+           //  .attr("preserveAspectRatio", "xMinYMin meet")
+           // .attr("viewBox", "-"
+           //      + 1.5 * adj + " -"
+           //      + 2.5*adj + " "
+           //      + (svgWidth + adj*3) + " "
+           //      + (svgWidth/4 + adj))
+           //  .style("padding", padding)
+           //  .style("margin", margin)            
+            .attr('width',svgWidth )
+            .attr('height', svgHeight + svgMarginBottom)
+            .classed("svg-content", true)
+            .append('g')
+            .attr('transform','translate('+padding+','+svgMarginTop+')')
             .attr('id', "_"+measurement.sensor_id + 'Chart')
-            .attr("viewBox", "-"
-                + 1.5 * adj + " -"
-                + 2.5*adj + " "
-                + (svgWidth + adj*3) + " "
-                + (svgHeight + adj))
-            .style("padding", padding)
-            .style("margin", margin)
-            .attr('width',svgWidth - svgMarginLeft)
-            .attr('height',svgHeight + svgMarginBottom)
-            .classed("svg-content", true);
+
     }
 
     const appendDIV = function (measurement){
@@ -178,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         xScale = d3.scaleTime(
             xrange,
-            [svgMarginLeft, svgWidth]
+            [svgMarginLeft, svgWidth-svgMarginLeft]
         );
 
         // In case there are no data in the series
@@ -239,7 +243,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .scale(yScaleTemperature)
             .tickFormat(l =>{ return l+'°C'})
 
-        let svg = d3.select('svg#_' + series.sensor_id + 'Chart');
+        let svg = d3.select('svg #_' + series.sensor_id + 'Chart');
 
         svg.selectAll('#clip').remove();
 
@@ -344,7 +348,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // svg.select('.dataPoints').select('*').remove()
 
-            svg = d3.select('svg#_' + series.sensor_id + 'Chart');
+            svg = d3.select('svg #_' + series.sensor_id + 'Chart');
 
             if( series.measurement == 'temperature'){
                 // https://bocoup.com/blog/showing-missing-data-in-line-charts
@@ -369,7 +373,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('stroke', '#EF9F16')
 
                 svg.append("rect")
-                   .attr('width',svgWidth - svgMarginLeft)
+                   .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('x',svgMarginLeft)
                    .attr('y', yScaleTemperature(22))
                    .attr('height', yScaleTemperature(17) - yScaleTemperature(22) )
@@ -397,26 +401,26 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     svg.append('text').text(Math.round(dataF[circleLocStart].value)+ "\xB0C")
                             .attr('x', xScale(dataF[circleLocStart].time) +5)
-                            .attr('y', yScaleTemperature(dataF[circleLocStart].value) - 10)
+                            .attr('y', yScaleTemperature(dataF[circleLocStart].value) - 20)
                            .style('fill', '#EF9F16')
                            .style('font-size','12px')
 
-                    svg.append('circle').attr('r',6)
+                    svg.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocStart].time) )
                             .attr('cy', yScaleTemperature(dataF[circleLocStart].value))
                            .style('fill', '#EF9F16')
 
 
-                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 45){
 
                         svg.append('text').text(Math.round((dataF[circleLocEnd].value))+ "\xB0C")
-                                .attr('x', xScale(dataF[circleLocEnd].time)  )
-                                .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 10)
+                                .attr('x', xScale(dataF[circleLocEnd].time) - 16 )
+                                .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 20)
                                .style('fill', '#EF9F16')
                                .style('font-size','12px')
                     }
 
-                    svg.append('circle').attr('r',6)
+                    svg.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocEnd].time) )
                             .attr('cy', yScaleTemperature(dataF[circleLocEnd].value))
                            .style('fill', '#EF9F16')
@@ -444,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 context = svg.append('g').attr('class','context')
 
                 context.append("rect")
-                   .attr('width',svgWidth - svgMarginLeft)
+                   .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('y', yScaleHumidity(65))
                    .attr('x',svgMarginLeft)
                    .attr('height', yScaleHumidity(35) - yScaleHumidity(65) )
@@ -469,27 +473,27 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
 
-                    context.append('circle').attr('r',6)
+                    context.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocStart].time) )
                             .attr('cy', yScaleHumidity(dataF[circleLocStart].value))
                             .style("fill",'cadetblue')
 
                     context.append('text').text(Math.round(dataF[circleLocStart].value) + "%")
                             .attr('x', xScale(dataF[circleLocStart].time) +5)
-                            .attr('y', yScaleHumidity(dataF[circleLocStart].value) - 10)
+                            .attr('y', yScaleHumidity(dataF[circleLocStart].value) - 20)
                             .style('font-size','12px')
                             .style('fill', 'cadetblue')
 
-                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 45){
 
                         context.append('text').text(Math.round(dataF[circleLocEnd].value)+"%")
-                                .attr('x', xScale(dataF[circleLocEnd].time))
-                                .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 10)
+                                .attr('x', xScale(dataF[circleLocEnd].time)-15)
+                                .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 20)
                                .style('fill', 'cadetblue')
                                .style('font-size','12px')
                     }
 
-                    context.append('circle').attr('r',6)
+                    context.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocEnd].time))
                             .attr('cy', yScaleHumidity(dataF[circleLocEnd].value))
                             .style("fill",'cadetblue')
@@ -1108,16 +1112,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function addWeatherData(){
 
-        callWeatherAPI = function(m){
-            apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt=';
-            
-            return d3.json(apiCall+m).then(function (response) {
-                response.forecast.forecastday[0].hour.forEach(p => { weatherData.push(p);})
-                console.log(weatherData)
-            });
-        }
- 
-        now = DateTime.now();
+
+       now = DateTime.now();
         startDate = now.minus({minutes: startMinutes})//.toISODate();
         
         if(endMinutes){
@@ -1126,20 +1122,21 @@ document.addEventListener("DOMContentLoaded", function() {
             endDate = now;
         }
 
-        allDays = [];
-        for(i=0; i<=endDate.diff(startDate, 'days').values.days;i++ ){
-            allDays.push(startDate.plus({days:i}).toISODate() )
-        }
-        console.log(allDays)
-        
         weatherData = [];
 
-        const promisesW = allDays.map(m => callWeatherAPI(m));
-        Promise.all(promisesW).then( () => {
-            console.log('all weather loaded');
-            console.log(weatherData)
-            drawWeatherGraph();
-        });
+        try{
+            apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt='+startDate.toISODate()+'&end_dt='+endDate.toISODate();
+            response = d3.json(apiCall)
+
+            response.then(rr =>{
+                rr['forecast'].forecastday.forEach( j => { 
+                    j.hour.forEach(p => { weatherData.push(p);})
+                 })
+                 drawWeatherGraph();
+             })
+        }catch(e){
+            console.log(e)
+        }
 
         drawWeatherGraph = function(){
 
@@ -1156,32 +1153,26 @@ document.addEventListener("DOMContentLoaded", function() {
             svgContainer = d3.select("div#container")
                 .select('.weatherContainer')
                 .append("div")
-                .attr('class','graphContainer col-12')
+                .attr('class','graphContainer col-11')
 
             // Making the svg responsive
             svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width;
 
             svg = svgContainer
                 .append("svg")
-                .attr('id', 'weatherChart')
-                .attr("preserveAspectRatio", "xMinYMin meet")
-                .attr("viewBox", "-"
-                    + 1.5 * adj + " -"
-                    + 2.5*adj + " "
-                    + (svgWidth + adj*3) + " "
-                    + (svgHeight + adj))
-                .style("padding", padding)
-                .style("margin", margin)
                 .attr('width',svgWidth - svgMarginLeft)
                 .attr('height',svgHeight + svgMarginBottom)
-                .classed("svg-content", true);
-            
+                .classed("svg-content", true)
+                .append('g')
+                .attr('transform','translate('+padding+','+svgMarginTop+')')
+                .attr('id', 'weatherChart')
+    
             now = luxon.DateTime.now();
 
             min = now.minus({minutes: startMinutes})
             max = now.minus({minutes: endMinutes})
 
-            xScaleW = d3.scaleTime([min,max],[svgMarginLeft, svgWidth]);
+            xScaleW = d3.scaleTime([min,max],[svgMarginLeft, svgWidth- svgMarginLeft - padding ]);
             console.log(xScaleW.domain())
 
             yScaleOutdoorTemp = d3.scaleLinear(
@@ -1274,15 +1265,23 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('font-weight', 800)
                     .style('font-size',16);
 
-            weatherData = weatherData.sort( (a,b) => {
-               return DateTime.fromFormat(a.time,'yyyy-MM-dd hh:mm') < DateTime.fromFormat(b.time,'yyyy-MM-dd hh:mm')
+            weatherData.sort( (a,b) => {
+                return a.time_epoch < b.time_epoch
             })
+
+            weatherData = weatherData.filter( d =>{
+                return (DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm') > min && DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm') < max)
+            })
+
+            console.log(weatherData)
 
             svgGroup.append("path")
                 .attr('class','weatherline')
                 .attr('d', lineW(weatherData))
-                .style('stroke', 'black')
-                .style('stroke-width',3)
+                .style('stroke', '#d9832e')
+                .style('stroke-width',2)
+
+             addTooltip(svg,weatherData,'weatherChart');
 
         }
     }
@@ -1346,7 +1345,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
 
-            // addWeatherData()
+            addWeatherData()
 
             d3.select('#spinner').style('display','block')
             const promises = _series.map(m => loadMeasurementData(m));
