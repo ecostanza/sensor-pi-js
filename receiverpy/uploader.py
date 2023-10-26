@@ -70,55 +70,57 @@ while True:
     # query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
     sensor_ids = get_expected_sensors()
     sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
-    query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter}'
+    query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter} LIMIT 10'
     
     print(query)
     rs = client.query(query)
-    iterator = rs.get_points()
-    to_upload = list(islice(iterator, 10))
-    print('to_upload', to_upload)
-    while len(to_upload) > 0:
-        to_upload = [
-            {
-                'time': i['time'],
-                'measurement': i['measurement'],
-                'tags': {
-                    'sensor_id': i['sensor_id']
-                },
-                'fields': {
-                    'value': i['value']
+    for ((measurement, _), iterator) in rs.items():
+        print(measurement)
+        # iterator = rs.get_points()
+        to_upload = list(islice(iterator, 10))
+        print('to_upload', to_upload)
+        while len(to_upload) > 0:
+            to_upload = [
+                {
+                    'time': i['time'],
+                    'measurement': measurement,
+                    'tags': {
+                        'sensor_id': i['sensor_id']
+                    },
+                    'fields': {
+                        'value': i['value']
+                    }
                 }
-            }
-            for i in to_upload
-        ]
-        print('data_points', to_upload)
+                for i in to_upload
+            ]
+            print('data_points', to_upload)
 
-        # TODO: login on the server?
+            # TODO: login on the server?
 
-        try:
-            # put the data to the server
-            response = requests.put(
-                url,
-                data=json.dumps(to_upload),
-                headers=headers
-            )
-            # TODO: save the timestamp of the last data point uploaded
-            # print('response.text', response.text[:200])
-            # open('err.html', 'w').write(response.text)
-            res = response.json()
-            # print("res['written']", res['written'])
+            try:
+                # put the data to the server
+                response = requests.put(
+                    url,
+                    data=json.dumps(to_upload),
+                    headers=headers
+                )
+                # TODO: save the timestamp of the last data point uploaded
+                # print('response.text', response.text[:200])
+                # open('err.html', 'w').write(response.text)
+                res = response.json()
+                # print("res['written']", res['written'])
 
-            # if response.status_code == 200:
-            if res['written'] == True:
-                latest = to_upload[-1]['time']
-                m = patt.match(latest)
-                if m:
-                    # latest = open(fname,'w').write(latest)
-                    open(fname,'w').write(latest)
-            to_upload = list(islice(iterator, 10))
-        except Exception as e:
-            print('exception:', e)
-            time.sleep(delay*10)        
+                # if response.status_code == 200:
+                if res['written'] == True:
+                    latest = to_upload[-1]['time']
+                    m = patt.match(latest)
+                    if m:
+                        # latest = open(fname,'w').write(latest)
+                        open(fname,'w').write(latest)
+                to_upload = list(islice(iterator, 10))
+            except Exception as e:
+                print('exception:', e)
+                time.sleep(delay*10)        
 
     time.sleep(delay)
 
