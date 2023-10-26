@@ -506,8 +506,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }); 
 
-                console.log( (latest).diff(luxon.DateTime.now(),"seconds").as('seconds'))
-
                 if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
                     return 'offline '
                 }else {
@@ -575,7 +573,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         trsSensors.append('td')
             .html(function (d) { 
-                console.log(d[1][0].age)
                 if( d[1][0].age.length('milliseconds') > 60*60*1000  ){
                     return "(more than an hour ago)";
                 }else{
