@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const paramMeasurement = urlParams.get('measurement') ;
     const paramSensorid = urlParams.get('sensor');
 
-    let startMinutes = 24*60;
+    let startMinutes = 5*24*60;
     let endMinutes = 0;
 
     let data = {};
@@ -13,19 +13,19 @@ document.addEventListener("DOMContentLoaded", function() {
     let allEvents = [];
 
     let svgWidth = window.innerWidth; // This value gets overridden once the DIV gets created
-    let svgHeight = 400 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
+    let svgHeight = 300 //svgWidth / 2 > window.innerHeight - 350? window.innerHeight -350:svgWidth / 2;
 
-    const margin = 5;
-    const padding = 5;
+    const padding = 10;
     const adj = 25;
-    const svgMarginTop = 0;
-    const svgMarginBottom = 180//window.innerHeight > 530 ? 300:200;
-    const svgMarginLeft = 10;
+    const svgMarginTop = 75;
+    const svgMarginBottom = 80//window.innerHeight > 530 ? 300:200;
+    const svgMarginLeft = 30;
 
     let sensorId = 96;
     let xScale, yScale, brush;
     let drawSolarGeneration = undefined;
     let loadData = undefined;
+
 
     event_types = ['window_open','window_closed','washing_and_drying','dishwasher','oven', 'occupancy',
                     'question_mark','air_cooling','heating_on','heating_off','showering_and_hair-drying',
@@ -83,10 +83,10 @@ document.addEventListener("DOMContentLoaded", function() {
         svgContainer = d3.select("div#container")
             .select('#_'+measurement.sensor_id + 'Node')
             .append("div")
-            .attr('class','graphContainer col-12')
+            .attr('class','graphContainer col-11')
 
         // Making the svg responsive
-        svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width;
+        svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width - padding;
 
         // Check to see if it exists
         if(svgContainer.select('#_'+measurement.sensor_id + 'Chart').node() !== null ){
@@ -95,24 +95,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
         svgContainer
             .append("svg")
+           //  .attr("preserveAspectRatio", "xMinYMin meet")
+           // .attr("viewBox", "-"
+           //      + 1.5 * adj + " -"
+           //      + 2.5*adj + " "
+           //      + (svgWidth + adj*3) + " "
+           //      + (svgWidth/4 + adj))
+           //  .style("padding", padding)
+           //  .style("margin", margin)            
+            .attr('width',svgWidth )
+            .attr('height', svgHeight + svgMarginBottom)
+            .classed("svg-content", true)
+            .append('g')
+            .attr('transform','translate('+padding+','+svgMarginTop+')')
             .attr('id', "_"+measurement.sensor_id + 'Chart')
-            .attr("viewBox", "-"
-                + 1.5 * adj + " -"
-                + 2.5*adj + " "
-                + (svgWidth + adj*3) + " "
-                + (svgHeight + adj))
-            .style("padding", padding)
-            .style("margin", margin)
-            .attr('width',svgWidth - svgMarginLeft)
-            .attr('height',svgHeight + svgMarginBottom)
-            .classed("svg-content", true);
+
     }
 
     const appendDIV = function (measurement){
         console.log("Appended DIV "+ measurement.sensor_id)
         svgContainer = d3.select("div#container")
             .append("div")
-            .attr('class','nodeContainer col-md-11 col-xl-6')
+            .attr('class','nodeContainer col-md-11 col-xl-8')
         
         svgContainer
         .append("h4")
@@ -178,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         xScale = d3.scaleTime(
             xrange,
-            [svgMarginLeft, svgWidth]
+            [svgMarginLeft, svgWidth-svgMarginLeft]
         );
 
         // In case there are no data in the series
@@ -239,7 +243,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .scale(yScaleTemperature)
             .tickFormat(l =>{ return l+'°C'})
 
-        let svg = d3.select('svg#_' + series.sensor_id + 'Chart');
+        let svg = d3.select('svg #_' + series.sensor_id + 'Chart');
 
         svg.selectAll('#clip').remove();
 
@@ -344,7 +348,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             // svg.select('.dataPoints').select('*').remove()
 
-            svg = d3.select('svg#_' + series.sensor_id + 'Chart');
+            svg = d3.select('svg #_' + series.sensor_id + 'Chart');
 
             if( series.measurement == 'temperature'){
                 // https://bocoup.com/blog/showing-missing-data-in-line-charts
@@ -369,7 +373,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('stroke', '#EF9F16')
 
                 svg.append("rect")
-                   .attr('width',svgWidth - svgMarginLeft)
+                   .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('x',svgMarginLeft)
                    .attr('y', yScaleTemperature(22))
                    .attr('height', yScaleTemperature(17) - yScaleTemperature(22) )
@@ -397,26 +401,26 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     svg.append('text').text(Math.round(dataF[circleLocStart].value)+ "\xB0C")
                             .attr('x', xScale(dataF[circleLocStart].time) +5)
-                            .attr('y', yScaleTemperature(dataF[circleLocStart].value) - 10)
+                            .attr('y', yScaleTemperature(dataF[circleLocStart].value) - 20)
                            .style('fill', '#EF9F16')
                            .style('font-size','12px')
 
-                    svg.append('circle').attr('r',6)
+                    svg.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocStart].time) )
                             .attr('cy', yScaleTemperature(dataF[circleLocStart].value))
                            .style('fill', '#EF9F16')
 
 
-                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 45){
 
                         svg.append('text').text(Math.round((dataF[circleLocEnd].value))+ "\xB0C")
-                                .attr('x', xScale(dataF[circleLocEnd].time)  )
-                                .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 10)
+                                .attr('x', xScale(dataF[circleLocEnd].time) - 16 )
+                                .attr('y', yScaleTemperature(dataF[circleLocEnd].value) - 20)
                                .style('fill', '#EF9F16')
                                .style('font-size','12px')
                     }
 
-                    svg.append('circle').attr('r',6)
+                    svg.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocEnd].time) )
                             .attr('cy', yScaleTemperature(dataF[circleLocEnd].value))
                            .style('fill', '#EF9F16')
@@ -444,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 context = svg.append('g').attr('class','context')
 
                 context.append("rect")
-                   .attr('width',svgWidth - svgMarginLeft)
+                   .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('y', yScaleHumidity(65))
                    .attr('x',svgMarginLeft)
                    .attr('height', yScaleHumidity(35) - yScaleHumidity(65) )
@@ -469,7 +473,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     }
 
-                    context.append('circle').attr('r',6)
+                    context.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocStart].time) )
                             .attr('cy', yScaleHumidity(dataF[circleLocStart].value))
                             .style("fill",'cadetblue')
@@ -480,16 +484,16 @@ document.addEventListener("DOMContentLoaded", function() {
                             .style('font-size','12px')
                             .style('fill', 'cadetblue')
 
-                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 40){
+                    if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 45){
 
                         context.append('text').text(Math.round(dataF[circleLocEnd].value)+"%")
-                                .attr('x', xScale(dataF[circleLocEnd].time))
+                                .attr('x', xScale(dataF[circleLocEnd].time)-15)
                                 .attr('y', yScaleHumidity(dataF[circleLocEnd].value) - 10)
                                .style('fill', 'cadetblue')
                                .style('font-size','12px')
                     }
 
-                    context.append('circle').attr('r',6)
+                    context.append('circle').attr('r',5)
                             .attr('cx', xScale(dataF[circleLocEnd].time))
                             .attr('cy', yScaleHumidity(dataF[circleLocEnd].value))
                             .style("fill",'cadetblue')
@@ -1108,15 +1112,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function addWeatherData(){
 
-        callWeatherAPI = function(m){
-            apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt=';
-            
-            return d3.json(apiCall+m).then(function (response) {
-                response.forecast.forecastday[0].hour.forEach(p => { weatherData.push(p);})
-                console.log(weatherData)
-            });
-        }
- 
         now = DateTime.now();
         startDate = now.minus({minutes: startMinutes})//.toISODate();
         
@@ -1126,27 +1121,45 @@ document.addEventListener("DOMContentLoaded", function() {
             endDate = now;
         }
 
-        allDays = [];
-        for(i=0; i<=endDate.diff(startDate, 'days').values.days;i++ ){
-            allDays.push(startDate.plus({days:i}).toISODate() )
-        }
-        console.log(allDays)
-        
         weatherData = [];
 
-        const promisesW = allDays.map(m => callWeatherAPI(m));
-        Promise.all(promisesW).then( () => {
-            console.log('all weather loaded');
-            console.log(weatherData)
-            drawWeatherGraph();
-        });
+        try{
+            apiCall = 'https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&hourly=temperature_2m&start_date='+startDate.toISODate()+'&end_date='+endDate.toISODate();
+            response = d3.json(apiCall)
+
+            response.then(rr =>{
+                console.log(rr['hourly'])
+                rr['hourly'].time.forEach( (j,i) => { 
+                    weatherData.push({ 'time':j, temp_c:rr['hourly']['temperature_2m'][i] });
+                })
+
+                drawWeatherGraph();
+             })
+        }catch(e){
+            console.log(e)
+        }
+
+        // PREVIOUS API
+        // try{
+        //     apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt='+startDate.toISODate()+'&end_dt='+endDate.toISODate();
+        //     response = d3.json(apiCall)
+
+        //     response.then(rr =>{
+        //         rr['forecast'].forecastday.forEach( j => { 
+        //             j.hour.forEach(p => { weatherData.push(p);})
+        //          })
+        //          drawWeatherGraph();
+        //      })
+        // }catch(e){
+        //     console.log(e)
+        // }
 
         drawWeatherGraph = function(){
 
             d3.select('.weatherContainer').remove();
             svgContainer = d3.select("div#container")
                 .append("div")
-                .attr('class','nodeContainer weatherContainer col-md-11 col-xl-6')
+                .attr('class','nodeContainer weatherContainer col-md-11 col-xl-8')
 
             svgContainer
                 .append("h4")
@@ -1156,32 +1169,26 @@ document.addEventListener("DOMContentLoaded", function() {
             svgContainer = d3.select("div#container")
                 .select('.weatherContainer')
                 .append("div")
-                .attr('class','graphContainer col-12')
+                .attr('class','graphContainer col-11')
 
             // Making the svg responsive
             svgWidth = d3.select(".graphContainer").node().getBoundingClientRect().width;
 
             svg = svgContainer
                 .append("svg")
-                .attr('id', 'weatherChart')
-                .attr("preserveAspectRatio", "xMinYMin meet")
-                .attr("viewBox", "-"
-                    + 1.5 * adj + " -"
-                    + 2.5*adj + " "
-                    + (svgWidth + adj*3) + " "
-                    + (svgHeight + adj))
-                .style("padding", padding)
-                .style("margin", margin)
                 .attr('width',svgWidth - svgMarginLeft)
                 .attr('height',svgHeight + svgMarginBottom)
-                .classed("svg-content", true);
-            
+                .classed("svg-content", true)
+                .append('g')
+                .attr('transform','translate('+padding+','+svgMarginTop+')')
+                .attr('id', 'weatherChart')
+    
             now = luxon.DateTime.now();
 
             min = now.minus({minutes: startMinutes})
             max = now.minus({minutes: endMinutes})
 
-            xScaleW = d3.scaleTime([min,max],[svgMarginLeft, svgWidth]);
+            xScaleW = d3.scaleTime([min,max],[svgMarginLeft, svgWidth- svgMarginLeft - padding ]);
             console.log(xScaleW.domain())
 
             yScaleOutdoorTemp = d3.scaleLinear(
@@ -1191,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             lineW = d3.line()
             .defined(d => d.temp_c)
-            .x(d => xScaleW(DateTime.fromFormat(d.time,'yyyy-MM-dd hh:mm')) )
+            .x(d => xScaleW(DateTime.fromISO(d.time)) )
             .y(d => yScaleOutdoorTemp(d.temp_c))
 
             let xAxis = d3.axisTop()
@@ -1274,15 +1281,17 @@ document.addEventListener("DOMContentLoaded", function() {
                     .style('font-weight', 800)
                     .style('font-size',16);
 
-            weatherData = weatherData.sort( (a,b) => {
-               return DateTime.fromFormat(a.time,'yyyy-MM-dd hh:mm') < DateTime.fromFormat(b.time,'yyyy-MM-dd hh:mm')
+            weatherData.sort( (a,b) => {
+                return DateTime.fromISO(a.time) < DateTime.fromISO(b.time)
             })
 
             svgGroup.append("path")
                 .attr('class','weatherline')
                 .attr('d', lineW(weatherData))
-                .style('stroke', 'black')
-                .style('stroke-width',3)
+                .style('stroke', '#d9832e')
+                .style('stroke-width',2)
+
+             addTooltip(svg,weatherData,'weatherChart');
 
         }
     }
@@ -1346,13 +1355,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
 
-            // addWeatherData()
-
             d3.select('#spinner').style('display','block')
             const promises = _series.map(m => loadMeasurementData(m));
             Promise.all(promises).then( () => {
                 console.log('all loaded');
                 d3.selectAll('#spinner').style('display','none')
+                addWeatherData()
             });
         };
 
@@ -1518,29 +1526,6 @@ document.addEventListener("DOMContentLoaded", function() {
             .on('click', (e,d) => {
                 editEvent(e,d)})
 
-
-        setAnnotationBarVisibility();
-    }
-
-    function setAnnotationBarVisibility(){
-        // // Hide text in day view, hide everything in week view
-        // if( WINDOW == 24){
-        //     d3.selectAll('.annotationBar text').style('opacity',0)
-        //     d3.selectAll('.annotationBar image').style('opacity',1)
-        //     d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
-        //     d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
-
-        // }else if(WINDOW == 24*7){
-        //     d3.selectAll('.annotationBar text').style('opacity',0)
-        //     d3.selectAll('.annotationBar image').style('opacity',0)
-        //     d3.selectAll('.annotationBar .blocksContainer').style('opacity',0)
-        //     d3.selectAll('.annotationBar .editBtn').style('visibility','hidden')
-        // }else{
-        //    d3.selectAll('.annotationBar text').style('opacity',1)
-        //    d3.selectAll('.annotationBar image').style('opacity',1)
-        //    d3.selectAll('.annotationBar .blocksContainer').style('opacity',1)
-        //    d3.selectAll('.annotationBar .editBtn').style('visibility','visible')
-        // }
     }
 
     function updateAnnotationBar(){
@@ -1587,375 +1572,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         })
 
-        setAnnotationBarVisibility();
-    }
-    
-    d3.select('#saveCSVElectricity').on('click', exportCSVElectricity);
-    d3.select('#saveCSVAnnotation').on('click', exportCSVAnnotation);
-    // d3.select('#saveCSVAnnotationBoxes').on('click', exportAnnotationsAsBoxes);
-
-    async function exportCSVAnnotation(){
-        resetTimeOfInactivity();
-
-        d3.select('#spinner').style('display','block')
-
-        let csvContent = "data:text/csv;charset=utf-8," 
-        
-        result = await d3.json('/annotations');
-
-        // save label names
-        pp = '';
-        for (const key in result[0]) {
-            pp += key + ',';
-        }
-        pp = pp.slice(0, -1); 
-        csvContent += pp + "\n";
-
-        // save data 
-        result.forEach( (e,i) => {
-            pp = '';
-            for (const key in e) {
-                    sanitised = (e[key]+'').replace(/,/g,' ')
-                    pp += sanitised + ',';
-            }
-            pp = pp.slice(0, -1);
-            csvContent += pp + "\n";
-        });
-        
-        //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
-        var encodedUri = encodeURI(csvContent);
-        var link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-
-        dateToday = new Date().getDate() +"-" + new Date().getMonth()+ "-"+new Date().getFullYear();
-        link.setAttribute("download", "annotations-"+dateToday+".csv");
-        document.body.appendChild(link); // Required for FF
-
-        d3.select('#spinner').style('display','none')
-
-        link.click(); // This will download the data file named "my_data.csv".
-    }  
-
-    async function exportCSVElectricity(){
-        resetTimeOfInactivity();
-
-        d3.select('#spinner').style('display','block')
-   
-        console.log('button#download-button');
-        const sensor_id = sensorId;
-        const measurement = 'electricity_consumption';
-        // const measurement = 'TVOC'
-        const url = `/measurement/${measurement}/sensor/${sensor_id}/rawdata/`;
-        const now = luxon.DateTime.now();
-        const today = new luxon.DateTime(now.year, now.month, now.day);
-        const start = today.minus({weeks: 5});
-        const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
-        let all_data = [];
-        for (let d=0; d<=total_days; d+=1) {
-            const curr = start.plus({'days': d});
-            const next = curr.plus({'days': 1});
-            console.log(`d: ${d}, curr: ${curr.toFormat('yyyy-LL-dd')}, next: ${next.toFormat('yyyy-LL-dd')}`);
-            const query = `?start=${curr.toFormat('yyyy-LL-dd')}&end=${next.toFormat('yyyy-LL-dd')}&showAll=true&points=80`;
-            const response = await d3.json(url+query);
-            console.log('response:', response);
-            all_data = all_data.concat(response.readings);
-        }
-        console.log('all_data:', all_data);
-
-        let csv_content = "data:text/csv;charset=utf-8,";
-
-        // save label names
-        csv_content += 'time,value' + "\n";
-
-        all_data.forEach(function(row) {
-            csv_content += `${row.time},${row.value*SCALING_FACTOR}` + "\r\n";
-        });        
-
-        const encoded_uri = encodeURI(csv_content);
-        var link = document.createElement("a");
-        link.setAttribute("href", encoded_uri);
-        link.setAttribute("download", `${measurement}_${sensor_id}.csv`);
-        document.body.appendChild(link); // Required for FF
-            
-        d3.select('#spinner').style('display','none')
-
-        link.click(); // This will download the data file named "my_data.csv".        
-    };
-
-/*
-        const A4_WIDTH = 1240
-        const A4_HEIGHT = 1754
-
-        const MAX_CURVE_KW = 12
-        const MAX_CURVE_PIXELS = 658
-
-        const MAX_HOUR_PIXELS = 99
-
-        d3.select('#spinner').style('display','block')
-
-        // Draw all the boxes. Only then try to save them
-        try{
-            result = await d3.json('/annotations');
-    
-            let svgBoxes = d3.select('#containerBoxes').append('svg')
-                .attr('width', A4_WIDTH )///window.innerWidth)
-                .attr('height',2*A4_HEIGHT)//*window.innerHeight)
-                .append('g')
-                // .attr('transform','translate('+margin.top+','+margin.left+')')
-
-            let heightScale = d3.scaleLinear([0,MAX_CURVE_KW],[0,MAX_CURVE_PIXELS])
-            let widthScale = d3.scaleLinear([0,60*60*1000],[0,MAX_HOUR_PIXELS])
-     
-            // sort by size
-            result.sort((a,b)=>{
-                return (+a.duration_seconds) - (+b.duration_seconds)
-            })
-
-            groups = svgBoxes.selectAll('g')
-                .data(result, d => {return d})
-                .join('g')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', 0)
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face1')
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face3')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return 2*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face5')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face6')
-
-            groups.append('rect')
-                .attr('height', d => {return heightScale(+d.consumption*60000/(+d.duration_seconds)); })
-                .attr('width', d => { return widthScale(+d.duration_seconds)/4; })
-                .attr('x', d => { return 4*widthScale(+d.duration_seconds); })
-                .attr('y',d => { return 5*widthScale(+d.duration_seconds)/4 ; })
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','fold')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return widthScale(+d.duration_seconds)/4; })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face2')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds); })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 1.25*widthScale(+d.duration_seconds); })
-                .attr('fill','#f9f9f9') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-                .attr('class','face3')
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  d => { return heightScale(+d.consumption*60000/(+d.duration_seconds)) + 2.25*widthScale(+d.duration_seconds); })
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-            .attr('class','fold')
-
-
-            groups.append('rect')
-                .attr('height', d => {return widthScale(+d.duration_seconds)/4; })
-                .attr('width', d => { return widthScale(+d.duration_seconds); })
-                .attr('x', d => { return widthScale(+d.duration_seconds); })
-                .attr('y',  0)
-                .attr('class','fold')
-                .attr('fill','black') // DEFAFF // D0F7B7 // DDBABF //FFEAB0 //DDDDDD
-                .style('stroke','black')
-
-            groups.append('image')
-                .attr('xlink:href', d => {return 'static/imgs/event_icons/' + d.type + '.svg'})
-                // .text(d => { return d.type; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2-10 })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3-25; })
-                .attr('width',20)
-                .attr('height',20)
-
-            groups.append('text')
-                .text(d => { return d.type; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+5; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-                .style('font-weight','bold')
-
-            groups.append('text')
-                .text(d => { return d.description; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+20; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-
-            groups.append('text')
-                .text(d => { return (+d.consumption).toFixed(2)+"kWh"; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+50; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-            groups.append('text')
-                .text(d => { return Math.round(+d.duration_seconds/60000)+"minutes"; })
-                .attr('x', d => { return 3*widthScale(+d.duration_seconds)/2; })
-                .attr('y', d => {return 1.25*widthScale(+d.duration_seconds)+heightScale(+d.consumption*60000/(+d.duration_seconds))/3+40; })
-                .attr('text-anchor','middle')
-                .attr('font-size',5)
-
-            let runningX = 0;
-            let runningY = 0;
-            let currentMaxY = 0;
-            // let currentMaxX = 0;
-            groups.each( (gg, i) => {
-                // console.log(gg);
-
-                if( runningX + 4.25*widthScale(gg.duration_seconds) + 4 > A4_WIDTH){
-                    runningX = 0;
-                    runningY += currentMaxY + 4;
-                }
-                d3.select(groups.nodes()[i]).attr('transform','translate('+runningX+','+runningY+')')
-                runningX += 4*widthScale(gg.duration_seconds) + 40;
-                if(  (heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)) > currentMaxY) {
-                    currentMaxY = heightScale(+gg.consumption*60000/gg.duration_seconds) + 4*widthScale(gg.duration_seconds)
-                }
-            })
-        }catch(e){
-            console.log(e)
-        }
-
-        var html = d3.select("#containerBoxes svg")
-        .attr("version", 1.1)
-        .attr("xmlns", "http://www.w3.org/2000/svg")
-        .attr('xmlns:xlink',"http://www.w3.org/1999/xlink")
-        .node().parentNode.innerHTML;
-
-        var link = document.createElement("a");
-        link.setAttribute("href", "data:image/svg+xml;base64,\n" + btoa(html))
-        link.setAttribute("download", 'annotation-boxes.svg');
-        link.setAttribute("href-lang", "image/svg+xml")
-
-        document.body.appendChild(link); // Required for FF
-        link.click();
-
-        d3.select('#spinner').style('display','none')
-
-
-    };
-
-    function updateSolarGeneration(){
-        d3.select('#solarData')
-          .transition()
-          .attr('d',solarLine)
-    }*/
-
- /*   function getSunriseSunset(data, id){
-        d3.json('https://api.sunrise-sunset.org/json?lat=51.509865&lng=-0.118092&date=today&formatted=0')
-          .then(function (sun) {
-            // console.log(data);
-
-            d3.selectAll('div#container svg#'+id+'Chart')
-              .append('g').lower()
-              .attr('class','backgroundData')
-              .attr("clip-path", "url(#clip)");
-
-            sunset = new Date(sun.results.sunset);
-            sunrise = new Date(sun.results.sunrise);
-
-            drawSunriseSunset(data);
-        });
     }
 
-
-    function updateSunriseSunset(){
-        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
-
-        d3.selectAll('.backgroundData').selectAll('rect')
-            .transition()
-            .attr('x', d => { return xScale(d.time)})
-            .attr('width', d => { 
-                tmp = new Date(xScale.domain()[0]);
-                tmp2 = new Date(tmp);
-                tmp2.setHours(tmp2.getHours() + lengthOfNight);
-                return (xScale(tmp2)- xScale(tmp)); 
-            })
-
-        d3.selectAll('.backgroundData').selectAll('text')
-            .transition()
-            .attr('x', d => { return xScale(d.time) +20})
-    }
-
-    function drawSunriseSunset(data){
-
-        d3.selectAll('.backgroundData rect').remove()
-        d3.selectAll('.backgroundData text').remove()
-        let nights = [];
-
-        if(data.length > 0 ){
-            counter = data[0].time.getDate();
-            nights = data.filter(d => {
-                if((d.time.getHours() == sunset.getHours() && d.time.getDate() == counter)){
-                    counter++;
-                    return true ;
-                }
-            })
-        }
-
-        lengthOfNight = (24 - sunset.getHours()) + sunrise.getHours();
-
-        d3.selectAll('.backgroundData').selectAll('rect')
-            .data(nights)
-            .join('rect')
-            .attr('x', d => { return xScale(d.time)})
-            .attr('y',0)
-            .attr('width', d => { 
-                tmp = new Date(xScale.domain()[0]);
-                tmp2 = new Date(tmp);
-                tmp2.setHours(tmp2.getHours() + lengthOfNight);
-                return (xScale(tmp2)- xScale(tmp)); 
-            })
-            .attr('height', svgHeight- svgMarginBottom )
-            .style('opacity',0.1)
-             .style('fill','gray')
-
-            d3.selectAll('.backgroundData').selectAll('text')
-              .data(nights)
-              .join('text')
-              .text('sunset')
-              .attr('x', d => { return xScale(d.time)+10})
-              .attr('y', 60)
-              .style('font-style','italic')
-              .style('font-size','14px')
-              .attr('fill','gray')
-   }
-*/
 });

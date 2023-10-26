@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        sensorLabels = await d3.json('/sensors')
+        sensorLabels = await d3.json('/sensors/')
         console.log(sensorLabels)
 
         const headSensors = d3.select('#sensor-alias')
@@ -279,6 +279,7 @@ document.addEventListener("DOMContentLoaded", function() {
         headSensors.append('th').attr('scope',"col").html('Battery');
         headSensors.append('th').attr('scope',"col").html('Signal Quality');
         headSensors.append('th').attr('scope',"col").html('TimeStamp');
+        headSensors.append('th').attr('scope',"col").html('Is Expected?');
 
         const trsSensors = d3.select('#sensor-alias').append('tbody')
             .selectAll(null)
@@ -364,7 +365,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     .classed('active', d =>{
                         ret = false;
                         sensorLabels.forEach( l => {
-                            if( l.sensor == d[0]){ ret = (l.sampling_period === 1); }
+                            if( l.sensor == d[0]){ ret = (l.sampling_period === 1 || l.sampling_period === 3); }
                         })
                         return ret;
                     })
@@ -375,6 +376,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         sensorLabels.forEach( l => {
                             if( l.sensor == d[0]){ ret = (l.id); }
                         })
+                        console.log(sensorLabels)                    
 
                         editValues = {'sampling_period': 1 };
 
@@ -412,7 +414,9 @@ document.addEventListener("DOMContentLoaded", function() {
                         // try sending it to DB first
                         ret = '';
                         sensorLabels.forEach( l => {
-                            if( l.sensor == d[0]){ ret = (l.id); }
+                            if( l.sensor == d[0]){ 
+                                ret = (l.id); 
+                            }
                         })
 
                         editValues = {'sampling_period': 30 };
@@ -502,8 +506,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }); 
 
-                console.log( (latest).diff(luxon.DateTime.now(),"seconds").as('seconds'))
-
                 if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
                     return 'offline '
                 }else {
@@ -571,7 +573,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         trsSensors.append('td')
             .html(function (d) { 
-                console.log(d[1][0].age)
                 if( d[1][0].age.length('milliseconds') > 60*60*1000  ){
                     return "(more than an hour ago)";
                 }else{
@@ -579,6 +580,26 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }).style('text-align','center')
             .style('vertical-align','middle')
+
+        trsSensors.append('td')
+            .style('text-align','center')
+            .style('vertical-align','middle')
+                .append('div').attr('class','form-switch')
+                .append('input')
+                .attr('class','form-check-input isexpected')
+                .attr('type','checkbox')
+                .attr('checked','true')
+
+        d3.selectAll('.isexpected').on('change', (p,l) =>{
+            console.log(l) // l is data
+
+            // Send to DB
+            // result = await d3.json(`/sensors/${ret}`, {
+            //     method: 'POST', 
+            //     headers: { "Content-Type": "application/json; charset=UTF-8" },
+            //     'body': JSON.stringify(editValues)
+            // });
+        })
 
         trsMeasurements.append('td') // empty
         trsMeasurements.append('td').html(d => { return d.measurement; })
