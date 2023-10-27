@@ -251,6 +251,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 'name': name,
                 'latest': latest,
                 'value': item.value,
+                'isexpected': item.expected,
                 'age': age,
                 'id': id,
             };
@@ -268,6 +269,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
         sensorLabels = await d3.json('/sensors/')
         console.log(sensorLabels)
+
+        //TESTING
+        // sensorLabels.forEach( p =>{
+        //     makeNewSensor(p);
+        // })
+        ////
 
         const headSensors = d3.select('#sensor-alias')
             .append('thead')
@@ -580,7 +587,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }).style('text-align','center')
             .style('vertical-align','middle')
-
+            
         trsSensors.append('td')
             .style('text-align','center')
             .style('vertical-align','middle')
@@ -588,17 +595,30 @@ document.addEventListener("DOMContentLoaded", function() {
                 .append('input')
                 .attr('class','form-check-input isexpected')
                 .attr('type','checkbox')
-                .attr('checked','true')
+                .property('checked', d => {
+                    ret = false;
+                    sensorLabels.forEach( l => {
+                        if( l.sensor == d[0]){ 
+                            ret = l.expected; 
+                        }
+                    })
+                    return Boolean(ret);
+                })
 
-        d3.selectAll('.isexpected').on('change', (p,l) =>{
+        d3.selectAll('.isexpected').on('change', async (p,l) =>{
             console.log(l) // l is data
+            console.log(p.target.checked)
+
+            editValues = {'expected': +(p.target.checked) };
 
             // Send to DB
-            // result = await d3.json(`/sensors/${ret}`, {
-            //     method: 'POST', 
-            //     headers: { "Content-Type": "application/json; charset=UTF-8" },
-            //     'body': JSON.stringify(editValues)
-            // });
+            result = await d3.json(`/sensors/${l[0]}`, {
+                method: 'POST', 
+                headers: { "Content-Type": "application/json; charset=UTF-8" },
+                'body': JSON.stringify({editValues})
+            });
+
+            console.log(result)
         })
 
         trsMeasurements.append('td') // empty
@@ -626,24 +646,51 @@ document.addEventListener("DOMContentLoaded", function() {
 
     });
 
-        // Periodical refresh if FLAG is down
-        function refreshData() {
-            // window.location.reload();
-        }
+    // Periodical refresh if FLAG is down
+    function refreshData() {
+        // window.location.reload();
+    }
 
+    startTimer();
+
+    function startTimer() { 
+        // window.setTimeout returns an Id that can be used to start and stop a timer
+        timeoutId = window.setTimeout(refreshData, timeOfInactivity)
+    }
+
+    resetTimeOfInactivity = function (){
+    
+        window.clearTimeout(timeoutId)
         startTimer();
 
-        function startTimer() { 
-            // window.setTimeout returns an Id that can be used to start and stop a timer
-            timeoutId = window.setTimeout(refreshData, timeOfInactivity)
-        }
+        timeOfInactivity = 5*60*1000;
+    }
 
-        resetTimeOfInactivity = function (){
-     
-            window.clearTimeout(timeoutId)
-            startTimer();
+    // async function makeNewSensor(p){
+    //     let eventSanitized = {
+    //         'id':p.id,
+    //         'sensor':p.sensor,
+    //         'label': p.label,
+    //         'sampling_period':p.sampling_period,
+    //         'expected': p.expected,
+    //     }
 
-            timeOfInactivity = 5*60*1000;
-        }
+    //     try{
+    //         d3.select('#spinner').style('display','block');
+
+    //         let result = await d3.json('/sensors', {
+    //             method: 'PUT', 
+    //             headers: { "Content-Type": "application/json; charset=UTF-8" },
+    //             'body': JSON.stringify(eventSanitized)
+    //         });
+
+    //         console.log(result)
+            
+    //         d3.select('#spinner').style('display','none')
+    //     }catch(e){
+    //         console.log(e);
+    //         d3.select('#spinner').style('display','none');
+    //     }
+    // }
 
 });
