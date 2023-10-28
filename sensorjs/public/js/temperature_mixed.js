@@ -1296,7 +1296,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    let seriesUrl = '/series/?showAll=true&showUnexpected=true';
+    let seriesUrl = '/series/?showAll=true&showUnexpected=false';
 
     d3.json(seriesUrl).then(function (allSeries) {
         console.log(allSeries)

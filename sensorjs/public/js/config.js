@@ -611,11 +611,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
             editValues = {'expected': +(p.target.checked) };
 
+            // try sending it to DB first
+            ret = '';
+            sensorLabels.forEach( i => {
+                if( i.sensor == l[0]){ 
+                    ret = (i.id); 
+                }
+            })
+            
             // Send to DB
-            result = await d3.json(`/sensors/${l[0]}`, {
+            result = await d3.json(`/sensors/${ret}`, {
                 method: 'POST', 
                 headers: { "Content-Type": "application/json; charset=UTF-8" },
-                'body': JSON.stringify({editValues})
+                'body': JSON.stringify(editValues)
             });
 
             console.log(result)
