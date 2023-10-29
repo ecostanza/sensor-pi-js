@@ -1041,9 +1041,10 @@ document.addEventListener("DOMContentLoaded", function() {
             d3.select("#tooltip_"+sensor_id).style('display','none')
         })
 
-        bisectDate = d3.bisector((d) => { return DateTime.fromISO(d.time); }).left;
 
         function mousemoveWeather(){
+            bisectDate = d3.bisector((d) => { return DateTime.fromISO(d.time); }).left;
+
             x0 = xScale.invert(d3.pointer(event,this)[0])
             ff = DateTime.fromJSDate(x0);
 
@@ -1074,6 +1075,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         function mousemove(){ 
+            bisectDate = d3.bisector((d) => { return d.time; }).left;
 
             x0 = xScale.invert(d3.pointer(event,this)[0])
             ff = DateTime.fromJSDate(x0);
