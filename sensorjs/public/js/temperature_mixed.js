@@ -985,6 +985,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     
     function addTooltip(svg, dataL,sensor_id){
+        console.log('Adding Tooltip')
+
         const tooltip = svg.append('g')
             .style('display', 'none')
             .attr('class','tooltip')
@@ -1028,12 +1030,48 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('x', 5)
             .attr('y', 23)
 
-        svg.select('.overlay').on('mousemove', mousemove)
+        // Weather data have different requirements for tooltip
+        if( sensor_id === 'weatherChart'){
+            svg.on('mousemove', mousemoveWeather)
+        }else{
+            svg.select('.overlay').on('mousemove', mousemove)
+        }
+
         svg.select('.overlay').on('mouseout', () => {
             d3.select("#tooltip_"+sensor_id).style('display','none')
         })
 
-        bisectDate = d3.bisector((d) => { return d.time; }).left;
+        bisectDate = d3.bisector((d) => { return DateTime.fromISO(d.time); }).left;
+
+        function mousemoveWeather(){
+            x0 = xScale.invert(d3.pointer(event,this)[0])
+            ff = DateTime.fromJSDate(x0);
+
+            s_idA = "weatherline"
+            i = bisectDate(dataL, x0, 1),
+                      d0 = dataL[i - 1],
+                      d1 = dataL[i],
+                      dA = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+            tooltip.select('text.top').text( ff.toFormat('LLL dd, h:mm a') )
+
+            if(dA.temp_c === null){ 
+                tooltipTExt.select('text.bottom.temp').text("temperature: -" )
+            }else{
+                tooltipTExt.select('text.bottom.temp').text("temperature: " + dA.temp_c.toFixed(1)+"\xB0C" )
+            }
+            offset = -180
+            if( d3.pointer(event,this)[0] + offset < 0 ){
+             offset = 50
+            }
+ 
+            tooltipTExt.style('display', 'block')
+                     .attr("transform", `translate(${offset},${d3.pointer(event,this)[1]})`)
+            tooltip
+                 .style('display', 'block')
+                 .attr("transform", `translate(${d3.pointer(event,this)[0]},0)`)
+                 .raise();
+        }
 
         function mousemove(){ 
 
@@ -1139,21 +1177,6 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log(e)
         }
 
-        // PREVIOUS API
-        // try{
-        //     apiCall = 'http://api.weatherapi.com/v1/history.json?key=1decd531f0a04a159be91830232501&q=London&dt='+startDate.toISODate()+'&end_dt='+endDate.toISODate();
-        //     response = d3.json(apiCall)
-
-        //     response.then(rr =>{
-        //         rr['forecast'].forecastday.forEach( j => { 
-        //             j.hour.forEach(p => { weatherData.push(p);})
-        //          })
-        //          drawWeatherGraph();
-        //      })
-        // }catch(e){
-        //     console.log(e)
-        // }
-
         drawWeatherGraph = function(){
 
             d3.select('.weatherContainer').remove();
@@ -1183,6 +1206,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 .attr('transform','translate('+padding+','+svgMarginTop+')')
                 .attr('id', 'weatherChart')
     
+            svg.append('rect')
+                .attr('class','.overlay')
+                .attr('width',svgWidth - svgMarginLeft)
+                .attr('height',svgHeight + svgMarginBottom)
+                .attr('fill','rgba(0,0,0,0)')
+
             now = luxon.DateTime.now();
 
             min = now.minus({minutes: startMinutes})
