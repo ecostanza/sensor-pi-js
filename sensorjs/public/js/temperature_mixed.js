@@ -80,6 +80,13 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("Appended SVG "+ measurement.sensor_id)
         let name = measurement.name;
 
+        d3.select("div#container")
+            .select('#_'+measurement.sensor_id + 'Node')
+            .append('div')
+            .append('img')
+                .attr('src','/static/imgs/legend.svg')
+                .attr('height','40px')
+
         svgContainer = d3.select("div#container")
             .select('#_'+measurement.sensor_id + 'Node')
             .append("div")
@@ -372,14 +379,47 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr('d', lineT(filteredDataT))
                     .style('stroke', '#EF9F16')
 
-                svg.append("rect")
+                contextTemp = svg.append('g').attr('class','context')
+
+                contextTemp.append("rect")
+                    .attr('width',svgWidth - svgMarginLeft - 3*padding)
+                    .attr('x',svgMarginLeft)
+                    .attr('y', yScaleTemperature(20))
+                    .attr('height', yScaleTemperature(18) - yScaleTemperature(20) )
+                    .attr('fill','none')
+                    .attr('stroke','#ddd')
+
+                contextTemp.append("rect")
                    .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('x',svgMarginLeft)
                    .attr('y', yScaleTemperature(22))
                    .attr('height', yScaleTemperature(17) - yScaleTemperature(22) )
                    // .attr('fill','#EF9F16')
                    .attr('fill','url(#Gradient1)')
-                   .style('opacity', 0.2)
+                   .style('opacity', 0.12)
+                
+                text = contextTemp.append('text')
+                        .attr('x',svgWidth - 3*padding + 20)
+                        .attr('y',yScaleTemperature(17))
+                
+                text.append('tspan')
+                    .attr('dx',0)
+                    .attr('dy','1.2em')
+                    .text('Suggested')
+                
+                text.append('tspan')
+                    .attr('dx',0)
+                    .attr('dy','1.2em')
+                    .text('Indoor')
+
+                text.append('tspan')
+                    .attr('dx',0)
+                    .attr('dy','1.2em')
+                    .text('Temperature')
+
+
+
+                svg.select('.dataPoints').raise()
 
                 if(dataF.length > 0){
                     circleLocStart = 0
@@ -409,7 +449,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             .attr('cx', xScale(dataF[circleLocStart].time) )
                             .attr('cy', yScaleTemperature(dataF[circleLocStart].value))
                            .style('fill', '#EF9F16')
-
 
                     if(xScale(dataF[circleLocEnd].time) - xScale(dataF[circleLocStart].time) > 45){
 
@@ -449,12 +488,23 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 context.append("rect")
                    .attr('width',svgWidth - svgMarginLeft - 3*padding)
+                   .attr('y', yScaleHumidity(60))
+                   .attr('x',svgMarginLeft)
+                   .attr('height', yScaleHumidity(40) - yScaleHumidity(60) )
+                    .attr('fill','none')
+                    .attr('stroke','#ddd')
+                //    .style('opacity',0.2)
+
+                   context.append("rect")
+                   .attr('width',svgWidth - svgMarginLeft - 3*padding)
                    .attr('y', yScaleHumidity(65))
                    .attr('x',svgMarginLeft)
                    .attr('height', yScaleHumidity(35) - yScaleHumidity(65) )
-                  .attr('fill','url(#Gradient2)')
-                   .style('opacity',0.2)
+                    .attr('fill','url(#Gradient2)')
+                   .style('opacity',0.12)
 
+                svg.select('.dataPoints').raise()
+                
                 if(dataF.length > 0){
                     circleLocStart = 0
                     circleLocEnd = dataF.length - 1
