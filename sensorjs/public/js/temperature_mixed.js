@@ -417,10 +417,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     .attr('dy','1.2em')
                     .text('Temperature')
 
-
-
                 svg.select('.dataPoints').raise()
-
+                svg.select('.overlay').raise()
+                
                 if(dataF.length > 0){
                     circleLocStart = 0
                     circleLocEnd = dataF.length - 1
@@ -504,7 +503,8 @@ document.addEventListener("DOMContentLoaded", function() {
                    .style('opacity',0.12)
 
                 svg.select('.dataPoints').raise()
-                
+                svg.select('.overlay').raise()
+
                 if(dataF.length > 0){
                     circleLocStart = 0
                     circleLocEnd = dataF.length - 1
