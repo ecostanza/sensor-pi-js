@@ -209,8 +209,11 @@ document.addEventListener("DOMContentLoaded", function() {
             .tickSize(-svgHeight+svgMarginBottom)
             .tickFormat(l => {
                 format = d3.timeFormat('%I %p');
-                if( format(l) === '12 AM'){ return}
-                else{
+                if( format(l) === '12 AM'){ 
+                    return; 
+                } else if( format(l) === '12 PM'){ 
+                    return '12 noon'; 
+                } else {
                     return format(l).toLowerCase();
                 }
             })
