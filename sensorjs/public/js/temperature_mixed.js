@@ -141,6 +141,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     }
 
+    // this function returns a promise, so that
+    // we it can be grouped with all other load data promises
     const loadMeasurementData = function (series) {
         const measurement = series.measurement;
         const sensor_id = series.sensor_id;
@@ -152,9 +154,7 @@ document.addEventListener("DOMContentLoaded", function() {
             dataUrl = dataUrl + `&end=-${endMinutes}`;
         }
 
-        return d3.json(dataUrl).then( async function(response) {
-                await drawGraphs(response,sensor_id,series);
-            });
+        return d3.json(dataUrl);
         }
 
     function formatData(data){
@@ -170,6 +170,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     async function drawGraphs (response, sensor_id, series){
+        console.log("drawGraphs, sensor_id:", sensor_id, 'series:', series);
         let newdata = formatData(response.readings);
 
         ret = ""
@@ -555,11 +556,13 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         addBrushing = function (){
+            // console.log('Adding brushing');
+            // TODO: could brush be declared here?
             brush = d3.brushX()
                         .extent([[svgMarginLeft,0], [svgWidth, svgHeight-svgMarginBottom]])
                         .on('start', brushStart)
                         .on('end', brushEnd)
-                        .on('brush', brushing)
+                        .on('brush', brushing);
             
             let brushContainer = svg.append("g")
                                     .attr('class','brush')
@@ -1030,7 +1033,8 @@ document.addEventListener("DOMContentLoaded", function() {
         updateGraph(data[series.id],true);
 
         // TODO make more elegant. This should be called after all measures are drawn
-        if( series.measurement == 'temperature'){
+        if( series.measurement === 'temperature'){
+            // console.log('series.measurement:', series.measurement);
             drawAnnotations(series);
             addBrushing();
             addTooltip(svg,data,series.sensor_id);
@@ -1088,6 +1092,7 @@ document.addEventListener("DOMContentLoaded", function() {
             svg.on('mousemove', mousemoveWeather)
         }else{
             svg.select('.overlay').on('mousemove', mousemove)
+            //svg.on('mousemove', mousemove)
         }
 
         svg.select('.overlay').on('mouseout', () => {
@@ -1136,14 +1141,21 @@ document.addEventListener("DOMContentLoaded", function() {
             s_idA = "temperature_"+sensor_id
             s_idB = "humidity_"+sensor_id
 
-            i = bisectDate(dataL[s_idA], x0, 1),
-                      d0 = dataL[s_idA][i - 1],
-                      d1 = dataL[s_idA][i],
-                      dA = x0 - d0.time > d1.time - x0 ? d1 : d0;
-            i = bisectDate(dataL[s_idB], x0, 1),
-                      d0 = dataL[s_idB][i - 1],
-                      d1 = dataL[s_idB][i],
-                      dB = x0 - d0.time > d1.time - x0 ? d1 : d0;
+            let i = bisectDate(dataL[s_idA], x0, 1);
+            let d0 = dataL[s_idA][i - 1];
+            let d1 = dataL[s_idA][i];
+            if (d1 === undefined || d0 === undefined) {
+                return;
+            }
+            let dA = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+            i = bisectDate(dataL[s_idB], x0, 1);
+            d0 = dataL[s_idB][i - 1];
+            d1 = dataL[s_idB][i];
+            if (d1 === undefined || d0 === undefined) {
+                return;
+            }
+            dB = x0 - d0.time > d1.time - x0 ? d1 : d0;
 
             tooltip.select('text.top').text( ff.toFormat('LLL dd, h:mm a') )
 
@@ -1203,34 +1215,10 @@ document.addEventListener("DOMContentLoaded", function() {
         loadData();
     });
 
-    function addWeatherData(){
+    async function addWeatherData(){
 
-        now = DateTime.now();
-        startDate = now.minus({minutes: startMinutes})//.toISODate();
-        
-        if(endMinutes){
-            endDate = now.minus({minutes: endMinutes})//.toISODate();
-        }else{
-            endDate = now;
-        }
 
-        weatherData = [];
-
-        try{
-            apiCall = 'https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&hourly=temperature_2m&start_date='+startDate.toISODate()+'&end_date='+endDate.toISODate();
-            response = d3.json(apiCall)
-
-            response.then(rr =>{
-                console.log(rr['hourly'])
-                rr['hourly'].time.forEach( (j,i) => { 
-                    weatherData.push({ 'time':j, temp_c:rr['hourly']['temperature_2m'][i] });
-                })
-
-                drawWeatherGraph();
-             })
-        }catch(e){
-            console.log(e)
-        }
+        let weatherData = [];
 
         drawWeatherGraph = function(){
 
@@ -1378,12 +1366,28 @@ document.addEventListener("DOMContentLoaded", function() {
              addTooltip(svg,weatherData,'weatherChart');
 
         }
+
+        try{
+            apiCall = 'https://api.open-meteo.com/v1/forecast?latitude=51.5085&longitude=-0.1257&hourly=temperature_2m&start_date='+startDate.toISODate()+'&end_date='+endDate.toISODate();
+            const rr = await d3.json(apiCall);
+
+            console.log(rr['hourly'])
+            rr['hourly'].time.forEach( (j,i) => { 
+                weatherData.push({ 'time':j, temp_c:rr['hourly']['temperature_2m'][i] });
+            })
+
+            drawWeatherGraph();
+        }catch(e){
+            console.log(e)
+        }
+
+
     }
 
     let seriesUrl = '/series/?showAll=true&showUnexpected=false';
 
     d3.json(seriesUrl).then(function (allSeries) {
-        console.log(allSeries)
+        console.log('allSeries', allSeries);
 
         if( paramMeasurement && paramSensorid){
             toKeep = paramMeasurement;
@@ -1393,15 +1397,24 @@ document.addEventListener("DOMContentLoaded", function() {
                     "humidity"
                  ];
         }
-
+        
+        // filter series to keep only toKeep measurements and to exlcude
+        // exclude sensors with IDs >= 56 and <= 9
+        // because those should NOT be temperature and humidity sensors
         allSeries = allSeries.filter(function (d) {
-            return (toKeep.includes(d.measurement) && d.sensor_id<56 && d.sensor_id>9)
+            return ( 
+                toKeep.includes(d.measurement) && 
+                d.sensor_id<56 && d.sensor_id>9
+                )
         });
+        // console.log('filtered allSeries', allSeries);
 
+        // remove duplicates
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];
-        console.log(allMeasurements);
+        // console.log('allMeasurements', allMeasurements);
         let allSensors = [...new Set(allSeries.map(d => d.sensor_id))];
 
+        // combine info from influx with info from the SQL database
         allSeries = allSeries.map(function (item) {
                 const id = `${item.measurement}_${item.sensor_id}`;
                 let name = item.measurement;
@@ -1421,7 +1434,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 };
             });
 
-        loadData = function () {
+        // remove duplicates - this seems to affect old 
+        // data that might have been split into multiple measurements
+        allSeries = allSeries.filter(function (item, index, self) {
+            // filter based on the id as defined above
+            // i.e., measurement and sensor_id
+            return index === self.findIndex((t) => (
+                t.id === item.id
+            ));
+        });
+        // console.log('filtered allSeries', allSeries);
+            
+        loadData = async function () {
             d3.select("div#container").selectAll('div.nodeContainer').remove();
 
             // sort by size
@@ -1440,12 +1464,20 @@ document.addEventListener("DOMContentLoaded", function() {
             });
 
             d3.select('#spinner').style('display','block')
+
             const promises = _series.map(m => loadMeasurementData(m));
-            Promise.all(promises).then( () => {
-                console.log('all loaded');
-                d3.selectAll('#spinner').style('display','none')
-                addWeatherData()
+            const responses = await Promise.all(promises);
+            console.log('all loaded');
+            const series_responses = _series.map(function (s, i) {
+                return [s, responses[i]];
             });
+            for(let sr of series_responses){
+                await drawGraphs(sr[1],sr[0].sensor_id,sr[0]);
+            }
+
+            await addWeatherData();
+            d3.selectAll('#spinner').style('display','none');
+
         };
 
         _series = allSeries.map( d => {return d;});
