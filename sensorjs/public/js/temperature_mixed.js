@@ -1217,6 +1217,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     async function addWeatherData(){
 
+        now = DateTime.now();
+        startDate = now.minus({minutes: startMinutes})//.toISODate();
+        
+        if(endMinutes){
+            endDate = now.minus({minutes: endMinutes})//.toISODate();
+        }else{
+            endDate = now;
+        }
 
         let weatherData = [];
 
