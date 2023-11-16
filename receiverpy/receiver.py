@@ -92,12 +92,12 @@ with Radio(
         # check if any of the frequencies changed in the DB
         new_sensor_sampling_periods = get_sampling_periods()
         if new_sensor_sampling_periods != sensor_sampling_periods:
-            print(new_sensor_sampling_periods)
+            # print(new_sensor_sampling_periods)
             sensor_sampling_periods = new_sensor_sampling_periods
         
         # then process the data and store it
         for packet in curr_packets:
-            print ('packet', packet)
+            # print ('packet', packet)
             time_received = packet.received
             # print(time_received)
             # print(dir(packet))
@@ -164,7 +164,7 @@ with Radio(
                     store_sensor(packet.sender)
                     new_sensor_sampling_periods = get_sampling_periods()
                     if new_sensor_sampling_periods != sensor_sampling_periods:
-                        print(new_sensor_sampling_periods)
+                        # print(new_sensor_sampling_periods)
                         sensor_sampling_periods = new_sensor_sampling_periods
                 except Exception as e:
                     print('exception from insert!', e)

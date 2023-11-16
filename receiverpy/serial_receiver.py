@@ -59,7 +59,7 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                     print('destination is not 1!')
                     print(line)
                     continue
-                print(sender, destination, data, rssi)
+                # print(sender, destination, data, rssi)
                 int_data = []
                 it = iter(data)
                 for c in it:
@@ -117,7 +117,7 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                         if new_sensor_sampling_periods != sensor_sampling_periods:
                             # TODO: this can be made more efficient by
                             # sending only the differences
-                            print(new_sensor_sampling_periods)
+                            # print(new_sensor_sampling_periods)
                             sensor_sampling_periods = new_sensor_sampling_periods
                             for sensor_id, sp in sensor_sampling_periods.items():
                                 # noise/ghost nodes can have IDs beyond 255, which make pack
@@ -143,7 +143,7 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                 data_points.append(current)
                 if len(data_points) > 0:
                     written = client.write_points(data_points)
-                    print(f'written: {written}')
+                    # print(f'written: {written}')
 
             # print()
 
