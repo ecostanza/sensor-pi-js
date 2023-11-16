@@ -1,5 +1,7 @@
 # coding:utf-8
 from struct import unpack
+import time
+import sqlite3
 
 datatype_LUT = {
     1: ('temperature', 'float'),
@@ -45,10 +47,7 @@ def decode_ushort(itr):
     buf = bytes((next(itr) for _ in range(2)))
     return unpack(ushort_fmt, buf)[0]
 
-import time
-import sqlite3
 con = sqlite3.connect("/home/pi/sensorjs/db.sqlite3")
-
 # pr.enable()
 
 def get_sampling_periods():
@@ -86,3 +85,37 @@ def get_expected_sensors():
 
     sensor_ids = [int(d[0]) for d in data]
     return sensor_ids
+
+annotation_header = [
+    # 'id', # INTEGER PRIMARY KEY AUTOINCREMENT,
+    'start', # INTEGER   NOT NULL,
+    'duration_seconds', # INTEGER   NOT NULL,
+    'type', # TEXT   NOT NULL,
+    'description', # TEXT,
+    'consumption', # REAL,
+    'flexibility', # TEXT,
+    'measurement', # TEXT   NOT NULL,
+    'sensor', # TEXT   NOT NULL,
+    'createdAt', # INTEGER   NOT NULL,
+    'updatedAt', # INTEGER   NOT NULL   
+]
+
+def get_annotations(recent):
+    cur = con.cursor()
+    timestamp = int((1 + time.mktime(recent.timetuple())) * 1000)
+
+    annotation_query_items = annotation_header[:-2] + [
+        "datetime(createdAt/1000, 'unixepoch')", # INTEGER   NOT NULL,
+        "datetime(updatedAt/1000, 'unixepoch')" # INTEGER   NOT NULL,
+    ]
+    q = f'SELECT {",".join(annotation_query_items)} FROM annotations WHERE updatedAt > {timestamp};'
+
+    # print(q)
+    res = cur.execute(q)
+    data = res.fetchall()
+    # print('select res.fetchall:', data)
+
+    annotations = [dict(zip(annotation_header, d)) for d in data]
+    
+    return annotations
+

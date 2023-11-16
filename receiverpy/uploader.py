@@ -27,12 +27,13 @@ import json
 from pathlib import Path
 from itertools import islice
 import re
+from datetime import datetime, timedelta
 
 from influxdb import InfluxDBClient
 
 import requests
 
-from utils import get_expected_sensors
+from utils import get_expected_sensors, get_annotations
 
 # pr = cProfile.Profile()
 
@@ -44,10 +45,13 @@ delay = 1.0
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
 
-url = 'https://iot.cs.ucl.ac.uk/energycoordination/data/'
+data_url = 'https://iot.cs.ucl.ac.uk/energycoordination/data/'
+annotations_url = 'https://iot.cs.ucl.ac.uk/energycoordination/batch_annotations/'
 headers = {"Content-Type": "application/json"}
 fname = 'uploader_latest.txt'
 f = Path(fname)
+annotations_fname = 'annotations_latest.txt'
+annotations_f = Path(annotations_fname)
 patt = re.compile('[\d]{4}-[\d]{2}-[\d]{2}T[\d]{2}:[\d]{2}:[\d]{2}\.[\d]+Z')
 
 while True:
@@ -72,13 +76,13 @@ while True:
     sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
     query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter} LIMIT 10'
     
-    print(query)
+    # print(query)
     rs = client.query(query)
     for ((measurement, _), iterator) in rs.items():
-        print(measurement)
+        # print(measurement)
         # iterator = rs.get_points()
         to_upload = list(islice(iterator, 10))
-        print('to_upload', to_upload)
+        # print('to_upload', to_upload)
         while len(to_upload) > 0:
             to_upload = [
                 {
@@ -93,14 +97,14 @@ while True:
                 }
                 for i in to_upload
             ]
-            print('data_points', to_upload)
+            # print('data_points', to_upload)
 
             # TODO: login on the server?
 
             try:
                 # put the data to the server
                 response = requests.put(
-                    url,
+                    data_url,
                     data=json.dumps(to_upload),
                     headers=headers
                 )
@@ -120,7 +124,49 @@ while True:
                 to_upload = list(islice(iterator, 10))
             except Exception as e:
                 print('exception:', e)
-                time.sleep(delay*10)        
+                time.sleep(delay*10)
+
+    latest_dt = datetime.now() - timedelta(days=1)
+    print('default latest_dt', latest_dt)
+    if annotations_f.is_file():
+        # get latest_ts from file
+        annotations_latest = open(annotations_fname,'r').read()
+        print('annotations_latest', annotations_latest)
+        m = patt.match(annotations_latest)
+        if m:
+            latest_dt = datetime.strptime(annotations_latest.strip(), '%Y-%m-%dT%H:%M:%S.%fZ')
+            print('latest_dt', latest_dt)
+        
+            
+    # retrieve recent annotations from the db
+    annotations = get_annotations(latest_dt)
+    
+    if len(annotations) > 0:
+        try:
+            # post the annotations to the server
+            annotations_json = json.dumps(annotations)
+            # print('annotations_json', annotations_json)
+            response = requests.post(
+                annotations_url,
+                data=annotations_json,
+                headers=headers
+            )
+            # print('response', response)
+            res = response.json()
+
+            if res['written'] == True:
+                annotations_latest = annotations[-1]['updatedAt']
+                print('annotations_latest', annotations_latest)
+                # convert unix timestamp in annotations_latest to datetime
+                annotations_latest_dt = datetime.strptime(annotations_latest, '%Y-%m-%d %H:%M:%S')
+                # print('annotations_latest_dt', annotations_latest_dt)
+                open(annotations_fname,'w').write(annotations_latest_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
+            
+        except Exception as e:
+            print('exception:', e)
+            time.sleep(delay*10)
+    else:
+        print('no new annotations')
 
     time.sleep(delay)
 
