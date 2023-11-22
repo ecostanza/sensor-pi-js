@@ -19,8 +19,15 @@
 # this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-# import sys
+import sys
 # import cProfile
+
+import logging
+
+if '-v' in sys.argv:
+    logging.basicConfig(level=logging.INFO)
+if '-vv' in sys.argv:
+    logging.basicConfig(level=logging.DEBUG)
 
 import time
 import json
@@ -54,37 +61,91 @@ annotations_fname = 'annotations_latest.txt'
 annotations_f = Path(annotations_fname)
 patt = re.compile('[\d]{4}-[\d]{2}-[\d]{2}T[\d]{2}:[\d]{2}:[\d]{2}\.[\d]+Z')
 
+def process_annotations():
+    latest_dt = datetime.now() - timedelta(days=1)
+    logging.debug(f'default latest_dt {latest_dt}')
+    if annotations_f.is_file():
+        # get latest_ts from file
+        annotations_latest = open(annotations_fname,'r').read()
+        logging.debug(f'annotations_latest {annotations_latest}')
+        m = patt.match(annotations_latest)
+        if m:
+            latest_dt = datetime.strptime(annotations_latest.strip(), '%Y-%m-%dT%H:%M:%S.%fZ')
+            logging.debug(f'latest_dt {latest_dt}')
+            
+    # retrieve recent annotations from the db
+    annotations = get_annotations(latest_dt)
+    
+    if len(annotations) > 0:
+        try:
+            # post the annotations to the server
+            annotations_json = json.dumps(annotations)
+            logging.debug(f'annotations_json: {annotations_json}')
+            response = requests.post(
+                annotations_url,
+                data=annotations_json,
+                headers=headers
+            )
+            logging.debug(f'response: {response}')
+            res = response.json()
+
+            if res['written'] == True:
+                annotations_latest = annotations[-1]['updatedAt']
+                logging.debug(f'annotations_latest: {annotations_latest}')
+                # convert unix timestamp in annotations_latest to datetime
+                annotations_latest_dt = datetime.strptime(annotations_latest, '%Y-%m-%d %H:%M:%S')
+                logging.debug(f'annotations_latest_dt: {annotations_latest_dt}')
+                open(annotations_fname,'w').write(annotations_latest_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
+            
+        except Exception as e:
+            logging.error(f'exception: {e}')
+            time.sleep(delay*10)
+    else:
+        logging.info('no new annotations')
+
 while True:
 # if True:
     
     time_filter = ''
     if f.is_file():
         # get latest_ts from file
-        # latest_ms = int(open(fname,'r').read())
-        # latest_ms = int(f.read_text())
-        # latest = f.read_text()
-        latest = open(fname,'r').read()
-        m = patt.match(latest)
-        if m:
-            # time_filter = f'WHERE time > {latest_ms}ms'
-            time_filter = f"AND time > '{latest}'"
-        else:
-            time_filter = ''
+        latest_str = open(fname,'r').read()
+        try:
+            # 2023-11-20T20:38:39.480245Z
+            latest_dt = datetime.strptime(latest_str.strip(), '%Y-%m-%dT%H:%M:%SZ') 
+            latest_dt = min(latest_dt, datetime.now())
+        except Exception as e:
+            logging.error(f'exception: {e}')
+            # TODO: get the oldest timestamp in the db
+            latest_dt = datetime.now() - timedelta(days=1)
+
+    query_minutes = 10
+    start_str = latest_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    end = min(latest_dt + timedelta(minutes=query_minutes), datetime.now())
+    end_str = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # time_filter = f'WHERE time > {latest_ms}ms'
+    time_filter = f"AND time > '{start_str}' AND time <= '{end}'"
 
     # query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
     sensor_ids = get_expected_sensors()
     sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
-    query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter} LIMIT 10'
+    upload_size = 50
+    query = f'SELECT * FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter}'
     
-    # print(query)
+    total_uploaded = 0
+
+    logging.info(query)
     rs = client.query(query)
     for ((measurement, _), iterator) in rs.items():
-        # print(measurement)
-        # iterator = rs.get_points()
-        to_upload = list(islice(iterator, 10))
-        # print('to_upload', to_upload)
+        logging.info(measurement)
+        
+        to_upload = list(islice(iterator, upload_size))
+        logging.debug(f'to_upload {to_upload}')
+        logging.info(f'{len(to_upload)} data points to upload')
+        total_uploaded += len(to_upload)
+
         while len(to_upload) > 0:
-            to_upload = [
+            formatted = [
                 {
                     'time': i['time'],
                     'measurement': measurement,
@@ -95,82 +156,54 @@ while True:
                         'value': i['value']
                     }
                 }
-                for i in to_upload
-            ]
-            # print('data_points', to_upload)
+                for i in to_upload if (
+                    'sensor_id' in i and 
+                    'value' in i and 
+                    'time' in i
+                    )
+                ]
 
-            # TODO: login on the server?
+            logging.info(f'uploading {len(formatted)} data points')
+            try:
+                logging.info(formatted[0])
+                logging.info(formatted[-1])
+            except Exception as e:
+                logging.info('no data?')
+
+            if len(formatted) == 0:
+                continue
 
             try:
                 # put the data to the server
                 response = requests.put(
                     data_url,
-                    data=json.dumps(to_upload),
+                    data=json.dumps(formatted),
                     headers=headers
                 )
-                # TODO: save the timestamp of the last data point uploaded
-                # print('response.text', response.text[:200])
-                # open('err.html', 'w').write(response.text)
+
                 res = response.json()
-                # print("res['written']", res['written'])
+                logging.info(f"res['written']: {res['written']}\n")
 
-                # if response.status_code == 200:
-                if res['written'] == True:
-                    latest = to_upload[-1]['time']
-                    m = patt.match(latest)
-                    if m:
-                        # latest = open(fname,'w').write(latest)
-                        open(fname,'w').write(latest)
-                to_upload = list(islice(iterator, 10))
+                # get the next slice of data points                
+                to_upload = list(islice(iterator, upload_size))
+
             except Exception as e:
-                print('exception:', e)
-                time.sleep(delay*10)
-
-    latest_dt = datetime.now() - timedelta(days=1)
-    print('default latest_dt', latest_dt)
-    if annotations_f.is_file():
-        # get latest_ts from file
-        annotations_latest = open(annotations_fname,'r').read()
-        print('annotations_latest', annotations_latest)
-        m = patt.match(annotations_latest)
-        if m:
-            latest_dt = datetime.strptime(annotations_latest.strip(), '%Y-%m-%dT%H:%M:%S.%fZ')
-            print('latest_dt', latest_dt)
-        
-            
-    # retrieve recent annotations from the db
-    annotations = get_annotations(latest_dt)
+                logging.info(f'exception: {e}')
+                time.sleep(delay*2)
     
-    if len(annotations) > 0:
-        try:
-            # post the annotations to the server
-            annotations_json = json.dumps(annotations)
-            # print('annotations_json', annotations_json)
-            response = requests.post(
-                annotations_url,
-                data=annotations_json,
-                headers=headers
-            )
-            # print('response', response)
-            res = response.json()
-
-            if res['written'] == True:
-                annotations_latest = annotations[-1]['updatedAt']
-                print('annotations_latest', annotations_latest)
-                # convert unix timestamp in annotations_latest to datetime
-                annotations_latest_dt = datetime.strptime(annotations_latest, '%Y-%m-%d %H:%M:%S')
-                # print('annotations_latest_dt', annotations_latest_dt)
-                open(annotations_fname,'w').write(annotations_latest_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
-            
-        except Exception as e:
-            print('exception:', e)
-            time.sleep(delay*10)
+    if total_uploaded > 4:
+        delay = 1
     else:
-        print('no new annotations')
+        delay = 15
+    logging.info(f'uploaded {total_uploaded} data points, delay: {delay} seconds')
 
+    open(fname,'w').write(end_str)
+    logging.info(f'start_str {start_str}')
+    logging.info(f'end_str {end_str}')
+
+    # deal with annotations
+    process_annotations()
     time.sleep(delay)
 
-    # print("awake\r", end='')
-    # sys.stdout.flush()
 
 

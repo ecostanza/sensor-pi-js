@@ -1,5 +1,15 @@
 # coding:utf-8
 
+import sys
+# import cProfile
+
+import logging
+
+if '-v' in sys.argv:
+    logging.basicConfig(level=logging.INFO)
+if '-vv' in sys.argv:
+    logging.basicConfig(level=logging.DEBUG)
+
 import re
 from datetime import datetime
 from struct import pack
@@ -38,16 +48,16 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                     curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)
                     ser.write(curr)
                 except Exception as e:
-                    print(f'exception from {repr(sensor_id)}, {repr(sp)}')
+                    logging.error(f'exception from {repr(sensor_id)}, {repr(sp)}')
         
         line = ser.readline()   # read a '\n' terminated line
         if len(line) > 0:
             line = line.decode('utf-8')
-            # print(line)
-            # print(repr(line[-1]))
+            # logging.info(line)
+            logging.debug(repr(line[-1]))
             if line[-1] != "\n":
-                print('Incomplete line: ', line)
-                print('Skipping')
+                logging.error(f'Incomplete line: {line}')
+                logging.error('Skipping')
                 continue
 
             m = patt.match(line)
@@ -56,20 +66,20 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                 sender, destination, data, rssi = m.groups()
                 rssi = int(rssi)
                 if destination != '1':
-                    print('destination is not 1!')
-                    print(line)
+                    logging.error('destination is not 1!')
+                    logging.error(line)
                     continue
-                # print(sender, destination, data, rssi)
+                logging.info(f'{sender} {destination} {data} {rssi}')
                 int_data = []
                 it = iter(data)
                 for c in it:
                     curr_hex = c + next(it)
                     value = int(curr_hex, base=16)
                     int_data.append(value)
-                    # print(curr_hex, value)
+                    # logging.info(curr_hex, value)
                 
                 data_points = []
-                # print(int_data)
+                # logging.info(int_data)
                 it = iter(int_data)
                 for item in it:
                     if item == 0:
@@ -77,7 +87,7 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                     
                     try:
                         label, data_type = datatype_LUT[item]
-                        # print(item, data_type, label)
+                        # logging.info(item, data_type, label)
 
                         if data_type == 'float':
                             value = decode_float(it)
@@ -100,10 +110,10 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
 
 
                     except KeyError:
-                        print('error! Data type not recognized')
+                        logging.error('error! Data type not recognized')
                         continue
                     except:
-                        print('decoding error!')
+                        logging.error('decoding error!')
                         continue
                 
                 sender = int(sender)
@@ -126,9 +136,9 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                                     curr = pack('<BHBBB', sensor_id, sp, 255, 255, 255)                                
                                     ser.write(curr)
                                 except Exception as e:
-                                    print(f'exception from {repr(sensor_id)}, {repr(sp)}')
+                                    logging.error(f'exception from {repr(sensor_id)}, {repr(sp)}')
                     except Exception as e:
-                        print('exception from insert!', e)
+                        logging.error(f'exception from insert! {e}')
 
                 current = {
                     'time': time_received,
