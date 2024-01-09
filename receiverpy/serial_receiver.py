@@ -1,5 +1,24 @@
 # coding:utf-8
 
+# This file is part of sensor-pi-js a simple platform to collect and visualize
+# sensor data using Raspberry Pi, wireless sensor nodes and Web technology.
+
+# Copyright (C) 2021 Enrico Costanza e.costanza@ucl.ac.uk
+
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+# more details.
+
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <http://www.gnu.org/licenses/>.
+
+
 import sys
 # import cProfile
 
@@ -19,7 +38,7 @@ from influxdb import InfluxDBClient
 
 from utils import decode_float, decode_ushort, get_sampling_periods, store_sensor, datatype_LUT
 
-print('Serial Receiver starting')
+logging.info('Serial Receiver starting')
 
 client = InfluxDBClient(host='localhost', port=8086)
 client.switch_database('sdstore')
@@ -27,7 +46,7 @@ client.switch_database('sdstore')
 patt = re.compile(r'\[(\d+)\] to \[(\d+)\] ([\dA-F]+)\s+\[RX_RSSI:\-(\d+)\]')
 
 sensor_sampling_periods = get_sampling_periods()
-print('initial:', sensor_sampling_periods)
+logging.info('initial:', sensor_sampling_periods)
 
 with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
 # with serial.Serial('/dev/serial0', 115200, timeout=.2) as ser:

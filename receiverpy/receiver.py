@@ -22,6 +22,16 @@
 # import sys
 # import cProfile
 
+import sys
+# import cProfile
+
+import logging
+
+if '-v' in sys.argv:
+    logging.basicConfig(level=logging.INFO)
+if '-vv' in sys.argv:
+    logging.basicConfig(level=logging.DEBUG)
+
 import time
 
 from influxdb import InfluxDBClient
@@ -45,7 +55,7 @@ network_id = 100
 
          
 
-print('setting radio up')
+logging.info('setting radio up')
 # for radio modules directly connected to the RPi the parameters should be:
 # interruptPin=24, 
 # resetPin=5, 
@@ -63,13 +73,13 @@ with Radio(
         resetPin=25, # was 22
         spiDevice=1
     ) as radio:
-    print ("Radio up. Starting loop...")
+    logging.info("Radio up. Starting loop...")
     
     rx_counter = 0
     tx_counter = 0
 
     sensor_sampling_periods = get_sampling_periods()
-    print('initial:', sensor_sampling_periods)
+    logging.info(f'initial: {sensor_sampling_periods}')
 
     while True:
     # for _ in range(10):
@@ -87,26 +97,25 @@ with Radio(
                 sampling_period = 0
             # radio.send_ack(packet.sender, pack('<H', sampling_period).decode("utf-8"))
             radio.send_ack(packet.sender, pack('<bH', 24, sampling_period).decode("utf-8"))
-            # print(f'sent ack to {packet.sender}')
+            logging.info(f'sent ack to {packet.sender}')
 
         # check if any of the frequencies changed in the DB
         new_sensor_sampling_periods = get_sampling_periods()
         if new_sensor_sampling_periods != sensor_sampling_periods:
-            # print(new_sensor_sampling_periods)
+            logging.debug(new_sensor_sampling_periods)
             sensor_sampling_periods = new_sensor_sampling_periods
         
         # then process the data and store it
         for packet in curr_packets:
-            # print ('packet', packet)
+            logging.info(f'packet {packet}')
             time_received = packet.received
-            # print(time_received)
-            # print(dir(packet))
-            #print ('data', packet.data_string)
+            logging.info(time_received)
+            logging.debug(f'data {packet.data_string}')
             # decode data buffer
             # types 1, 2 and 3 are floats, 4-15 are uint16 (aka unsigned short)
             itr = iter(packet.data)
             for item in itr:
-                #print(item)
+                logging.info(item)
                 if item == 0:
                     # TODO: break instead?
                     continue
@@ -134,14 +143,14 @@ with Radio(
                     }
                     data_points.append(current)
                 except KeyError:
-                    print('error! Data type not recognized')
+                    logging.info('error! Data type not recognized')
                     continue
                     # raise NotImplementedError(f'item:{item}')
                 except StopIteration as sie:
-                    print('StopIteration error!', sie)
+                    logging.info(f'StopIteration error! {sie}')
                     continue
                 except Exception as e:
-                    print('error!', e)
+                    logging.info(f'error! {e}')
                     continue
             # store RSSI
             current = {
@@ -167,12 +176,12 @@ with Radio(
                         # print(new_sensor_sampling_periods)
                         sensor_sampling_periods = new_sensor_sampling_periods
                 except Exception as e:
-                    print('exception from insert!', e)
+                    logging.error(f'exception from insert! {e}')
 
 
         if len(data_points) > 0:
             written = client.write_points(data_points)
-            # print(f'written: {written}')
+            logging.info(f'written: {written}')
 
         #print("Listening...", len(radio.packets), radio.mode_name)
         # print('sleep..', end='')      
