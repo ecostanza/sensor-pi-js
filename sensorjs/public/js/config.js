@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const now = luxon.DateTime.now();
         const today = new luxon.DateTime(now.year, now.month, now.day);
         tomorrow = today.plus({days:1})
-        const start = today.minus({weeks: 5});
+        const start = today.minus({weeks: 10});
         const total_days = luxon.Interval.fromDateTimes(start, today).length('days');
         let all_data = [];
 
