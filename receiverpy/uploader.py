@@ -117,7 +117,10 @@ while True:
         except Exception as e:
             logging.error(f'exception: {e}')
             # TODO: get the oldest timestamp in the db
-            latest_dt = datetime.now() - timedelta(days=1)
+            latest_dt = datetime.now() - timedelta(hours=1)
+    else:
+        # TODO: get the oldest timestamp in the db
+        latest_dt = datetime.now() - timedelta(hours=1)
 
     query_minutes = 10
     start_str = latest_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
