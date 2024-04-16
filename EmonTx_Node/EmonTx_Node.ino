@@ -191,17 +191,20 @@ void loop() {
     sum += sq_value;
   }
   double Irms = I_ratio * sqrt(sum / N_SAMPLES);
-  #ifdef DEBUG
-  double power = Irms * 230;
-  #endif
-  readings_sum += Irms;
-  //readings_sum += power;
+  // #ifdef DEBUG
+  double power = Irms * 0.230;
+  // #endif
+  // readings_sum += Irms;
+  readings_sum += power;
   curr_readings++;
 
   if (curr_readings == n_readings) {
     double avg = readings_sum / n_readings;
     DEBUG_PRINT(avg); DEBUG_PRINT("\t");
     DEBUG_PRINTLN();
+
+    // correction: = 1.3289 *  - 0.0526
+    double corrected = 1.3289 * avg - 0.0526;
     readings_sum = 0;
     curr_readings = 0;
 
