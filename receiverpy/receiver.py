@@ -43,6 +43,7 @@ from struct import pack
 
 import requests
 
+logging.info('SPI Receiver starting')
 # pr = cProfile.Profile()
 
 client = InfluxDBClient(host='localhost', port=8086)
@@ -94,10 +95,17 @@ with Radio(
             try:
                 sampling_period = sensor_sampling_periods[packet.sender]
             except KeyError:
-                sampling_period = 0
+                sampling_period = 30
             # radio.send_ack(packet.sender, pack('<H', sampling_period).decode("utf-8"))
             radio.send_ack(packet.sender, pack('<bH', 24, sampling_period).decode("utf-8"))
             logging.info(f'sent ack to {packet.sender}')
+        else:
+            # the acknowledgements are expected within 200ms, so
+            # we sleep no more than 100ms
+            delay = 0.1
+            # delay = 0.2
+            # delay = 0.02
+            time.sleep(delay)
 
         # check if any of the frequencies changed in the DB
         new_sensor_sampling_periods = get_sampling_periods()
@@ -109,13 +117,13 @@ with Radio(
         for packet in curr_packets:
             logging.info(f'packet {packet}')
             time_received = packet.received
-            logging.info(time_received)
-            logging.debug(f'data {packet.data_string}')
+            # logging.info(time_received)
+            # logging.debug(f'data {packet.data_string}')
             # decode data buffer
             # types 1, 2 and 3 are floats, 4-15 are uint16 (aka unsigned short)
             itr = iter(packet.data)
             for item in itr:
-                logging.info(item)
+                # logging.info(item)
                 if item == 0:
                     # TODO: break instead?
                     continue
@@ -164,6 +172,7 @@ with Radio(
                 }
             }
             data_points.append(current)
+            logging.debug(current)
 
             # check if this sensor is already in the db
             # if not packet.sender in existing_sensors:
@@ -187,10 +196,6 @@ with Radio(
         # print('sleep..', end='')      
         # sys.stdout.flush()
 
-        delay = 0.5
-        # delay = 0.2
-        # delay = 0.02
-        time.sleep(delay)
 
         # print("awake\r", end='')
         # sys.stdout.flush()
