@@ -104,7 +104,8 @@ uint16_t sampling_periods[MAX_NODES] = {0};
 void setup(void) {
 //  #ifdef DEBUG
 //  Serial.begin(115200);
-  Serial.begin(38400);
+  Serial.begin(19200);
+//  Serial.begin(38400);
   while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
 //  #endif
   
