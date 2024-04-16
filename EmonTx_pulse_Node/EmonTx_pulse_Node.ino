@@ -10,9 +10,9 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-#include <Adafruit_SleepyDog.h> // https://github.com/adafruit/Adafruit_SleepyDog
+//#include <Adafruit_SleepyDog.h> // https://github.com/adafruit/Adafruit_SleepyDog
 
-#define DEBUG 1
+//#define DEBUG 1
 //#define NO_SLEEP 1
 // based on https://forum.arduino.cc/t/serial-debug-macro/64259/3
 #ifdef DEBUG
@@ -26,7 +26,7 @@
 
 // Radio node and network config
 //#define NODEID        101    // The ID of this node (must be different for every node on network)
-#define NODEID        118    // The ID of this node (must be different for every node on network)
+#define NODEID        114    // The ID of this node (must be different for every node on network)
 #define NETWORKID     100  // The network ID
 
 //#define EMON_TX 1
@@ -92,26 +92,26 @@ RFM69 radio(RF69_SPI_CS, RF69_IRQ_PIN, false, RF69_IRQ_NUM);
 #define SUPPLY_VOLTAGE 3300
 // TODO: check burden resistor value 
 //#define ICAL 90.9 // (2000 turns / 22 Ohm burden) = 90.9
-#define ICAL 90.9 * 1.125 // (2000 turns / 22 Ohm burden) = 90.9
+//#define ICAL 90.9 * 1.125 // (2000 turns / 22 Ohm burden) = 90.9
 //#define ICAL 109.29 // (2000 turns / 18.3 Ohm burden) = 109.29
 //#define ICAL 109.29 * 1.125 // (2000 turns / 18.3 Ohm burden) = 109.29
 
-#define N_SAMPLES 1662 // 1662 samples take 300 mS, which equates to 15 cycles @ 50 Hz
-const double I_ratio = ICAL * ((SUPPLY_VOLTAGE / 1000.0) / ADC_COUNTS);
+//#define N_SAMPLES 1662 // 1662 samples take 300 mS, which equates to 15 cycles @ 50 Hz
+//const double I_ratio = ICAL * ((SUPPLY_VOLTAGE / 1000.0) / ADC_COUNTS);
 
-double offsetValue;
-unsigned int value;
-double filteredValue;
-double sq_value;
-double sum;
-double readings_sum;
-unsigned int curr_readings = 0;
-unsigned int n_readings = 1;
-#define READING_PERIOD 3000
+//double offsetValue;
+//unsigned int value;
+//double filteredValue;
+//double sq_value;
+//double sum;
+//double readings_sum;
+//unsigned int curr_readings = 0;
+//unsigned int n_readings = 1;
+//#define READING_PERIOD 3000
 // frequency = N_READINGS * READING_PERIOD 
 //#define READING_PERIOD 60000
 
-uint16_t sampling_period = 3;
+uint16_t sampling_period = 5;
 
 unsigned long start;
 
@@ -124,8 +124,12 @@ void blink() {
   pinMode(LED, INPUT);
 }
 
-// digital pin 2 has a pushbutton attached to it. Give it a name:
+#ifdef EMON_TX 
+#define PULSE_PIN 3
+#else
 #define PULSE_PIN 1
+#endif
+
 volatile unsigned long pulse_count = 0;
 volatile unsigned long pulse_time = 0;
 const byte min_pulsewidth= 110;
@@ -141,14 +145,6 @@ void onPulse()
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-//  // On-board emonTx LED
-//  pinMode(LED, OUTPUT);
-//  // blink once
-//  digitalWrite(LED, HIGH);
-//  delay(500);
-//  digitalWrite(LED, LOW);
-//  pinMode(LED, INPUT);
-
   blink();
 
   power_twi_disable();
@@ -157,11 +153,10 @@ void setup() {
 
   // initialize digital pin LED_BUILTIN as an output.
   
-  #ifdef DEBUG
+  #ifdef DEBUG  
   Serial.begin(115200);
   while (!Serial) delay(10);     // will pause Zero, Leonardo, etc until serial console opens
   #endif
-
   DEBUG_PRINTLN("hello EmonTx!");
 
   //pinMode(ADC_PIN, INPUT);
@@ -255,11 +250,11 @@ void send_data(const double &electricity_consumption, const uint16_t &battery, u
     if(radio.DATA[0] == 24) {
       memcpy((byte *) sampling_period_ptr, radio.DATA + 1, 2);
       DEBUG_PRINT("s.p.: "); DEBUG_PRINTLN(*sampling_period_ptr);
-      n_readings = (int) (*sampling_period_ptr * 1000 / READING_PERIOD);
-      if (n_readings < 1) {
-        n_readings = 1;
-      }
-      DEBUG_PRINT("n_readings: "); DEBUG_PRINTLN(n_readings);
+      //n_readings = (int) (*sampling_period_ptr * 1000 / READING_PERIOD);
+      //if (n_readings < 1) {
+      //  n_readings = 1;
+      //}
+      //DEBUG_PRINT("n_readings: "); DEBUG_PRINTLN(n_readings);
     } else {
       DEBUG_PRINT("data[0]: "); DEBUG_PRINTLN(radio.DATA[0]);
     }
@@ -284,11 +279,20 @@ void loop() {
 
   DEBUG_PRINT("pulse_out:\t");
   DEBUG_PRINTLN(pulse_out);
+
+  //double I_rms = ((double) pulse_out) / 0.23;
+  // double P_kW = ((double) pulse_out) / 1000;
+  // double P_kW = ((double) pulse_out) / (1000 * sampling_period / 3600));
+  double P_kW = ((double) pulse_out) / (((double)sampling_period) / 3.6);
+
+  //DEBUG_PRINT("I_rms:\t");
+  //DEBUG_PRINTLN(I_rms);
   
   uint16_t battery = int(analogRead(VBATPIN));
 
-  send_data(pulse_out, battery, &sampling_period);
-
+  //send_data(I_rms, battery, &sampling_period);
+  send_data((double) P_kW, battery, &sampling_period);
+  
   unsigned long delta = millis() - start;
   DEBUG_PRINTLN(delta);
 
@@ -302,7 +306,7 @@ void loop() {
 
   //int toSleep = READING_PERIOD - delta;
   //int slept = 0;
-  while ((millis() - start) < READING_PERIOD) {
+  while ((millis() - start) < (sampling_period * 1000)) {
     //delay(READING_PERIOD - delta);
     #ifdef NO_SLEEP 
     delay(200);
