@@ -24,17 +24,32 @@ import sys
 
 import logging
 
+# logger = logging.getLogger('some_name')
+# logger.setLevel(logging.DEBUG)
+
+# handler = logging.StreamHandler(sys.stdout)
+# handler.setLevel(logging.ERROR)
+
+# if '-v' in sys.argv:
+#     #logger.basicConfig(level=logger.INFO)
+#     handler.setLevel(logging.INFO)
+# if '-vv' in sys.argv:
+#     #logger.basicConfig(level=logger.DEBUG)
+#     handler.setLevel(logging.DEBUG)
+
+# logger.addHandler(handler)
 if '-v' in sys.argv:
     logging.basicConfig(level=logging.INFO)
 if '-vv' in sys.argv:
     logging.basicConfig(level=logging.DEBUG)
+
 
 import time
 import json
 from pathlib import Path
 from itertools import islice
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from influxdb import InfluxDBClient
 
@@ -62,16 +77,17 @@ annotations_f = Path(annotations_fname)
 patt = re.compile('[\d]{4}-[\d]{2}-[\d]{2}T[\d]{2}:[\d]{2}:[\d]{2}\.[\d]+Z')
 
 def process_annotations():
-    latest_dt = datetime.now() - timedelta(days=1)
-    logging.debug(f'default latest_dt {latest_dt}')
+    now = datetime.now(tz=timezone.utc)
+    latest_dt = now - timedelta(days=1)
+    logging.debug(f'process_annotations: default latest_dt {latest_dt}')
     if annotations_f.is_file():
         # get latest_ts from file
         annotations_latest = open(annotations_fname,'r').read()
-        logging.debug(f'annotations_latest {annotations_latest}')
+        logging.debug(f'process_annotations: annotations_latest {annotations_latest}')
         m = patt.match(annotations_latest)
         if m:
-            latest_dt = datetime.strptime(annotations_latest.strip(), '%Y-%m-%dT%H:%M:%S.%fZ')
-            logging.debug(f'latest_dt {latest_dt}')
+            latest_dt = datetime.strptime(annotations_latest.strip(), '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
+            logging.debug(f'process_annotations: latest_dt {latest_dt}')
             
     # retrieve recent annotations from the db
     annotations = get_annotations(latest_dt)
@@ -80,31 +96,53 @@ def process_annotations():
         try:
             # post the annotations to the server
             annotations_json = json.dumps(annotations)
-            logging.debug(f'annotations_json: {annotations_json}')
+            logging.debug(f'process_annotations: annotations_json: {annotations_json}')
             response = requests.post(
                 annotations_url,
                 data=annotations_json,
                 headers=headers
             )
-            logging.debug(f'response: {response}')
+            logging.debug(f'process_annotations: response: {response}')
             res = response.json()
 
             if res['written'] == True:
                 annotations_latest = annotations[-1]['updatedAt']
-                logging.debug(f'annotations_latest: {annotations_latest}')
+                logging.debug(f'process_annotations: annotations_latest: {annotations_latest}')
                 # convert unix timestamp in annotations_latest to datetime
-                annotations_latest_dt = datetime.strptime(annotations_latest, '%Y-%m-%d %H:%M:%S')
-                logging.debug(f'annotations_latest_dt: {annotations_latest_dt}')
+                annotations_latest_dt = datetime.strptime(annotations_latest, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+                logging.debug(f'process_annotations: annotations_latest_dt: {annotations_latest_dt}')
                 open(annotations_fname,'w').write(annotations_latest_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
             
         except Exception as e:
             logging.error(f'exception: {e}')
             time.sleep(delay*10)
     else:
-        logging.info('no new annotations')
+        logging.info('process_annotations: no new annotations')
+
+# TODO: check why start increments even if there are no new datapoints
+# does it have to do with timezone?
+
+def get_first_timestamp():
+    sensor_ids = get_expected_sensors()
+    sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
+    first_query = f'SELECT FIRST(*) FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter}'
+    rs = client.query(first_query)
+    all_points = []
+    for ((measurement, _), iterator) in rs.items():
+        curr = list(iterator)
+        all_points += curr
+    # all_points.sort(key=lambda x: x['time'])
+    all_timestamps = [
+        datetime.strptime(x['time'], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc) 
+        for x in all_points
+        ]
+    logging.info(f'all_timestamps: {all_timestamps}')
+    return min(all_timestamps)
 
 while True:
 # if True:
+    # get the current time in UTC timezone
+    now_utc = datetime.now(timezone.utc)# - timedelta(minutes=1)
     
     time_filter = ''
     if f.is_file():
@@ -112,22 +150,29 @@ while True:
         latest_str = open(fname,'r').read()
         try:
             # 2023-11-20T20:38:39.480245Z
-            latest_dt = datetime.strptime(latest_str.strip(), '%Y-%m-%dT%H:%M:%SZ') 
-            latest_dt = min(latest_dt, datetime.now())
+            latest_dt = datetime.strptime(latest_str.strip(), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc) 
+            
+            # now = datetime.now()# - timedelta(minutes=1)
+            logging.info(f'latest_dt: {latest_dt}, now_utc: {now_utc}')
+            latest_dt = min(latest_dt, now_utc)
         except Exception as e:
             logging.error(f'exception: {e}')
             # TODO: get the oldest timestamp in the db
-            latest_dt = datetime.now() - timedelta(hours=1)
+            latest_dt = now_utc - timedelta(days=1)
+            latest_dt = max(latest_dt, get_first_timestamp())
     else:
-        # TODO: get the oldest timestamp in the db
-        latest_dt = datetime.now() - timedelta(hours=1)
+        logging.info('no file?')
+        latest_dt = now_utc - timedelta(days=1)
+        latest_dt = max(latest_dt, get_first_timestamp())
+    logging.info(f'latest_dt: {latest_dt}')
 
     query_minutes = 10
     start_str = latest_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-    end = min(latest_dt + timedelta(minutes=query_minutes), datetime.now())
+    now = datetime.now(tz=timezone.utc)
+    end = min(latest_dt + timedelta(minutes=query_minutes), now)
     end_str = end.strftime('%Y-%m-%dT%H:%M:%SZ')
     # time_filter = f'WHERE time > {latest_ms}ms'
-    time_filter = f"AND time > '{start_str}' AND time <= '{end}'"
+    time_filter = f"AND time > '{start_str}' AND time <= '{end_str}'"
 
     # query = f'SELECT * FROM "electricity_consumption" {time_filter}' 
     sensor_ids = get_expected_sensors()
@@ -137,15 +182,16 @@ while True:
     
     total_uploaded = 0
 
-    logging.info(query)
+    logging.debug(f'query: {query}')
     rs = client.query(query)
+    logging.info(f'rs.items(): {rs.items()}')
     for ((measurement, _), iterator) in rs.items():
-        logging.info(measurement)
+        logging.info(f'measurement: {measurement}')
         
+        measurement_uploaded = 0
+
         to_upload = list(islice(iterator, upload_size))
         logging.debug(f'to_upload {to_upload}')
-        logging.info(f'{len(to_upload)} data points to upload')
-        total_uploaded += len(to_upload)
 
         while len(to_upload) > 0:
             formatted = [
@@ -166,12 +212,12 @@ while True:
                     )
                 ]
 
-            logging.info(f'uploading {len(formatted)} data points')
-            try:
-                logging.info(formatted[0])
-                logging.info(formatted[-1])
-            except Exception as e:
-                logging.info('no data?')
+            # logging.info(f'uploading {len(formatted)} data points')
+            # try:
+            #     logging.info(formatted[0])
+            #     logging.info(formatted[-1])
+            # except Exception as e:
+            #     logging.info('no data?')
 
             if len(formatted) == 0:
                 continue
@@ -185,7 +231,10 @@ while True:
                 )
 
                 res = response.json()
-                logging.info(f"res['written']: {res['written']}\n")
+                # logging.info(f"res['written']: {res['written']}\tresponse.status_code: {response.status_code}")
+                response.raise_for_status()
+
+                measurement_uploaded += len(formatted)
 
                 # get the next slice of data points                
                 to_upload = list(islice(iterator, upload_size))
@@ -193,6 +242,12 @@ while True:
             except Exception as e:
                 logging.info(f'exception: {e}')
                 time.sleep(delay*2)
+                end = latest_dt
+                end_str = end.strftime('%Y-%m-%dT%H:%M:%SZ')
+                continue
+
+        logging.info(f'{total_uploaded} total data points uploaded for {measurement}')
+        total_uploaded += measurement_uploaded
     
     if total_uploaded > 4:
         delay = 1
@@ -201,11 +256,11 @@ while True:
     logging.info(f'uploaded {total_uploaded} data points, delay: {delay} seconds')
 
     open(fname,'w').write(end_str)
-    logging.info(f'start_str {start_str}')
-    logging.info(f'end_str {end_str}')
+    msg = f'start_str {start_str}, end_str {end_str}'
+    logging.info(msg)
 
     # deal with annotations
-    process_annotations()
+    # process_annotations()
     time.sleep(delay)
 
 
