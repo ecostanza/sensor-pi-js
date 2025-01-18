@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let SHIFT_BY =  8// 4 // // ; // 30min CHECK
     let WINDOW = 12// 8 //  //  // 30min CHECK
     let FLAG = false;
-    let SCALING_FACTOR = 0.23;
+    let SCALING_FACTOR = 1; //0.23;
 
     let timeOfInactivity = 60000;
     let sunrise, sunset, solarData;
@@ -1057,7 +1057,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // "&& d.sensor_id==100;" >> temporary FIX!!
         allSeries = allSeries.filter(function (d) {
-            return toKeep.includes(d.measurement) // && (d.sensor_id <=96 && d.sensor_id >= 96);//d.sensor_id==2;
+            //return toKeep.includes(d.measurement) // && (d.sensor_id <=96 && d.sensor_id >= 96);//d.sensor_id==2;
+            return toKeep.includes(d.measurement) && (d.sensor_id !=99 && d.sensor_id != 118);
         });
 
         let allMeasurements = [...new Set(allSeries.map(d => d.measurement))];

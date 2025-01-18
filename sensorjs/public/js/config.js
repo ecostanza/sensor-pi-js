@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .html('Save')
             .attr('id', d =>{ return 'submit'+d[0] } )
             .attr('type','submit')
-            .attr('class','btn btn-secondary btn-sm disabled')
+            .attr('class','btn btn-sm disabled')
             .on('click', async function(e,d) {
                 ret = '';
                 sensorLabels.forEach( l => {
@@ -513,7 +513,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }); 
 
-                if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
+                // if( (luxon.DateTime.now()).diff(latest,"seconds").as('seconds') > 2*smp ){
+                if( d[1][0].age.length('seconds') > 2*smp ) {
                     return 'offline '
                 }else {
                     return ret;
