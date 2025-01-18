@@ -125,7 +125,7 @@ def process_annotations():
 def get_first_timestamp():
     sensor_ids = get_expected_sensors()
     sensor_id_regex = '|'.join([str(i) for i in sensor_ids])
-    first_query = f'SELECT FIRST(*) FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/ {time_filter}'
+    first_query = f'SELECT FIRST(*) FROM /.*/ WHERE "sensor_id" =~ /{sensor_id_regex}/'
     rs = client.query(first_query)
     all_points = []
     for ((measurement, _), iterator) in rs.items():
@@ -139,12 +139,7 @@ def get_first_timestamp():
     logging.info(f'all_timestamps: {all_timestamps}')
     return min(all_timestamps)
 
-while True:
-# if True:
-    # get the current time in UTC timezone
-    now_utc = datetime.now(timezone.utc)# - timedelta(minutes=1)
-    
-    time_filter = ''
+def get_last_uploaded_timestamp(now_utc):
     if f.is_file():
         # get latest_ts from file
         latest_str = open(fname,'r').read()
@@ -164,12 +159,22 @@ while True:
         logging.info('no file?')
         latest_dt = now_utc - timedelta(days=1)
         latest_dt = max(latest_dt, get_first_timestamp())
+    return latest_dt
+
+while True:
+# if True:
+    # get the current time in UTC timezone
+    now_utc = datetime.now(timezone.utc) # - timedelta(minutes=1)
+    
+    # time_filter = ''
+    latest_dt = get_last_uploaded_timestamp(now_utc)
     logging.info(f'latest_dt: {latest_dt}')
+
 
     query_minutes = 10
     start_str = latest_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-    now = datetime.now(tz=timezone.utc)
-    end = min(latest_dt + timedelta(minutes=query_minutes), now)
+    # now = datetime.now(tz=timezone.utc)
+    end = min(latest_dt + timedelta(minutes=query_minutes), now_utc)
     end_str = end.strftime('%Y-%m-%dT%H:%M:%SZ')
     # time_filter = f'WHERE time > {latest_ms}ms'
     time_filter = f"AND time > '{start_str}' AND time <= '{end_str}'"
@@ -182,8 +187,11 @@ while True:
     
     total_uploaded = 0
 
-    logging.debug(f'query: {query}')
+    logging.info(f'query: {query}')
     rs = client.query(query)
+
+    # TODO: while no data points are returned and latest_dt is not now, keep querying
+
     logging.info(f'rs.items(): {rs.items()}')
     for ((measurement, _), iterator) in rs.items():
         logging.info(f'measurement: {measurement}')
@@ -253,6 +261,11 @@ while True:
         delay = 1
     else:
         delay = 15
+    
+    # no delay if the end of the interval is not now, i.e. there might be old data to be uploaded
+    if end != now_utc and total_uploaded == 0:
+        delay = 0
+
     logging.info(f'uploaded {total_uploaded} data points, delay: {delay} seconds')
 
     open(fname,'w').write(end_str)
