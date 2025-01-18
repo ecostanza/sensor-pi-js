@@ -115,6 +115,8 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                         else:
                             raise NotImplementedError
 
+                        logging.debug(f'[{sender}] {label}: {value}')
+
                         current = {
                             'time': time_received,
                             'measurement': label,
@@ -173,6 +175,7 @@ with serial.Serial('/dev/serial0', 19200, timeout=.2) as ser:
                 if len(data_points) > 0:
                     written = client.write_points(data_points)
                     # print(f'written: {written}')
+                    logging.debug(f'data_points: {data_points}')
 
             # print()
 
