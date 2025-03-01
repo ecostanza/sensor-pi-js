@@ -56,7 +56,6 @@ to create the table to store the annotations run:
 node create_annotations_table.js
 ```
 
-
 ## Upgrading Node.js on RPi (PLEASE IGNORE!)
 
 Install NVM:
@@ -93,3 +92,45 @@ Reboot the RPi
 npx prisma generate
 npx prisma db push
 ```
+
+# Firmware
+
+## rfm69pi
+
+The (https://github.com/openenergymonitor/RFM2Pi/blob/master/docs/rfm69pi_v3.md)[RFM69Pi] is a 
+board that gets attached to the GPIO pins of the raspberry pi, and it contains an RFM69 radio
+and an ATmega328p AVR microcontroller to manage the radio and interface with the RPi via 
+the GPIO serial port.
+
+The firmware on these boards needs to be replaced, and it is in the rfm69pi folder. 
+While the default firmware on these boards uses the "JeeLib" wireless comm library, 
+this project uses the LowPowerLab library. 
+
+To flash the firmware onto the board:
+
+enable the serial port on the raspberry pi using `sudo raspi-config`
+
+install avrdude and minicom:
+sudo apt install avrdude
+sudo apt install minicom
+
+get avrdude-autoreset from:
+https://github.com/SpellFoundry/avrdude-rpi
+
+and install it following the instructions
+
+then change autoreset to use 
+`pin = 7 # for the rfm69pi`
+
+the use like:
+
+`sudo avrdude -P /dev/serial0 -b 38400 -p m328p -c arduino -v -U flash:w:rfm69pi.ino.standard.hex`
+
+change the sleep duration to 0.12 or 0.24
+
+<!-- 
+TODO: 
+- services to be up: serial_receiver_py.service, uploader_py.service, sensorjs.service
+- rename receiver_py.service to spi_receiver_py.service and receiver.py to spi_receiver.py
+
+ -->
