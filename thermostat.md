@@ -44,3 +44,7 @@ The boost functionality is yet to be added.
 The UI currently only allows to select one of the available day profiles. The 
 configuration of day profiles is currently hard coded in 
 `populate_thermostat_tables.js`.  
+
+The temperature control is done in `control_thermostat.py` which needs to be 
+setup as a systemd service (similar to `receiver.py` and `uploader.py`).
+
