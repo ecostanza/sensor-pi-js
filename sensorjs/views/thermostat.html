@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- local imports -->
+    <link rel="stylesheet" type="text/css" href="/static/css/annotate.css">
+
+    <title>Thermostat Settings</title>
+  </head>
+  <body >
+<!-- <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <select class="form-select " id="measurementSelect" aria-label="Select measurement">
+          <option selected>Any Measurement</option>
+      </select>
+
+      <select class="form-select " id="sensorSelect" aria-label="Select sensor">
+          <option selected>Any Sensor</option>
+      </select>
+    </div>
+    </nav> -->
+    <div class="spinner-border align-middle" id="spinner" role="status" style="width: 20px;height:20px;position: absolute;left: 50%;top: 50%;display: none;">        
+      <span class="visually-hidden">Loading...</span>
+    </div>
+      <nav id="navigation">
+      <div id="infoBox"></div>
+      </nav>
+
+    <div class="container">
+
+      <div id="container"  class="row" style="text-align: center;">
+
+        <div id="day_profile_group" class="btn-group-vertical" role="group" aria-label="Basic radio toggle button group">
+            <!--
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio11" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="btnradio11">Radio 1</label>
+
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio12" autocomplete="off">
+            <label class="btn btn-outline-primary" for="btnradio12">Radio 2</label>
+
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio13" autocomplete="off">
+            <label class="btn btn-outline-primary" for="btnradio13">Radio 3</label>
+            -->
+        </div>    
+
+      </div>
+
+      <div id="containerBoxes">
+        <svg>
+          <marker xmlns="http://www.w3.org/2000/svg" fill="black" id="triangle" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
+            <circle r="2"/>
+          </marker>
+          <marker xmlns="http://www.w3.org/2000/svg" fill="black" id="triangle2" viewBox="0 0 10 10" refX="0" refY="5" markerUnits="strokeWidth" markerWidth="4" markerHeight="3" orient="auto">
+            <circle r="2"/>
+          </marker>
+          <defs>
+            <linearGradient id="Gradient1" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#EF9F16" stop-opacity="0.2"/>
+              <stop offset="40%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="50%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="75%" stop-color="#EF9F16" stop-opacity="1" />
+              <stop offset="100%" stop-color="#EF9F16" stop-opacity="0.2" />
+            </linearGradient>
+            <linearGradient id="Gradient2" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="cadetblue" stop-opacity="0.2"/>
+              <stop offset="25%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="50%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="75%" stop-color="cadetblue" stop-opacity="1" />
+              <stop offset="100%" stop-color="cadetblue" stop-opacity="0.2" />
+            </linearGradient>
+            <linearGradient id="Gradient3" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="green" stop-opacity="0.2"/>
+              <stop offset="40%" stop-color="green" stop-opacity="1" />
+              <stop offset="50%" stop-color="green" stop-opacity="1" />
+              <stop offset="75%" stop-color="green" stop-opacity="1" />
+              <stop offset="100%" stop-color="green" stop-opacity="0.2" />
+            </linearGradient>
+            <linearGradient id="Gradient4" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="green" stop-opacity="0.2"/>
+              <stop offset="25%" stop-color="green" stop-opacity="1" />
+              <stop offset="50%" stop-color="green" stop-opacity="1" />
+              <stop offset="75%" stop-color="green" stop-opacity="1" />
+              <stop offset="100%" stop-color="green" stop-opacity="0.2" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="/static/js/libs/bootstrap.bundle.min.js"></script>
+
+    <!-- local imports -->
+    <script type="text/javascript" src="/static/js/libs/d3.v6.min.js"></script>
+    <script type="text/javascript" src="/static/js/libs/luxon.min.js"></script>
+    <script type="text/javascript" src="/static/js/thermostat.js"></script>
+
+  </body>
+  </html>

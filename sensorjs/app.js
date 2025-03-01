@@ -28,6 +28,7 @@ var nunjucks = require('nunjucks');
 var indexRouter = require('./routes/index');
 // var usersRouter = require('./routes/users');
 const annotationRoutes = require('./routes/annotations');
+const thermostatRoutes = require('./routes/thermostat');
 
 var app = express();
 
@@ -45,6 +46,7 @@ app.use('/static', express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/', annotationRoutes);
+app.use('/', thermostatRoutes);
 
 // app.listen(8000, "0.0.0.0");
 

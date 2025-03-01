@@ -3,7 +3,9 @@ broken_apt
 apt-conf*
 *.hex
 *.img*
+nginx_logs
 
+private.py
 
 # Logs
 logs
